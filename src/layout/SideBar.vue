@@ -1,36 +1,45 @@
 <template>
     <aside :class="['sidebar', { 'sidebar-collapsed': collapsed, 'sidebar-hidden': isMobile && !showSidebar }]">
-
+        <!-- Đã bỏ sidebar-header và nút toggle, chỉ còn menu và footer -->
         <nav class="sidebar-menu">
             <ul class="nav flex-column">
-                <MenuItem icon="bi-house" label="Trang chủ" to="/" />
-                <MenuItem icon="bi-cart" label="Bán Hàng" to="/ban-hang" />
-                <MenuItem icon="bi-receipt" label="Quản lý hóa đơn" to="/quan-li-hoa-don" />
-                <MenuItem icon="bi-box-seam" label="Quản lý sản phẩm">
-                <MenuItem icon="bi-grid" label="Danh sách sản phẩm" to="/quan-li-san-pham" sub />
-                <MenuItem icon="bi-list-check" label="Tất cả chi tiết sản phẩm" to="/product-variants" sub />
+                <MenuItem icon="bi-house" label="Trang chủ" to="/" :collapsed="collapsed" />
+                <MenuItem icon="bi-cart" label="Bán Hàng" to="/ban-hang" :collapsed="collapsed" />
+                <MenuItem icon="bi-receipt" label="Quản lý hóa đơn" to="/quan-li-hoa-don" :collapsed="collapsed" />
+                <MenuItem icon="bi-box-seam" label="Quản lý sản phẩm" :collapsed="collapsed">
+                <MenuItem icon="bi-grid" label="Danh sách sản phẩm" to="/quan-li-san-pham" sub :collapsed="collapsed" />
+                <MenuItem icon="bi-list-check" label="Tất cả chi tiết sản phẩm" to="/product-variants" sub
+                    :collapsed="collapsed" />
                 </MenuItem>
-                <MenuItem icon="bi-people" label="Quản lý tài khoản & người dùng" to="/quan-li-tai-khoan" />
-                <MenuItem icon="bi-percent" label="Quản lý giảm giá" ref="discountMenu">
-                    <MenuItem icon="bi-tags" label="Quản lý đợt giảm giá" to="/quan-li-giam-gia" sub @submenu-click="handleSubmenuClick" />
-                    <MenuItem icon="bi-ticket-perforated" label="Quản lý phiếu giảm giá" to="/quan-li-phieu-giam-gia" sub @submenu-click="handleSubmenuClick" />
+                <MenuItem icon="bi-people" label="Quản lý tài khoản & người dùng" to="/quan-li-tai-khoan"
+                    :collapsed="collapsed" />
+                <MenuItem icon="bi-percent" label="Quản lý giảm giá" ref="discountMenu" :collapsed="collapsed">
+                <MenuItem icon="bi-tags" label="Quản lý đợt giảm giá" to="/quan-li-giam-gia" sub :collapsed="collapsed"
+                    @submenu-click="handleSubmenuClick" />
+                <MenuItem icon="bi-ticket-perforated" label="Quản lý phiếu giảm giá" to="/quan-li-phieu-giam-gia" sub
+                    :collapsed="collapsed" @submenu-click="handleSubmenuClick" />
                 </MenuItem>
-                <MenuItem icon="bi-arrow-counterclockwise" label="Quản lý trả hàng" to="/quan-li-tra-hang" />
-                <MenuItem icon="bi-shield-check" label="Quản lý bảo hành" to="/quan-li-bao-hanh" />
-                <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" />
-                <MenuItem icon="bi-bell" label="Quản lý thông báo" to="/quan-li-thong-bao" />
-                <MenuItem icon="bi-gear" label="Quản lý hệ thống" to="/quan-li-he-thong" />
+                <MenuItem icon="bi-arrow-counterclockwise" label="Quản lý trả hàng" to="/quan-li-tra-hang"
+                    :collapsed="collapsed" />
+                <MenuItem icon="bi-shield-check" label="Quản lý bảo hành" to="/quan-li-bao-hanh"
+                    :collapsed="collapsed" />
+                <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" :collapsed="collapsed" />
+                <MenuItem icon="bi-bell" label="Quản lý thông báo" to="/quan-li-thong-bao" :collapsed="collapsed" />
+                <MenuItem icon="bi-gear" label="Quản lý hệ thống" to="/quan-li-he-thong" :collapsed="collapsed" />
             </ul>
         </nav>
-        <div class="sidebar-footer p-3 mt-auto d-flex align-items-center">
-            <i class="bi bi-person-circle me-2"></i>
-            <span>Admin</span>
+        <div class="sidebar-footer p-3 mt-auto d-flex align-items-center gap-2">
+            <img class="sidebar-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="avatar" />
+            <div v-if="!collapsed">
+                <span class="fw-semibold">Admin</span>
+                <div class="sidebar-role">Quản trị viên</div>
+            </div>
         </div>
     </aside>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import MenuItem from './MenuItem.vue'
 const collapsed = ref(false)
 const showSidebar = ref(true)
@@ -38,11 +47,10 @@ const isMobile = ref(false)
 const discountMenu = ref(null)
 
 const toggleSidebar = () => (showSidebar.value = !showSidebar.value)
+const toggleCollapse = () => (collapsed.value = !collapsed.value)
 
 const handleSubmenuClick = () => {
-    // Chuyển menu từ hover state sang click state
     if (discountMenu.value) {
-        // Trigger click state cho parent menu
         discountMenu.value.open = true
         discountMenu.value.isHovered = false
     }
@@ -53,6 +61,7 @@ function handleResize() {
     if (isMobile.value) showSidebar.value = false
     else showSidebar.value = true
 }
+
 onMounted(() => {
     handleResize()
     window.addEventListener('resize', handleResize)
@@ -60,28 +69,37 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
 })
+
+// Lắng nghe sự kiện từ Header để mở/đóng sidebar trên mobile
+if (window) {
+    window.addEventListener('toggle-sidebar', () => {
+        showSidebar.value = !showSidebar.value
+    })
+}
 </script>
 
 <style scoped>
-/* ======= PHONG CÁCH APPLE ======= */
 .sidebar {
     width: 240px;
-    background: #f8f8f8;
-    border-right: 1px solid #e0e0e0;
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
     height: 100%;
     position: relative;
     display: flex;
     flex-direction: column;
     transition: width 0.3s cubic-bezier(.4, 2, .6, 1), box-shadow 0.2s;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
-    color: #222;
-    border-radius: 16px 0 0 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    color: #111;
+    border-radius: 12px 0 0 12px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.97rem;
+    z-index: 1100;
 }
 
 .sidebar-collapsed {
-    width: 0;
-    overflow: hidden;
+    width: 56px;
+    min-width: 56px;
+    overflow-x: hidden;
     box-shadow: none;
 }
 
@@ -89,76 +107,102 @@ onUnmounted(() => {
     display: none !important;
 }
 
+.sidebar-header {
+    border-bottom: 1px solid #f0f0f0;
+    min-height: 48px;
+    background: #fafbfc;
+}
+
+.btn-toggle {
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    color: #222;
+    transition: color 0.18s;
+}
+
+.btn-toggle:hover {
+    color: #1a237e;
+    background: #f0f1f3;
+}
+
 .sidebar-menu {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
-    padding-top: 10px;
+    padding-top: 6px;
 }
 
 .sidebar-menu .nav {
-    gap: 4px;
-}
-
-.sidebar-menu .nav :deep(.menu-item) {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    border-radius: 10px;
-    color: #222;
-    font-weight: 500;
-    font-size: 1.05rem;
-    background: transparent;
-    transition: background 0.18s, color 0.18s, border-left 0.18s;
-    cursor: pointer;
-    border-left: 4px solid transparent;
-}
-
-.sidebar-menu .nav :deep(.menu-item.active),
-.sidebar-menu .nav :deep(.menu-item.router-link-exact-active) {
-    background: #e5f1fb;
-    color: #007aff;
-    border-left: 4px solid #007aff;
-}
-
-.sidebar-menu .nav :deep(.menu-item:hover) {
-    background: #e9e9eb;
-    color: #007aff;
-}
-
-.sidebar-menu .nav :deep(.menu-item i) {
-    font-size: 1.25em;
-    color: #888;
-    transition: color 0.18s;
-}
-
-.sidebar-menu .nav :deep(.menu-item.active i),
-.sidebar-menu .nav :deep(.menu-item.router-link-exact-active i),
-.sidebar-menu .nav :deep(.menu-item:hover i) {
-    color: #007aff;
+    gap: 2px;
 }
 
 .sidebar-footer {
-    border-top: 1px solid #e0e0e0;
-    font-size: 1rem;
-    background: #fff;
-    color: #888;
-    letter-spacing: 0.5px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 0.93rem;
+    background: #fafbfc;
+    color: #111;
+    letter-spacing: 0.2px;
     font-weight: 500;
-    border-radius: 0 0 16px 0;
-    padding: 1rem 1.5rem;
+    border-radius: 0 0 12px 0;
+    padding: 0.7rem 1rem;
+    min-height: 48px;
 }
 
-.sidebar-footer i {
+.sidebar-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid #e5e7eb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    background: #f4f6f8;
+}
+
+.sidebar-role {
+    font-size: 0.78rem;
+    color: #1a237e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-toggle-sidebar {
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px #22c55e11;
+    outline: none;
+}
+
+.btn-toggle-sidebar:hover,
+.btn-toggle-sidebar:focus {
+    background: #16a34a;
+    color: #fff;
+    box-shadow: 0 2px 8px #22c55e22;
+}
+
+.btn-toggle-sidebar i {
     font-size: 1.2em;
-    margin-right: 8px;
-    color: #888;
+    transition: transform 0.2s;
 }
 
 @media (max-width: 991px) {
     .sidebar {
-        width: 210px;
+        width: 180px;
+    }
+
+    .sidebar-collapsed {
+        width: 48px;
+        min-width: 48px;
     }
 }
 
@@ -166,16 +210,11 @@ onUnmounted(() => {
     .sidebar {
         width: 100vw;
         min-width: 0;
-        border-radius: 0 0 16px 0;
+        border-radius: 0 0 12px 0;
     }
 
     .sidebar-footer {
-        padding: 0.7rem 1rem;
-    }
-
-    .sidebar-menu .nav :deep(.menu-item) {
-        padding: 12px 12px;
-        font-size: 1rem;
+        padding: 0.5rem 0.7rem;
     }
 }
 
@@ -183,14 +222,15 @@ onUnmounted(() => {
     .sidebar {
         width: 100vw;
         min-width: 0;
-        border-radius: 0 0 16px 0;
+        border-radius: 0 0 12px 0;
         position: fixed;
         left: 0;
         top: 0;
         height: 100vh;
         z-index: 1050;
-        background: #f8f8f8;
+        background: #fff;
         transition: left 0.2s, width 0.2s;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
     }
 }
 </style>

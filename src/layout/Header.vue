@@ -75,26 +75,40 @@ const handleLogout = () => {
 
 <style scoped>
 .header {
-    min-height: 60px;
+    min-height: 56px;
     position: sticky;
     top: 0;
     z-index: 300;
-    background: linear-gradient(90deg, #a4508b 0%, #f7666f 60%, #f9d423 100%);
-    box-shadow: 0 2px 12px rgba(164, 80, 139, 0.10);
-    backdrop-filter: blur(8px);
+    background: #22c55e;
+    box-shadow: 0 2px 8px #22c55e22;
+    color: #fff;
+    font-size: 0.97rem;
+    backdrop-filter: blur(6px);
+}
+
+.navbar-brand,
+.brand-gradient {
+    color: #fff !important;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: none !important;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: unset;
 }
 
 .theme-btn {
-    font-size: 1.2rem;
-    background: rgba(255, 255, 255, 0.85);
+    font-size: 1.1rem;
+    background: #fff;
+    color: #22c55e;
     border: none;
-    box-shadow: 0 1px 4px rgba(249, 212, 35, 0.10);
-    transition: background 0.18s;
+    box-shadow: 0 1px 4px #22c55e11;
+    transition: background 0.18s, color 0.18s;
 }
 
 .theme-btn:hover {
-    background: #ffe484;
-    color: #a4508b;
+    background: #e8fbe9;
+    color: #22c55e;
 }
 
 .avatar-wrapper {
@@ -108,55 +122,45 @@ const handleLogout = () => {
     right: 2px;
     width: 10px;
     height: 10px;
-    background: #4cd964;
+    background: #22c55e;
     border: 2px solid #fff;
     border-radius: 50%;
-    box-shadow: 0 0 4px #4cd96499;
+    box-shadow: 0 0 4px #22c55e99;
 }
 
 .user-role {
-    font-size: 0.85rem;
-    color: #f9d423;
+    font-size: 0.82rem;
+    color: #22c55e;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.bg-gradient {
-    background: linear-gradient(90deg, #a4508b 0%, #f7666f 60%, #f9d423 100%) !important;
-}
-
-.brand-gradient {
-    background: linear-gradient(90deg, #fff 30%, #f9d423 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
 .avatar-img {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #fff;
-    box-shadow: 0 2px 8px rgba(164, 80, 139, 0.13);
+    box-shadow: 0 2px 8px #22c55e13;
     transition: box-shadow 0.18s, border 0.18s;
 }
 
 .avatar-img:hover {
-    box-shadow: 0 4px 16px rgba(249, 212, 35, 0.18);
-    border: 2px solid #f9d423;
+    box-shadow: 0 4px 16px #22c55e18;
+    border: 2px solid #22c55e;
 }
 
 .notif-btn {
-    background: rgba(255, 255, 255, 0.85);
+    background: #fff;
+    color: #22c55e;
     transition: box-shadow 0.18s, background 0.18s;
 }
 
 .notif-btn:hover {
-    background: #ffe484;
-    box-shadow: 0 2px 12px rgba(249, 212, 35, 0.13);
+    background: #e8fbe9;
+    color: #22c55e;
+    box-shadow: 0 2px 8px #22c55e13;
 }
 
 .notif-badge {
@@ -166,49 +170,37 @@ const handleLogout = () => {
     font-size: 0.7em;
     padding: 3px 6px;
     border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(249, 212, 35, 0.13);
+    box-shadow: 0 1px 4px #22c55e13;
 }
 
 .dropdown-toggle {
-    background: rgba(255, 255, 255, 0.85);
-    border: none;
+    background: #fff;
+    color: #22c55e;
     font-weight: 500;
-    transition: background 0.18s, box-shadow 0.18s;
+    transition: background 0.18s, box-shadow 0.18s, color 0.18s;
 }
 
 .dropdown-toggle:hover {
-    background: #ffe484;
-    color: #a4508b;
+    background: #e8fbe9;
+    color: #22c55e;
 }
 
 .dropdown-menu {
     min-width: 180px;
     border-radius: 10px;
-    box-shadow: 0 4px 24px rgba(164, 80, 139, 0.10);
+    box-shadow: 0 4px 16px #22c55e10;
     padding: 8px 0;
-    font-size: 1rem;
+    font-size: 0.97rem;
 }
 
 .dropdown-item {
-    padding: 10px 20px;
+    padding: 9px 18px;
     transition: background 0.15s, color 0.15s;
+    color: #222;
 }
 
 .dropdown-item:hover {
-    background: #ffe484;
-    color: #a4508b;
-}
-
-.btn-outline-light {
-    border: 2px solid #fff;
-    color: #fff;
-    background: transparent;
-    transition: background 0.18s, color 0.18s, border 0.18s;
-}
-
-.btn-outline-light:hover {
-    background: #fff;
-    color: #a4508b;
-    border: 2px solid #f9d423;
+    background: #e8fbe9;
+    color: #22c55e;
 }
 </style>
