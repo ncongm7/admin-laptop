@@ -22,6 +22,11 @@ const routes = [
     name: 'QuanLiGiamGia',
     component: () => import('@/views/QuanLiGiamGia.vue'),
   },
+  {
+    path: '/quan-li-giam-gia/add',
+    name: 'AddDiscountCampaign',
+    component: () => import('@/views/AddDiscountCampaign.vue'),
+  },
   { path: '/thong-ke', name: 'ThongKe', component: () => import('@/views/ThongKe.vue') },
   {
     path: '/quan-li-tra-hang',

@@ -11,8 +11,10 @@
                 <MenuItem icon="bi-list-check" label="Tất cả chi tiết sản phẩm" to="/product-variants" sub />
                 </MenuItem>
                 <MenuItem icon="bi-people" label="Quản lý tài khoản & người dùng" to="/quan-li-tai-khoan" />
-                <MenuItem icon="bi-percent" label="Quản lý giảm giá" to="/quan-li-giam-gia" />
-                <MenuItem icon="bi-ticket-perforated" label="Quản lý phiếu giảm giá" to="/quan-li-phieu-giam-gia" />
+                <MenuItem icon="bi-percent" label="Quản lý giảm giá" ref="discountMenu">
+                    <MenuItem icon="bi-tags" label="Quản lý đợt giảm giá" to="/quan-li-giam-gia" sub @submenu-click="handleSubmenuClick" />
+                    <MenuItem icon="bi-ticket-perforated" label="Quản lý phiếu giảm giá" to="/quan-li-phieu-giam-gia" sub @submenu-click="handleSubmenuClick" />
+                </MenuItem>
                 <MenuItem icon="bi-arrow-counterclockwise" label="Quản lý trả hàng" to="/quan-li-tra-hang" />
                 <MenuItem icon="bi-shield-check" label="Quản lý bảo hành" to="/quan-li-bao-hanh" />
                 <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" />
@@ -33,7 +35,18 @@ import MenuItem from './MenuItem.vue'
 const collapsed = ref(false)
 const showSidebar = ref(true)
 const isMobile = ref(false)
+const discountMenu = ref(null)
+
 const toggleSidebar = () => (showSidebar.value = !showSidebar.value)
+
+const handleSubmenuClick = () => {
+    // Chuyển menu từ hover state sang click state
+    if (discountMenu.value) {
+        // Trigger click state cho parent menu
+        discountMenu.value.open = true
+        discountMenu.value.isHovered = false
+    }
+}
 
 function handleResize() {
     isMobile.value = window.innerWidth < 768
