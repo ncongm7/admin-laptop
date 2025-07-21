@@ -173,8 +173,7 @@ const addNewCampaign = () => {
 }
 
 const editCampaign = (campaign) => {
-  // Navigate to edit campaign page or open modal
-  console.log('Editing campaign:', campaign)
+  router.push(`/quan-li-giam-gia/edit/${campaign.id}`)
 }
 
 const viewCampaign = (campaign) => {

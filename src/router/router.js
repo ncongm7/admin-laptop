@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/user/LoginView.vue'
 // import ProductVariantsList from '@/views/sanpham/ProductVariantsList.vue'
+import EditPhieuGiamGia from '../views/EditPhieuGiamGia.vue'
 
 const routes = [
   // { path: '/', name: 'TrangChu', component: () => import('@/views/TrangChu.vue') },
@@ -30,6 +31,11 @@ const routes = [
   {
     path: '/quan-li-giam-gia/add',
     name: 'AddDiscountCampaign',
+    component: () => import('@/views/AddDiscountCampaign.vue'),
+  },
+  {
+    path: '/quan-li-giam-gia/edit/:id',
+    name: 'EditDiscountCampaign',
     component: () => import('@/views/AddDiscountCampaign.vue'),
   },
   { path: '/thong-ke', name: 'ThongKe', component: () => import('@/views/ThongKe.vue') },
@@ -72,6 +78,12 @@ const routes = [
     path: '/quan-li-phieu-giam-gia/:id',
     name: 'DetailPhieuGiamGia',
     component: () => import('@/views/DetailPhieuGiamGia.vue'),
+  },
+  {
+    path: '/quan-li-phieu-giam-gia/edit/:id',
+    name: 'EditPhieuGiamGia',
+    component: () => import('@/views/AddPhieuGiamGia.vue'),
+    props: true
   },
   {
     path: '/product-variants',

@@ -144,14 +144,12 @@
               <td>{{ voucher.endDate }}</td>
               <td>
                 <div class="action-buttons">
+                  <label class="switch">
+                    <input type="checkbox" :checked="voucher.status === 'active'" @change="toggleVoucherStatus(voucher)" />
+                    <span class="slider round"></span>
+                  </label>
                   <button class="action-btn edit" @click="editVoucher(voucher)">
                     ✏️
-                  </button>
-                  <button class="action-btn view" @click="viewVoucher(voucher)">
-                    👁️
-                  </button>
-                  <button class="action-btn delete" @click="deleteVoucher(voucher)">
-                    🗑️
                   </button>
                 </div>
               </td>
@@ -193,6 +191,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PhieuGiamGiaForm from '../components/phieugiamgia/PhieuGiamGiaForm.vue'
 
 const router = useRouter()
 
@@ -206,8 +205,51 @@ const sliderValue = ref(100)
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
 
-// Mock data - sẽ được thay thế bằng API call
-const vouchers = ref([])
+// Dữ liệu mẫu (fix cứng)
+const vouchers = ref([
+  {
+    id: 1,
+    code: 'PGG001',
+    value: '10%',
+    type: 'percentage',
+    status: 'active',
+    statusText: 'Đang diễn ra',
+    startDate: '2024-06-01',
+    endDate: '2024-07-01',
+    ten: 'Phiếu giảm giá mùa hè',
+    loai: '%',
+    gia_tri: 10,
+    giam_toi_da: 50000,
+    so_luong: 100,
+    dieu_kien: 200000,
+    kieu: 'toan_bo',
+    tu_ngay: '2024-06-01',
+    den_ngay: '2024-07-01',
+  },
+  {
+    id: 2,
+    code: 'PGG002',
+    value: '200000đ',
+    type: 'fixed',
+    status: 'upcoming',
+    statusText: 'Sắp diễn ra',
+    startDate: '2024-08-01',
+    endDate: '2024-09-01',
+    ten: 'Phiếu sinh viên',
+    loai: 'VND',
+    gia_tri: 200000,
+    giam_toi_da: 0,
+    so_luong: 50,
+    dieu_kien: 500000,
+    kieu: 'ca_nhan',
+    tu_ngay: '2024-08-01',
+    den_ngay: '2024-09-01',
+  }
+])
+
+// Modal edit
+const showEditModal = ref(false)
+const editingVoucher = ref(null)
 
 // Computed properties
 const filteredVouchers = computed(() => {
@@ -277,8 +319,24 @@ function addVoucher() {
 }
 
 function editVoucher(voucher) {
-  // TODO: Navigate to edit voucher form
-  console.log('Edit voucher:', voucher)
+  router.push(`/quan-li-phieu-giam-gia/edit/${voucher.id}`)
+}
+
+function handleSaveEdit(edited) {
+  // Tìm và cập nhật lại voucher trong mảng vouchers
+  const idx = vouchers.value.findIndex(v => v.id === edited.id)
+  if (idx !== -1) {
+    vouchers.value[idx] = { ...edited,
+      code: edited.ma || edited.code,
+      value: edited.loai === '%' ? edited.gia_tri + '%' : (edited.gia_tri ? edited.gia_tri + 'đ' : ''),
+      type: edited.loai === '%' ? 'percentage' : 'fixed',
+      statusText: vouchers.value[idx].statusText, // giữ nguyên statusText
+      status: vouchers.value[idx].status, // giữ nguyên status
+      startDate: edited.tu_ngay,
+      endDate: edited.den_ngay
+    }
+  }
+  showEditModal.value = false
 }
 
 function viewVoucher(voucher) {
@@ -289,6 +347,20 @@ function viewVoucher(voucher) {
 function deleteVoucher(voucher) {
   // TODO: Show delete confirmation
   console.log('Delete voucher:', voucher)
+}
+
+function toggleVoucherStatus(voucher) {
+  // Đảo trạng thái active/upcoming/expired (demo logic)
+  if (voucher.status === 'active') {
+    voucher.status = 'expired';
+    voucher.statusText = 'Đã kết thúc';
+  } else if (voucher.status === 'upcoming') {
+    voucher.status = 'active';
+    voucher.statusText = 'Đang diễn ra';
+  } else {
+    voucher.status = 'upcoming';
+    voucher.statusText = 'Sắp diễn ra';
+  }
 }
 
 function goToFirstPage() {
@@ -313,6 +385,7 @@ function goToLastPage() {
 </script>
 
 <style scoped>
+/* --- FILTER SECTION: Style đồng bộ DiscountFilter.vue --- */
 .voucher-management {
   padding: 24px;
   background: #fafbfc;
@@ -321,123 +394,117 @@ function goToLastPage() {
   max-width: 100%;
 }
 
-/* Page Header */
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #4caf50;
-  margin: 0 0 8px 0;
-}
-
-.breadcrumb {
-  font-size: 14px;
-  color: #666;
-  margin: 0;
-}
-
-/* Filter Section */
 .filter-section {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
-  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  padding: 12px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 20px;
+  padding: 8px 12px;
   background: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .filter-icon {
-  font-size: 16px;
-  color: #666;
+  font-size: 14px;
+  color: #6c757d;
 }
 
 .filter-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #333;
   margin: 0;
 }
 
 .filter-content {
-  padding: 20px;
+  padding: 12px;
 }
 
 .filter-row {
   display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: end;
 }
 
 .filter-group {
   flex: 1;
-  min-width: 200px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-label {
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  color: #555;
-  margin-bottom: 8px;
+  color: #495057;
+  margin-bottom: 6px;
 }
 
 .search-input-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .search-icon {
   position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
-  font-size: 16px;
+  left: 8px;
+  color: #6c757d;
+  font-size: 12px;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 12px 10px 35px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
+  padding: 6px 6px 6px 28px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  height: 32px;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #4caf50;
+  border-color: #28a745;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
 }
 
 .filter-select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #f8f9fa;
   cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #4caf50;
+  border-color: #28a745;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
 }
 
 .date-range {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .date-input-wrapper {
@@ -450,41 +517,34 @@ function goToLastPage() {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
-  font-size: 14px;
+  color: #6c757d;
+  font-size: 10px;
   pointer-events: none;
 }
 
 .date-input {
   width: 100%;
-  padding: 10px 12px 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
-  cursor: pointer;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  height: 32px;
 }
 
 .date-input:focus {
   outline: none;
-  border-color: #4caf50;
-}
-
-/* Ẩn icon calendar mặc định của browser */
-.date-input::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+  border-color: #28a745;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
 }
 
 .date-separator {
-  color: #666;
-  font-size: 14px;
+  color: #6c757d;
+  font-size: 11px;
   white-space: nowrap;
+  margin: 0 4px;
 }
 
 .value-slider-container {
@@ -500,7 +560,7 @@ function goToLastPage() {
   height: 6px;
   background: #e0e0e0;
   border-radius: 3px;
-  margin: 16px 0 8px;
+  margin: 12px 0 6px;
 }
 
 .slider-fill {
@@ -508,7 +568,7 @@ function goToLastPage() {
   left: 0;
   top: 0;
   height: 100%;
-  background: #4caf50;
+  background: #28a745;
   border-radius: 3px;
   width: 100%;
 }
@@ -517,60 +577,74 @@ function goToLastPage() {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 18px;
-  height: 18px;
-  background: #4caf50;
+  width: 14px;
+  height: 14px;
+  background: #28a745;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
 
 .slider-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  color: #666;
-  margin-top: 8px;
+  font-size: 10px;
+  color: #6c757d;
+  margin-top: 4px;
 }
 
 .filter-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
   justify-content: flex-end;
-  margin-top: 20px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 5;
+  margin-top: 8px;
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .btn-primary {
-  background: #4caf50;
-  color: white;
+  background: #28a745;
+  color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: #45a049;
+  background: #1e7e34;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
 .btn-secondary {
-  background: #f8f9fa;
-  color: #555;
-  border: 1px solid #ddd;
+  background: #6c757d;
+  color: #ffffff;
 }
 
 .btn-secondary:hover {
-  background: #e9ecef;
+  background: #545b62;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
 }
 
-/* Voucher List Section */
+/* --- TABLE, BADGE, ACTION, PAGINATION: Khôi phục style cũ --- */
 .voucher-list-section {
   background: #fff;
   border-radius: 8px;
@@ -647,17 +721,14 @@ function goToLastPage() {
   font-size: 12px;
   font-weight: 500;
 }
-
 .status-badge.active {
   background: #e8f5e9;
   color: #2e7d32;
 }
-
 .status-badge.upcoming {
   background: #fff3e0;
   color: #f57c00;
 }
-
 .status-badge.expired {
   background: #ffebee;
   color: #c62828;
@@ -680,30 +751,24 @@ function goToLastPage() {
   font-size: 14px;
   transition: background 0.2s;
 }
-
 .action-btn.edit {
   background: #e3f2fd;
   color: #1976d2;
 }
-
 .action-btn.edit:hover {
   background: #bbdefb;
 }
-
 .action-btn.view {
   background: #f3e5f5;
   color: #7b1fa2;
 }
-
 .action-btn.view:hover {
   background: #e1bee7;
 }
-
 .action-btn.delete {
   background: #ffebee;
   color: #d32f2f;
 }
-
 .action-btn.delete:hover {
   background: #ffcdd2;
 }
@@ -715,7 +780,6 @@ function goToLastPage() {
   font-style: italic;
 }
 
-/* Pagination */
 .pagination-container {
   display: flex;
   align-items: center;
@@ -751,54 +815,103 @@ function goToLastPage() {
   color: #555;
   transition: all 0.2s;
 }
-
 .pagination-btn:hover:not(:disabled) {
   background: #e9ecef;
   border-color: #adb5bd;
 }
-
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Responsive */
+/* Switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #28a745;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #28a745;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(20px);
+  -ms-transform: translateX(20px);
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
 @media (max-width: 1200px) {
-  .sidebar {
-    width: 240px;
-  }
-  
   .filter-row {
     flex-direction: column;
-    gap: 16px;
+    gap: 6px;
   }
-  
   .filter-group {
     min-width: auto;
   }
 }
-
 @media (max-width: 768px) {
   .voucher-management {
-    padding: 16px;
+    padding: 12px;
   }
-  
   .filter-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
   .list-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
   .pagination-container {
     flex-direction: column;
     gap: 12px;
   }
-  
   .pagination-info {
     justify-content: center;
   }

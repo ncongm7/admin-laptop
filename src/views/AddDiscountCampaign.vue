@@ -11,7 +11,7 @@
 
     <!-- Page Title -->
     <div class="page-header">
-      <h1 class="page-title">Thêm Đợt Giảm Giá</h1>
+      <h1 class="page-title">{{ isEdit ? 'Chỉnh Sửa Đợt Giảm Giá' : 'Thêm Đợt Giảm Giá' }}</h1>
     </div>
 
     <!-- Main Content -->
@@ -72,7 +72,7 @@
 
           <!-- Discount Amount -->
           <div class="form-group">
-            <label class="form-label">Số tiền giảm</label>
+            <label class="form-label">Số tiền giảm tối đa</label>
             <input 
               type="text" 
               class="form-input" 
@@ -207,6 +207,50 @@
           </table>
         </div>
 
+        <!-- Bảng các sản phẩm đã chọn -->
+        <div class="selected-products-section" style="margin-top: 24px;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="title-text">Sản Phẩm Đã Chọn</span>
+              <i class="table-icon">✅</i>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="product-table">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Mã</th>
+                  <th>Tên SP</th>
+                  <th>Hãng</th>
+                  <th>Số lượng</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(productId, idx) in selectedProducts" :key="productId">
+                  <td>{{ idx + 1 }}</td>
+                  <td>{{ getProductById(productId)?.code }}</td>
+                  <td>{{ getProductById(productId)?.name }}</td>
+                  <td>{{ getProductById(productId)?.brand }}</td>
+                  <td>{{ getProductById(productId)?.quantity }}</td>
+                  <td>
+                    <button class="btn btn-danger btn-sm" @click="removeSelectedProduct(productId)">Xóa</button>
+                  </td>
+                </tr>
+                <tr v-if="selectedProducts.length === 0">
+                  <td colspan="6" class="no-data">
+                    <div class="no-data-content">
+                      <i class="no-data-icon">📦</i>
+                      <p>Chưa có sản phẩm nào được chọn</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Pagination -->
         <div class="pagination-container">
           <div class="pagination-info">
@@ -244,9 +288,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 
 // Campaign data
 const campaignData = ref({
@@ -257,6 +302,9 @@ const campaignData = ref({
   startDate: '',
   endDate: ''
 })
+
+// Nếu là chế độ sửa, load dữ liệu campaign (mock)
+const isEdit = computed(() => !!route.params.id)
 
 // Product filters
 const productFilters = ref({
@@ -377,9 +425,40 @@ const goToLastPage = () => {
   currentPage.value = totalPages.value
 }
 
+const getProductById = (id) => {
+  return products.value.find(product => product.id === id)
+}
+
+const removeSelectedProduct = (id) => {
+  selectedProducts.value = selectedProducts.value.filter(productId => productId !== id)
+}
+
 // Lifecycle
 onMounted(() => {
   console.log('Add Discount Campaign component mounted')
+  if (isEdit.value) {
+    // Giả lập lấy dữ liệu campaign theo id (có thể thay bằng API thực tế)
+    // Dữ liệu này nên giống với mock ở QuanLiGiamGia.vue
+    if (route.params.id == 1) {
+      campaignData.value = {
+        name: 'Khuyến mãi mùa hè',
+        type: 'percentage',
+        value: 15,
+        amount: '',
+        startDate: '2024-06-01',
+        endDate: '2024-08-31'
+      }
+    } else if (route.params.id == 2) {
+      campaignData.value = {
+        name: 'Giảm giá sinh viên',
+        type: 'fixed',
+        value: 200000,
+        amount: '',
+        startDate: '2024-09-01',
+        endDate: '2024-12-31'
+      }
+    }
+  }
 })
 </script>
 
