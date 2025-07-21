@@ -150,5 +150,6 @@ export default {
 <style scoped>
 .form-label {
   font-weight: 500;
+  font-size: 0.9rem;  
 }
 </style>

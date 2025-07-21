@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <Header v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" />
+    <header v-if="!isLoginPage" @toggle-sidebar="toggleSidebar"/>
     <div v-if="!isLoginPage" class="main-content">
       <SideBar v-show="!sidebarCollapsed" />
       <main class="main-area">
