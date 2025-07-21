@@ -99,6 +99,16 @@ const routes = [
     meta: { requiresAuth: true, role: ['ADMIN', 'NHAN_VIEN'] },
   },
   {
+    path: '/nhan-vien',
+    name: 'NhanVien',
+    component: () => import('@/components/taikhoan/NhanVien.vue'),
+  },
+  {
+    path: '/nhan-vien/them',
+    name: 'NhanVienForm',
+    component: () => import('@/components/taikhoan/NhanVienForm.vue'),
+  },
+  {
     path: '/login',
     name: 'Login',
     component: LoginView,

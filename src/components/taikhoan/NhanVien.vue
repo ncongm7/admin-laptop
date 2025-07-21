@@ -1,966 +1,783 @@
 <template>
-    <div>
-        <!-- Bộ lọc -->
-        <div class="card mb-4 filter-card">
-            <div class="card-body">
-                <div class="filter-title">Bộ lọc</div>
-                <div class="filter-row">
-                    <div class="filter-col">
-                        <label class="form-label">Tìm kiếm</label>
-                        <input type="text" class="form-control" placeholder="Tìm kiếm tên, số điện thoại..." />
-                    </div>
-                    <div class="filter-col">
-                        <label class="form-label">Ngày sinh</label>
-                        <input type="date" class="form-control" />
-                    </div>
-                    <div class="filter-col">
-                        <label class="form-label">Trạng thái</label>
-                        <select class="form-select">
-                            <option>Tất cả</option>
-                            <option>Hoạt động</option>
-                            <option>Chưa kích hoạt</option>
-                        </select>
-                    </div>
-                    <div class="filter-col">
-                        <label class="form-label">Khoảng lương</label>
-                        <div class="slider-label-row">
-                            <span class="salary-label">{{ salaryRange[0] }} triệu</span>
-                            <Slider v-model="salaryRange" :min="0" :max="100" :step="1" class="salary-slider" />
-                            <span class="salary-label">{{ salaryRange[1] }} triệu</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="filter-action-row">
-                    <button class="btn btn-primary d-flex align-items-center">
-                        <i class="bi bi-search me-1"></i> Tìm kiếm
-                    </button>
-                    <button class="btn btn-primary d-flex align-items-center" @click="openAdd()">
-                        <i class="bi bi-plus-circle me-1"></i> Thêm mới
-                    </button>
-                    <button class="btn btn-outline-primary d-flex align-items-center">
-                        <i class="bi bi-arrow-clockwise me-1"></i> Làm mới bộ lọc
-                    </button>
-                    <button class="btn btn-outline-primary d-flex align-items-center">
-                        <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
-                    </button>
-                    <button class="btn btn-outline-secondary d-flex align-items-center">
-                        <i class="bi bi-upload me-1"></i> Import Excel
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- Bảng danh sách nhân viên -->
-        <div class="card">
-            <div class="card-body p-0">
-                <h5 class="staff-list-title px-4 pt-3 pb-2 mb-0">Danh sách nhân viên</h5>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>STT</th>
-                                <th>Ảnh</th>
-                                <th>Họ và tên</th>
-                                <th>CCCD</th>
-                                <th>Số điện thoại</th>
-                                <th>Ngày sinh</th>
-                                <th>Email</th>
-                                <th>Trạng Thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(user, idx) in users" :key="user.id">
-                                <td>{{ idx + 1 }}</td>
-                                <td>
-                                    <div class="avatar-circle">
-                                        <span>{{ getInitials(user.name) }}</span>
-                                    </div>
-                                </td>
-                                <td>{{ user.name }}</td>
-                                <td>{{ user.cccd }}</td>
-                                <td>{{ user.phone }}</td>
-                                <td>{{ user.birthday }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>
-                                    <span class="badge status-badge" :class="user.status ? 'active' : 'inactive'">
-                                        {{ user.status ? 'Hoạt động' : 'Chưa kích hoạt' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-btn-group">
-                                        <button class="btn btn-action-view me-1" title="Xem" @click="openDetail(user)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-action-edit me-1" title="Sửa" @click="openEdit(user)">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button class="btn btn-action-delete" title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <!-- Modal chi tiết nhân viên -->
-        <template v-if="showDetailModal">
-            <div class="modal-overlay" @click.self="closeDetail">
-                <div class="modal-detail">
-                    <button class="modal-close" @click="closeDetail" title="Đóng">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                    <div class="modal-avatar">
-                        <div class="avatar-circle modal-avatar-circle">
-                            <span>{{ getInitials(selectedUser.name) }}</span>
-                        </div>
-                    </div>
-                    <div class="modal-info">
-                        <h2 class="modal-name">{{ selectedUser.name }}</h2>
-                        <div class="modal-row">
-                            <span class="modal-label">CCCD:</span> {{ selectedUser.cccd }}
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Số điện thoại:</span> {{ selectedUser.phone }}
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Email:</span> {{ selectedUser.email }}
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Ngày sinh:</span> {{ selectedUser.birthday }}
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Trạng thái:</span>
-                            <span class="badge status-badge" :class="selectedUser.status ? 'active' : 'inactive'">
-                                {{ selectedUser.status ? 'Hoạt động' : 'Chưa kích hoạt' }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
-        <!-- Modal sửa nhân viên -->
-        <template v-if="showEditModal">
-            <div class="modal-overlay" @click.self="closeEdit">
-                <form class="modal-detail modal-edit-form" @submit.prevent="saveEdit">
-                    <button class="modal-close" @click="closeEdit" title="Đóng">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                    <div class="modal-avatar">
-                        <label class="avatar-upload-label">
-                            <div class="avatar-circle modal-avatar-circle avatar-upload-preview">
-                                <template v-if="editUser.avatar">
-                                    <img :src="editUser.avatar" alt="avatar" class="avatar-img" />
-                                </template>
-                                <template v-else>
-                                    <span>{{ getInitials(editUser.name || '') }}</span>
-                                </template>
-                            </div>
-                            <input type="file" accept="image/*" class="avatar-upload-input"
-                                @change="(e) => onAvatarChange(e, editUser)" />
-                            <span class="avatar-upload-text">Chọn ảnh</span>
-                        </label>
-                    </div>
-                    <div class="modal-info">
-                        <h2 class="modal-name">Sửa nhân viên</h2>
-                        <div class="modal-row">
-                            <span class="modal-label">Họ và tên:</span>
-                            <input v-model="editUser.name" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">CCCD:</span>
-                            <input v-model="editUser.cccd" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Số điện thoại:</span>
-                            <input v-model="editUser.phone" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Email:</span>
-                            <input v-model="editUser.email" type="email" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Ngày sinh:</span>
-                            <input v-model="editUser.birthday" type="date" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Trạng thái:</span>
-                            <select v-model="editUser.status" class="modal-input">
-                                <option :value="true">Hoạt động</option>
-                                <option :value="false">Chưa kích hoạt</option>
-                            </select>
-                        </div>
-                        <div class="modal-edit-actions">
-                            <button type="submit" class="btn btn-primary">Lưu</button>
-                            <button type="button" class="btn btn-outline-secondary" @click="closeEdit">Đóng</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </template>
-        <!-- Modal thêm nhân viên -->
-        <template v-if="showAddModal">
-            <div class="modal-overlay" @click.self="closeAdd">
-                <form class="modal-detail modal-edit-form" @submit.prevent="saveAdd">
-                    <button class="modal-close" @click="closeAdd" title="Đóng">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                    <div class="modal-avatar">
-                        <label class="avatar-upload-label">
-                            <div class="avatar-circle modal-avatar-circle avatar-upload-preview">
-                                <template v-if="addUser.avatar">
-                                    <img :src="addUser.avatar" alt="avatar" class="avatar-img" />
-                                </template>
-                                <template v-else>
-                                    <span>{{ getInitials(addUser.name || '') }}</span>
-                                </template>
-                            </div>
-                            <input type="file" accept="image/*" class="avatar-upload-input"
-                                @change="(e) => onAvatarChange(e, addUser)" />
-                            <span class="avatar-upload-text">Chọn ảnh</span>
-                        </label>
-                    </div>
-                    <div class="modal-info">
-                        <h2 class="modal-name">Thêm nhân viên</h2>
-                        <div class="modal-row">
-                            <span class="modal-label">Họ và tên:</span>
-                            <input v-model="addUser.name" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">CCCD:</span>
-                            <input v-model="addUser.cccd" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Số điện thoại:</span>
-                            <input v-model="addUser.phone" type="text" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Email:</span>
-                            <input v-model="addUser.email" type="email" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Ngày sinh:</span>
-                            <input v-model="addUser.birthday" type="date" class="modal-input" required />
-                        </div>
-                        <div class="modal-row">
-                            <span class="modal-label">Trạng thái:</span>
-                            <select v-model="addUser.status" class="modal-input">
-                                <option :value="true">Hoạt động</option>
-                                <option :value="false">Chưa kích hoạt</option>
-                            </select>
-                        </div>
-                        <div class="modal-edit-actions">
-                            <button type="submit" class="btn btn-primary">Lưu</button>
-                            <button type="button" class="btn btn-outline-secondary" @click="closeAdd">Đóng</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </template>
+  <div class="nhanvien-wrapper">
+    <!-- Header & Breadcrumb -->
+    <div class="header-breadcrumb">
+      <h1 class="main-title">Quản Lý Nhân Viên</h1>
+      <div class="breadcrumb">
+        <router-link to="/" class="breadcrumb-link">Trang chủ</router-link> /
+        <span>Nhân viên</span>
+      </div>
     </div>
+
+    <!-- Bộ Lọc Tìm Kiếm -->
+    <div class="filter-card">
+      <div class="filter-row filter-row-top">
+        <div class="filter-col search-col">
+          <label class="form-label">Tìm kiếm</label>
+          <input
+            type="text"
+            v-model="search"
+            class="form-control"
+            placeholder="Mã, tên, email, SDT..."
+          />
+        </div>
+        <div class="filter-col status-col">
+          <label class="form-label">Trạng thái</label>
+          <div class="status-radio-group">
+            <label><input type="radio" value="all" v-model="statusFilter" /> Tất cả</label>
+            <label><input type="radio" value="active" v-model="statusFilter" /> Đang làm</label>
+            <label><input type="radio" value="inactive" v-model="statusFilter" /> Đã nghỉ</label>
+          </div>
+        </div>
+      </div>
+      <div class="filter-row filter-row-bottom">
+        <div class="total-label-form">
+          Tổng số nhân viên: <span class="total-number">{{ filteredUsers.length }}</span>
+        </div>
+        <div class="btn-row-form">
+          <button class="btn btn-outline" @click="resetFilter">Đặt lại bộ lọc</button>
+          <button class="btn btn-success" @click="openAdd">Thêm Nhân Viên</button>
+          <button class="btn btn-outline">Xuất Excel</button>
+          <button class="btn btn-outline">Nhập từ Excel</button>
+          <button class="btn btn-outline">Tải mẫu Excel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danh Sách Nhân Viên -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-header-row">
+          <span class="table-total-label">{{ filteredUsers.length }} nhân viên</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 custom-table">
+            <thead class="table-light">
+              <tr>
+                <th>STT</th>
+                <th>Mã Nhân Viên</th>
+                <th>Tên Nhân Viên</th>
+                <th>Email</th>
+                <th>Số Điện Thoại</th>
+                <th>Địa Chỉ</th>
+                <th>Trạng Thái</th>
+                <th>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(user, idx) in paginatedUsers" :key="user.id">
+                <td>{{ idx + 1 + (currentPage - 1) * pageSize }}</td>
+                <td class="user-code">
+                  <a href="#" class="user-code-link">{{ user.code }}</a>
+                </td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.phone }}</td>
+                <td>{{ user.address }}</td>
+                <td>
+                  <div class="status-toggle-group">
+                    <span class="badge status-badge" :class="user.status ? 'active' : 'inactive'">
+                      {{ user.status ? 'Đang làm' : 'Đã nghỉ' }}
+                    </span>
+                    <label class="switch">
+                      <input type="checkbox" v-model="user.status" />
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                </td>
+                <td>
+                  <div class="action-btn-group">
+                    <button class="btn btn-action-edit" title="Sửa" @click="openEdit(user)">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-action-delete" title="Xóa" @click="deleteUser(user)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination & Hiển thị số lượng -->
+        <div class="pagination-row">
+          <div class="page-size-select">
+            Hiển thị
+            <select v-model="pageSize">
+              <option v-for="size in [5, 10, 20]" :key="size" :value="size">{{ size }}</option>
+            </select>
+            mục / trang
+          </div>
+          <div class="pagination-controls">
+            <button :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
+            <span>{{ currentPage }}</span>
+            <button :disabled="currentPage === totalPages" @click="currentPage++">&gt;</button>
+          </div>
+          <div class="page-info">
+            Hiển thị {{ (currentPage - 1) * pageSize + 1 }} -
+            {{ Math.min(currentPage * pageSize, filteredUsers.length) }} /
+            {{ filteredUsers.length }} mục
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal thêm/sửa nhân viên (giữ lại logic cũ) -->
+    <!-- ĐÃ XOÁ PHẦN MODAL THÊM/SỬA NHÂN VIÊN VÌ ĐÃ DÙNG ROUTE RIÊNG -->
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import Slider from '@vueform/slider'
-import '@vueform/slider/themes/default.css'
-const salaryRange = ref([10, 80])
-const showDetailModal = ref(false)
-const selectedUser = ref(null)
-const showEditModal = ref(false)
-const editUser = reactive({})
-const showAddModal = ref(false)
-const addUser = reactive({
-    name: '',
-    cccd: '',
-    phone: '',
-    birthday: '',
-    email: '',
-    status: true,
-    avatar: '',
-})
+import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const search = ref('')
+const statusFilter = ref('all')
+const pageSize = ref(5)
+const currentPage = ref(1)
+// Đã xoá các biến liên quan modal thêm/sửa
+
 const users = reactive([
-    {
-        id: 1,
-        name: 'Lê Văn C',
-        cccd: '023456789012',
-        phone: '0909090909',
-        birthday: '01/01/1985',
-        email: 'vanlc@example.com',
-        status: true,
-        avatar: '',
-    },
-    {
-        id: 2,
-        name: 'Trần Thị B',
-        cccd: '098765432109',
-        phone: '0987654321',
-        birthday: '15/08/1990',
-        email: 'thib@example.com',
-        status: true,
-        avatar: '',
-    },
-    {
-        id: 3,
-        name: 'Nguyễn Văn A',
-        cccd: '012345678901',
-        phone: '0912345678',
-        birthday: '09/04/1985',
-        email: 'vana@example.com',
-        status: true,
-        avatar: '',
-    },
-    {
-        id: 4,
-        name: 'Trần Thị C',
-        cccd: '098764411111',
-        phone: '0987641111',
-        birthday: '13/04/2000',
-        email: 'thic@example.com',
-        status: false,
-        avatar: '',
-    },
+  {
+    id: 1,
+    code: 'NV000001',
+    name: 'Nguyễn Đức Minh',
+    email: 'ducminh2212345@gmail.com',
+    phone: '0986221206',
+    address: 'vô gia cư, Phường Trúc Bạch, Quận Ba Đình, Thành phố Hà Nội',
+    status: false,
+  },
+  {
+    id: 2,
+    code: 'NV000002',
+    name: 'Nguyễn Việt Khoa',
+    email: 'KhoaNV212@gmail.com',
+    phone: '0988193939',
+    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
+    status: false,
+  },
+  {
+    id: 3,
+    code: 'NV000003',
+    name: 'Đinh Mạnh Phước',
+    email: 'PhuocDM912@gmail.com',
+    phone: '0986880912',
+    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
+    status: false,
+  },
+  {
+    id: 4,
+    code: 'NV000004',
+    name: 'Nguyễn Hữu Huân',
+    email: 'huanek2006@gmail.com',
+    phone: '0986912296',
+    address: 'Ngọc Thụy, Long Biên, Hà Nội',
+    status: false,
+  },
+  {
+    id: 5,
+    code: 'NV000005',
+    name: 'Lê Quang Phúc',
+    email: 'PhucLQ890@gmail.com',
+    phone: '0986872711',
+    address: 'Yên Hoà, Cầu Giấy, Hà Nội',
+    status: false,
+  },
+  {
+    id: 6,
+    code: 'NV000006',
+    name: 'Nguyễn Văn A',
+    email: 'vana@example.com',
+    phone: '0912345678',
+    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
+    status: true,
+  },
+  {
+    id: 7,
+    code: 'NV000007',
+    name: 'Trần Thị B',
+    email: 'thib@example.com',
+    phone: '0987654321',
+    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
+    status: true,
+  },
 ])
-function getInitials(name) {
-    return name
-        .split(' ')
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+
+const filteredUsers = computed(() => {
+  let result = users.filter((u) => {
+    const s = search.value.toLowerCase()
+    return (
+      u.code.toLowerCase().includes(s) ||
+      u.name.toLowerCase().includes(s) ||
+      u.email.toLowerCase().includes(s) ||
+      u.phone.includes(s)
+    )
+  })
+  if (statusFilter.value === 'active') result = result.filter((u) => u.status)
+  if (statusFilter.value === 'inactive') result = result.filter((u) => !u.status)
+  return result
+})
+
+const totalPages = computed(() => Math.ceil(filteredUsers.value.length / pageSize.value))
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredUsers.value.slice(start, start + pageSize.value)
+})
+
+function resetFilter() {
+  search.value = ''
+  statusFilter.value = 'all'
+  currentPage.value = 1
 }
-function openDetail(user) {
-    selectedUser.value = user
-    showDetailModal.value = true
-}
-function closeDetail() {
-    showDetailModal.value = false
-    selectedUser.value = null
-}
-function openEdit(user) {
-    Object.assign(editUser, user)
-    showEditModal.value = true
-}
-function closeEdit() {
-    showEditModal.value = false
-    Object.keys(editUser).forEach((k) => delete editUser[k])
-}
-function saveEdit() {
-    const idx = users.findIndex((u) => u.id === editUser.id)
-    if (idx !== -1) {
-        users[idx] = { ...editUser }
-    }
-    closeEdit()
-}
+// Thay openAdd bằng chuyển route
 function openAdd() {
-    Object.assign(addUser, {
-        name: '',
-        cccd: '',
-        phone: '',
-        birthday: '',
-        email: '',
-        status: true,
-        avatar: '',
-    })
-    showAddModal.value = true
+  router.push('/nhan-vien/them')
 }
-function closeAdd() {
-    showAddModal.value = false
-    Object.assign(addUser, {
-        name: '',
-        cccd: '',
-        phone: '',
-        birthday: '',
-        email: '',
-        status: true,
-        avatar: '',
-    })
+function openEdit() {
+  // Nếu muốn sửa, có thể chuyển sang trang sửa riêng hoặc mở modal sửa
+  // Hiện tại chỉ giữ lại logic xóa
 }
-function saveAdd() {
-    const newId = users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1
-    users.push({ id: newId, ...addUser })
-    closeAdd()
-}
-function onAvatarChange(e, target) {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-        target.avatar = ev.target.result
-    }
-    reader.readAsDataURL(file)
+function deleteUser(user) {
+  const idx = users.findIndex((u) => u.id === user.id)
+  if (idx !== -1) users.splice(idx, 1)
 }
 </script>
 
 <style scoped>
-body {
-    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    background: #f4f6fb;
-    color: #222;
-    margin: 0;
-    padding: 0;
+.nhanvien-wrapper {
+  background: #f4f6fb;
+  min-height: 100vh;
+  padding: 24px 0 32px 0;
 }
-
-html,
-body {
-    padding: 0;
-    margin: 0;
+.header-breadcrumb {
+  margin-bottom: 18px;
 }
-
-.staff-management {
-    /* background: #f4f6fb; */
-    /* min-height: 100vh; */
-    /* width: 100vw; */
-    /* max-width: 100vw; */
-    /* margin: 0; */
-    /* padding: 24px 0 32px 0; */
-    /* padding-left: 0 !important; */
-    /* margin-left: 0 !important; */
+.main-title {
+  color: #1aaf5d;
+  font-size: 2.1rem;
+  font-weight: 800;
+  margin-bottom: 2px;
 }
-
-h2 {
-    color: #1a237e;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    margin-bottom: 32px;
-    text-align: center;
+.breadcrumb {
+  font-size: 1.1rem;
+  color: #1aaf5d;
+  margin-bottom: 12px;
 }
-
-.card,
+.breadcrumb-link {
+  color: #1aaf5d;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .filter-card {
-    border-radius: 18px;
-    box-shadow: 0 4px 24px rgba(60, 72, 88, 0.08);
-    background: #fff;
-    border: none;
-    margin-bottom: 32px;
-    /* width: 100vw; */
-    /* max-width: 100vw; */
-    /* margin-left: 0 !important; */
-    /* margin-right: 0; */
-    /* left: 50%; */
-    /* transform: translateX(-50%); */
-    /* position: relative; */
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px #1976d211;
+  padding: 18px 18px 10px 18px;
+  margin-bottom: 18px;
 }
-
-.filter-card .card-body {
-    padding-left: 16px;
-    padding-right: 16px;
+.filter-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 18px;
+  align-items: flex-end;
 }
-
-.filter-card .form-label {
-    font-size: 1em;
-    font-weight: 500;
-    color: #1976d2;
-    margin-bottom: 6px;
+.filter-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-
-input.form-control,
-select.form-select {
-    border-radius: 10px;
-    border: 1.5px solid #e3eafc;
-    font-size: 1em;
-    padding: 8px 12px;
-    background: #f8fafc;
-    transition: border 0.2s;
+.search-col {
+  flex: 2;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  justify-content: flex-end;
 }
-
-input.form-control:focus,
-select.form-select:focus {
-    border-color: #1976d2;
-    outline: none;
+.total-label-fixed {
+  font-size: 1.15em;
+  color: #1aaf5d;
+  font-weight: 800;
+  margin-top: 8px;
+  margin-bottom: 0;
 }
-
-.salary-label {
-    font-size: 0.97em;
-    color: #1976d2;
-    font-weight: 600;
+.status-col {
+  flex: 1.2;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
-
-.avatar-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #42a5f5 60%, #1976d2 100%);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1.15rem;
-    box-shadow: 0 2px 8px #42a5f522;
-    border: 2.5px solid #e3f2fd;
-    margin: 0 auto;
+.btn-col-fixed {
+  flex: 3;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex-wrap: nowrap;
 }
-
-.status-badge {
-    font-size: 1em;
-    padding: 6px 18px;
-    border-radius: 18px;
-    font-weight: 700;
-    background: #e3fbe8;
-    color: #2e7d32;
-    border: 1.5px solid #b2dfdb;
-    letter-spacing: 0.5px;
-    box-shadow: 0 1px 4px #b2dfdb33;
+.filter-col status-col {
+  flex: 1.2;
 }
-
-.status-badge.inactive {
-    background: #fff3e0;
-    color: #ff9800;
-    border: 1.5px solid #ffe0b2;
+.total-col {
+  flex: 1;
 }
-
+.btn-col {
+  flex: 2.5;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.status-radio-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 2px;
+}
+.total-label {
+  font-size: 1.1em;
+  color: #1aaf5d;
+  font-weight: 700;
+}
+.total-number {
+  font-size: 1.1em;
+  color: #1aaf5d;
+  font-weight: 800;
+}
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1em;
+  padding: 7px 16px;
+  border: none;
+  outline: none;
+  transition: all 0.18s;
+  cursor: pointer;
+}
+.btn-success {
+  background: #1aaf5d;
+  color: #fff;
+}
+.btn-success:hover {
+  background: #178f4a;
+}
+.btn-outline {
+  background: #fff;
+  color: #1aaf5d;
+  border: 1.5px solid #1aaf5d;
+}
+.btn-outline:hover {
+  background: #1aaf5d;
+  color: #fff;
+}
+.card {
+  border-radius: 14px;
+  box-shadow: 0 2px 12px #1976d211;
+  background: #fff;
+  border: none;
+  margin-bottom: 18px;
+}
 .table {
-    width: 100%;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #fff;
-    margin-bottom: 0;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  margin-bottom: 0;
 }
-
-.table thead {
-    background: #f4f6fb;
-}
-
 .table th,
 .table td {
-    vertical-align: middle;
-    text-align: center;
-    padding: 14px 8px;
-    font-size: 1em;
+  vertical-align: middle;
+  text-align: center;
+  padding: 12px 6px;
+  font-size: 1em;
 }
-
 .table th {
-    color: #1976d2;
-    font-weight: 700;
-    background: #f4f6fb;
-    border-bottom: 2px solid #e3eafc;
+  color: #1aaf5d;
+  font-weight: 700;
+  background: #f4f6fb;
+  border-bottom: 2px solid #e3eafc;
 }
-
 .table-hover tbody tr:hover {
-    background: #e3f2fd44;
+  background: #e3f2fd44;
 }
-
-.btn {
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1em;
-    padding: 8px 18px;
-    transition: all 0.18s;
-    box-shadow: 0 1px 4px #1976d211;
-    border: none;
-    outline: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.user-code {
+  color: #1aaf5d;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
-
-.btn-primary {
-    background: linear-gradient(90deg, #1976d2 60%, #42a5f5 100%) !important;
-    color: #fff !important;
-    border: none;
+.status-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
-
-.btn-primary:hover {
-    background: linear-gradient(90deg, #1565c0 60%, #1976d2 100%) !important;
-    color: #fff !important;
+.status-badge {
+  font-size: 1em;
+  padding: 6px 18px;
+  border-radius: 18px;
+  font-weight: 700;
+  background: #ffeaea;
+  color: #e53935;
+  border: 1.5px solid #ffcdd2;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 4px #ffcdd233;
 }
-
-.btn-outline-primary {
-    color: #1976d2 !important;
-    border: 1.5px solid #1976d2 !important;
-    background: #fff !important;
+.status-badge.active {
+  background: #e3fbe8;
+  color: #1aaf5d;
+  border: 1.5px solid #b2dfdb;
 }
-
-.btn-outline-primary:hover {
-    background: #1976d2 !important;
-    color: #fff !important;
+.status-badge.inactive {
+  background: #ffeaea;
+  color: #e53935;
+  border: 1.5px solid #ffcdd2;
 }
-
-.btn-outline-secondary {
-    color: #616161 !important;
-    border: 1.5px solid #bdbdbd !important;
-    background: #fff !important;
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
 }
-
-.btn-outline-secondary:hover {
-    background: #bdbdbd !important;
-    color: #fff !important;
+.switch input {
+  display: none;
 }
-
-.btn-action-view {
-    background: #e3f2fd;
-    color: #1976d2;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 1.1em;
-    transition:
-        background 0.18s,
-        color 0.18s;
-    border: none;
+.slider.round {
+  border-radius: 22px;
 }
-
-.btn-action-view:hover {
-    background: #1976d2;
-    color: #fff;
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 22px;
 }
-
-.btn-action-edit {
-    background: #fffde7;
-    color: #fbc02d;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 1.1em;
-    transition:
-        background 0.18s,
-        color 0.18s;
-    border: none;
+.slider:before {
+  position: absolute;
+  content: '';
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
 }
-
-.btn-action-edit:hover {
-    background: #fbc02d;
-    color: #fff;
+.switch input:checked + .slider {
+  background-color: #1aaf5d;
 }
-
-.btn-action-delete {
-    background: #ffebee;
-    color: #e53935;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 1.1em;
-    transition:
-        background 0.18s,
-        color 0.18s;
-    border: none;
+.switch input:checked + .slider:before {
+  transform: translateX(16px);
 }
-
-.btn-action-delete:hover {
-    background: #e53935;
-    color: #fff;
-}
-
-.filter-card .d-flex.flex-wrap {
-    flex-wrap: wrap !important;
-    gap: 10px;
-}
-
-.filter-card .btn {
-    margin-bottom: 4px;
-}
-
-.filter-action-row {
-    width: 100%;
-}
-
-.filter-title {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #1a237e;
-    margin-bottom: 18px;
-    margin-left: 0;
-    letter-spacing: 0.2px;
-}
-
-.filter-row {
-    display: flex;
-    flex-direction: row;
-    gap: 24px;
-    width: 100%;
-    margin-bottom: 18px;
-    padding: 0;
-}
-
-.filter-col {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-}
-
-.filter-action-row {
-    display: flex;
-    flex-direction: row;
-    gap: 14px;
-    flex-wrap: nowrap;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-left: 0;
-}
-
 .action-btn-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
-
-.staff-list-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #1976d2;
-    letter-spacing: 0.5px;
-    margin-bottom: 18px;
-    margin-top: 0;
-    text-transform: capitalize;
-    text-align: left;
-    padding-left: 0;
+.btn-action-edit {
+  background: #fffde7;
+  color: #fbc02d;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 1.1em;
+  border: none;
 }
-
-/* Responsive */
-@media (max-width: 1024px) {
-    .card-body {
-        padding-left: 0;
-        padding-right: 0;
-    }
-
-    .filter-row {
-        gap: 12px;
-    }
-
-    .staff-management {
-        /* max-width: 100vw; */
-        /* padding: 12px 0 24px 0; */
-    }
+.btn-action-edit:hover {
+  background: #fbc02d;
+  color: #fff;
 }
-
-@media (max-width: 768px) {
-    .staff-management {
-        /* padding: 4px 0 12px 0; */
-        /* max-width: 100vw; */
-        /* width: 100vw; */
-    }
-
-    .card-body {
-        padding-left: 0;
-        padding-right: 0;
-    }
-
-    .card,
-    .filter-card {
-        /* width: 100vw; */
-        /* max-width: 100vw; */
-        /* margin-left: 0; */
-        /* margin-right: 0; */
-    }
-
-    .table th,
-    .table td {
-        font-size: 0.95em;
-        padding: 8px 4px;
-    }
-
-    .avatar-circle {
-        width: 36px;
-        height: 36px;
-        font-size: 1em;
-    }
-
-    .filter-row {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .filter-action-row {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+.btn-action-delete {
+  background: #ffebee;
+  color: #e53935;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 1.1em;
+  border: none;
 }
-
+.btn-action-delete:hover {
+  background: #e53935;
+  color: #fff;
+}
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #fff;
+  border-radius: 0 0 14px 14px;
+  border-top: 1px solid #e3eafc;
+  font-size: 1em;
+}
+.page-size-select select {
+  border-radius: 6px;
+  border: 1px solid #e3eafc;
+  padding: 2px 8px;
+  margin: 0 4px;
+}
+.pagination-controls button {
+  border: none;
+  background: #1aaf5d;
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 10px;
+  margin: 0 2px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.pagination-controls button:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+.page-info {
+  color: #888;
+  font-size: 0.98em;
+}
+/* Modal giữ lại style cũ */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(30, 41, 59, 0.25);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.2s;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(30, 41, 59, 0.25);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s;
 }
-
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-
 .modal-detail {
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 8px 40px rgba(33, 150, 243, 0.18);
-    padding: 36px 32px 28px 32px;
-    min-width: 340px;
-    max-width: 96vw;
-    width: 400px;
-    position: relative;
-    animation: modalPop 0.22s cubic-bezier(0.4, 2, 0.6, 1);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(33, 150, 243, 0.18);
+  padding: 36px 32px 28px 32px;
+  min-width: 340px;
+  max-width: 96vw;
+  width: 400px;
+  position: relative;
+  animation: modalPop 0.22s cubic-bezier(0.4, 2, 0.6, 1);
 }
-
 @keyframes modalPop {
-    from {
-        transform: scale(0.85);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
-
 .modal-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: transparent;
-    border: none;
-    font-size: 1.3rem;
-    color: #888;
-    cursor: pointer;
-    transition: color 0.18s;
-    z-index: 2;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.18s;
+  z-index: 2;
 }
-
 .modal-close:hover {
-    color: #1976d2;
+  color: #1aaf5d;
 }
-
-.modal-avatar {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 18px;
-}
-
-.modal-avatar-circle {
-    width: 64px;
-    height: 64px;
-    font-size: 2rem;
-    border-width: 3px;
-}
-
 .modal-info {
-    text-align: center;
+  text-align: center;
 }
-
 .modal-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1976d2;
-    margin-bottom: 18px;
-    margin-top: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1aaf5d;
+  margin-bottom: 18px;
+  margin-top: 0;
 }
-
 .modal-row {
-    font-size: 1.08rem;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+  font-size: 1.08rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-
 .modal-label {
-    font-weight: 600;
-    color: #555;
-    min-width: 110px;
-    text-align: right;
+  font-weight: 600;
+  color: #555;
+  min-width: 110px;
+  text-align: right;
 }
-
-.modal-edit-form .modal-name {
-    color: #ff9800;
-}
-
 .modal-input {
-    flex: 1 1 0;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1.5px solid #e3eafc;
-    font-size: 1em;
-    background: #f8fafc;
-    margin-left: 8px;
-    transition: border 0.2s;
+  flex: 1 1 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #e3eafc;
+  font-size: 1em;
+  background: #f8fafc;
+  margin-left: 8px;
+  transition: border 0.2s;
 }
-
 .modal-input:focus {
-    border-color: #1976d2;
-    outline: none;
+  border-color: #1aaf5d;
+  outline: none;
 }
-
 .modal-edit-actions {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 18px;
 }
-
-@media (max-width: 480px) {
-    .modal-input {
-        font-size: 0.98em;
-        padding: 7px 8px;
-    }
-
-    .modal-edit-actions {
-        flex-direction: column;
-        gap: 8px;
-    }
+.btn-col-horizontal {
+  flex: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
 }
-
-.avatar-upload-label {
-    display: flex;
+.btn-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+}
+.btn-row-block {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.filter-row-top {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  align-items: flex-end;
+  margin-bottom: 0;
+}
+.filter-row-bottom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 12px;
+}
+.total-label-form {
+  font-size: 1.1em;
+  color: #1aaf5d;
+  font-weight: 800;
+  margin-left: 2px;
+  margin-bottom: 0;
+}
+.btn-row-form {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-end;
+  flex: 1;
+}
+.table-header-row {
+  padding: 16px 24px 0 24px;
+  font-size: 1.08em;
+  font-weight: 600;
+  color: #222;
+}
+.table-total-label {
+  color: #888;
+  font-size: 1em;
+  font-weight: 500;
+}
+.custom-table {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  margin-bottom: 0;
+  width: 100%;
+}
+.custom-table th,
+.custom-table td {
+  vertical-align: middle;
+  text-align: center;
+  padding: 14px 8px;
+  font-size: 1em;
+  border-bottom: 1.5px solid #e3eafc;
+}
+.custom-table th {
+  color: #222;
+  font-weight: 700;
+  background: #f4f6fb;
+  border-bottom: 2px solid #e3eafc;
+}
+.user-code-link {
+  color: #1aaf5d;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+@media (max-width: 1024px) {
+  .filter-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-row-top,
+  .filter-row-bottom {
     flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    position: relative;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .btn-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  .btn-row-block {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  .pagination-row {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
-
-.avatar-upload-input {
-    display: none;
-}
-
-.avatar-upload-preview {
-    overflow: hidden;
-    position: relative;
-}
-
-.avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    display: block;
-}
-
-.avatar-upload-text {
+@media (max-width: 768px) {
+  .nhanvien-wrapper {
+    padding: 8px 0 12px 0;
+  }
+  .main-title {
+    font-size: 1.3rem;
+  }
+  .filter-card {
+    padding: 8px;
+  }
+  .table th,
+  .table td {
     font-size: 0.95em;
-    color: #1976d2;
-    margin-top: 6px;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.slider-label-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-}
-
-.salary-slider {
-    flex: 1 1 0;
-    margin: 0 8px;
-}
-
-.salary-label {
-    min-width: 54px;
-    text-align: center;
+    padding: 8px 2px;
+  }
+  .pagination-row {
+    font-size: 0.95em;
+  }
+  .btn-row-block {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
 }
 </style>
