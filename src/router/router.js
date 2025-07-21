@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/user/LoginView.vue'
-import ProductVariantsList from '@/views/sanpham/ProductVariantsList.vue'
+// import ProductVariantsList from '@/views/sanpham/ProductVariantsList.vue'
 
 const routes = [
   // { path: '/', name: 'TrangChu', component: () => import('@/views/TrangChu.vue') },
@@ -11,6 +11,11 @@ const routes = [
     path: '/quan-li-hoa-don',
     name: 'QuanLiHoaDon',
     component: () => import('@/views/QuanLiHoaDon.vue'),
+  },
+  {
+    path: '/quan-li-hoa-don/chi-tiet/:code',
+    name: 'ChiTietHoaDon',
+    component: () => import('@/components/hoadon/ChiTietHoaDon.vue'),
   },
   {
     path: '/quan-li-tai-khoan',
