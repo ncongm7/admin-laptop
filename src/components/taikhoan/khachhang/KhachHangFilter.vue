@@ -54,3 +54,17 @@ export default {
   }
 }
 </script>
+<style scoped>
+.form-control {
+  font-size: 0.9rem;
+}
+.form-select {
+  font-size: 0.9rem;
+}
+.btn {
+  font-size: 0.9rem;
+}
+.d-flex {
+  font-size: 0.9rem;
+}
+</style>

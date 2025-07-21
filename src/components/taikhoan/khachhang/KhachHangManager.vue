@@ -25,5 +25,6 @@ import KhachHangTable from './KhachHangTable.vue'
     background: #fff;
     border: none;
     margin-bottom: 24px;
+    font-size: 0.9rem;  
 }
 </style>

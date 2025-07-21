@@ -1,6 +1,7 @@
 <style>
 table th, table td {
   vertical-align: middle;
+  font-size: 0.9rem;
 }
 
 input[type="checkbox"] {
