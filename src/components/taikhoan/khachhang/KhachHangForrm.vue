@@ -1,4 +1,4 @@
-<template>
+<template >
   <div class="customer-detail">
     <!-- 🔹 Thanh nút chức năng -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -42,9 +42,24 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Địa chỉ</label>
-          <textarea class="form-control" rows="2" v-model="form.address"></textarea>
+          <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">
+            <i class="fas fa-map-marker-alt me-1 text-success"></i> Quản lý địa chỉ
+            <span class="badge bg-light text-dark ms-2">0 địa chỉ</span>
+          </h6>
+          <button class="btn btn-success btn-sm">Thêm địa chỉ</button>
         </div>
+        <div class="border rounded p-4 text-center text-muted" style="border-style: dashed;">
+          <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+          <p class="mb-2">Chưa có địa chỉ nào</p>
+          <button class="btn btn-success btn-sm">Thêm địa chỉ ngay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+       
 
 
       </div>
@@ -54,11 +69,11 @@
         <div class="mb-4">
           <label class="form-label">Trạng thái</label>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="statusRetail" v-model="form.status.retail" />
+            <input class="form-check-input" type="radio" name="trangThai" id="statusRetail" v-model="form.status.retail" />
             <label class="form-check-label" for="statusRetail">Khách lẻ</label>
           </div>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="statusLoyal" v-model="form.status.loyal" />
+            <input class="form-check-input" type="radio"  name="trangThai" id="statusLoyal" v-model="form.status.loyal" />
             <label class="form-check-label" for="statusLoyal">Khách quen</label>
           </div>
         </div>
@@ -150,6 +165,6 @@ export default {
 <style scoped>
 .form-label {
   font-weight: 500;
-  font-size: 0.9rem;  
+  font-size: 0.9rem;
 }
 </style>

@@ -42,10 +42,32 @@ input[type="checkbox"] {
       </tr>
     </tbody>
   </table>
-<div class="d-flex  gap-2 mx-auto" >
-  <button type="button" class="btn btn-success">Email</button>
-  <button type="button" class="btn btn-success">SMS</button>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+  <!-- Bên trái: Email + SMS -->
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-success">Email</button>
+    <button type="button" class="btn btn-success">SMS</button>
+  </div>
+
+  <!-- Bên phải: Pagination + Select + Icon -->
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-sm btn-outline-secondary">&lt;</button>
+    <button class="btn btn-sm btn-outline-secondary">&gt;</button>
+
+    <select class="form-select form-select-sm" style="width: 140px;">
+      <option value="10">Hiển thị 10 kết</option>
+      <option value="20" selected>Hiển thị 20 kết</option>
+      <option value="50">Hiển thị 50 kết</option>
+    </select>
+
+    <button class="btn btn-sm btn-outline-warning" title="Sinh nhật khách hàng">
+      <img src="https://cdn-icons-png.flaticon.com/128/1244/1244336.png" alt="Birthday Icon" width="16" height="16" />
+    </button>
+  </div>
+
 </div>
+
 
  <!-- 🟡 Modal chi tiết khách hàng -->
     <div v-if="showModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.3);">
