@@ -48,14 +48,10 @@
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Kiểu áp dụng</label>
-            <div>
-              <label class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" value="toan_bo" v-model="form.kieu" /> Toàn bộ
-              </label>
-              <label class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" value="ca_nhan" v-model="form.kieu" /> Gửi riêng
-              </label>
+            <label class="form-label">Riêng tư</label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" v-model="form.riengTu" id="riengTuCheckbox">
+              <label class="form-check-label" for="riengTuCheckbox">Riêng tư</label>
             </div>
           </div>
           <div class="d-flex justify-content-end mt-4">
@@ -130,13 +126,14 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'save'])
 const form = ref({
-  ma: '', ten: '', gia_tri: '', loai: '%', giam_toi_da: '', so_luong: '', dieu_kien: '', tu_ngay: '', den_ngay: '', kieu: 'toan_bo'
+  ma: '', ten: '', gia_tri: '', loai: '%', giam_toi_da: '', so_luong: '', dieu_kien: '', tu_ngay: '', den_ngay: '', riengTu: false
 })
 watch(() => props.voucher, (val) => {
   if (props.isEditMode && val) {
-    form.value = { ...val }
+    form.value = { riengTu: false, ...val }
+    if (val.riengTu !== undefined) form.value.riengTu = val.riengTu
   } else {
-    form.value = { ma: '', ten: '', gia_tri: '', loai: '%', giam_toi_da: '', so_luong: '', dieu_kien: '', tu_ngay: '', den_ngay: '', kieu: 'toan_bo' }
+    form.value = { ma: '', ten: '', gia_tri: '', loai: '%', giam_toi_da: '', so_luong: '', dieu_kien: '', tu_ngay: '', den_ngay: '', riengTu: false }
   }
 }, { immediate: true })
 function handleSubmit() {
@@ -181,16 +178,173 @@ const allChecked = computed({
 function toggleAll() { allChecked.value = !allChecked.value }
 </script>
 <style scoped>
-.voucher-form-layout { min-height: 400px; }
-.form-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-.form-label { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
-input, select, .form-control, .form-select { font-size: 14px !important; height: 36px !important; padding: 4px 10px !important; border-radius: 6px !important; border: 1px solid #d0d7de !important; box-shadow: none !important; }
-input[type="radio"] { accent-color: #1976d2; width: 16px; height: 16px; margin-right: 4px; }
-.form-check-inline { margin-right: 18px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
-.row.mb-3, .mb-3 { margin-bottom: 12px !important; }
-.table { font-size: 14px; margin-bottom: 0; border-radius: 8px; overflow: hidden; }
-.table th, .table td { vertical-align: middle; font-size: 14px; padding: 7px 8px; border-color: #e9ecef !important; }
-.table th { background: #f8f9fa; font-weight: 600; }
-.pagination .page-link { color: #1976d2; font-size: 14px; padding: 4px 10px; border-radius: 6px !important; }
-.pagination .active .page-link { background: #1976d2; color: #fff; border-color: #1976d2; }
+.voucher-form-page {
+  padding: 24px;
+  background: #fafbfc;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.form-container {
+  display: flex;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.voucher-form-section {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+.header-icon {
+  font-size: 18px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+.form-content {
+  padding: 20px;
+}
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.form-group {
+  flex: 1;
+}
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 8px;
+}
+.form-input, .form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-suffix {
+  position: absolute;
+  right: 12px;
+  color: #666;
+  font-size: 14px;
+  pointer-events: none;
+}
+.date-input-wrapper {
+  position: relative;
+}
+.calendar-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 14px;
+  pointer-events: none;
+}
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  resize: vertical;
+  min-height: 80px;
+}
+.form-textarea:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+.checkbox-group {
+  margin-bottom: 20px;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.checkbox-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.checkbox-text {
+  font-size: 14px;
+  color: #333;
+}
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: #4caf50;
+  color: white;
+}
+.btn-primary:hover {
+  background: #45a049;
+}
+.btn-secondary {
+  background: #f8f9fa;
+  color: #555;
+  border: 1px solid #ddd;
+}
+.btn-secondary:hover {
+  background: #e9ecef;
+}
+@media (max-width: 1200px) {
+  .form-container {
+    flex-direction: column;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+@media (max-width: 768px) {
+  .voucher-form-page {
+    padding: 16px;
+  }
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style> 

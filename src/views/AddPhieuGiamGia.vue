@@ -5,7 +5,7 @@
       <div class="voucher-form-section">
         <div class="section-header">
           <i class="header-icon">➕</i>
-          <h2 class="section-title">Thêm Phiếu Giảm Giá</h2>
+          <h2 class="section-title">{{ isEditMode ? 'Chỉnh Sửa Phiếu Giảm Giá' : 'Thêm Phiếu Giảm Giá' }}</h2>
         </div>
         
         <div class="form-content">
@@ -224,9 +224,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
+
+const isEditMode = computed(() => !!route.params.id)
 
 // Voucher form data
 const voucherForm = ref({

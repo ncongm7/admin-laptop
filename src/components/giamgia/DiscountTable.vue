@@ -31,14 +31,12 @@
             <td>{{ formatDate(campaign.endDate) }}</td>
             <td>
               <div class="action-buttons">
+                <label class="switch">
+                  <input type="checkbox" :checked="campaign.status === 'active'" @change="toggleStatus(campaign)" />
+                  <span class="slider round"></span>
+                </label>
                 <button class="action-btn edit-btn" @click="editCampaign(campaign)">
-                  <i class="icon">✏️</i>
-                </button>
-                <button class="action-btn view-btn" @click="viewCampaign(campaign)">
-                  <i class="icon">👁️</i>
-                </button>
-                <button class="action-btn delete-btn" @click="deleteCampaign(campaign)">
-                  <i class="icon">🗑️</i>
+                  <i class="bi bi-pencil-square"></i>
                 </button>
               </div>
             </td>
@@ -96,7 +94,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit-campaign', 'view-campaign', 'delete-campaign', 'page-change'])
+const emit = defineEmits(['edit-campaign', 'toggle-status', 'page-change'])
 
 const totalPages = computed(() => 
   Math.ceil(props.campaigns.length / props.itemsPerPage)
@@ -116,14 +114,8 @@ const editCampaign = (campaign) => {
   emit('edit-campaign', campaign)
 }
 
-const viewCampaign = (campaign) => {
-  emit('view-campaign', campaign)
-}
-
-const deleteCampaign = (campaign) => {
-  if (confirm('Bạn có chắc chắn muốn xóa đợt giảm giá này?')) {
-    emit('delete-campaign', campaign)
-  }
+const toggleStatus = (campaign) => {
+  emit('toggle-status', campaign)
 }
 
 const goToFirstPage = () => {
@@ -236,30 +228,35 @@ const getStatusText = (status) => {
 /* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.action-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.switch, .action-btn.edit-btn {
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  padding: 0;
 }
 
-.edit-btn {
+.switch {
+  margin: 0;
+}
+
+.action-btn.edit-btn {
   background: #ffc107;
   color: #212529;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  transition: background 0.2s, transform 0.2s;
 }
-
-.edit-btn:hover {
+.action-btn.edit-btn:hover {
   background: #e0a800;
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .view-btn {
@@ -366,5 +363,47 @@ const getStatusText = (status) => {
     flex-direction: column;
     gap: 16px;
   }
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  margin-right: 8px;
+}
+.switch input {
+  display: none;
+}
+.slider.round {
+  border-radius: 22px;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 22px;
+}
+.slider:before {
+  position: absolute;
+  content: '';
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+.switch input:checked + .slider {
+  background-color: #1aaf5d;
+}
+.switch input:checked + .slider:before {
+  transform: translateX(16px);
 }
 </style> 
