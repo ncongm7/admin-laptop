@@ -65,6 +65,11 @@ const routes = [
     component: () => import('@/views/QuanLiSanPham.vue'),
   },
   {
+    path: '/san-pham/them-moi',
+    name: 'AddProduct',
+    component: () => import('@/views/sanpham/ProductFormPage.vue')
+  },
+  {
     path: '/quan-li-phieu-giam-gia',
     name: 'QuanLiPhieuGiamGia',
     component: () => import('@/views/QuanLiPhieuGiamGia.vue'),
@@ -83,7 +88,7 @@ const routes = [
     path: '/quan-li-phieu-giam-gia/edit/:id',
     name: 'EditPhieuGiamGia',
     component: () => import('@/views/AddPhieuGiamGia.vue'),
-    props: true
+    props: true,
   },
   {
     path: '/product-variants',
@@ -98,6 +103,7 @@ const routes = [
     component: () => import('@/views/sanpham/viewsanpham/ProductDetailManagement.vue'),
     meta: { requiresAuth: true, role: ['ADMIN', 'NHAN_VIEN'] },
   },
+
   {
     path: '/products/:productId/detail',
     name: 'ProductDetail',
