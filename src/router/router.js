@@ -125,6 +125,29 @@ const routes = [
     name: 'Login',
     component: LoginView,
   },
+  ///Long phiếu giảm giá v2
+  {
+    path: '/phieu-giam-gia2',
+    name: 'QuanLiPhieuGiamGiaV2',
+    component: () => import('@/views/QuanLiPhieuGiamGia.vue'),
+  },
+  {
+    path: '/phieu-giam-gia2/add',
+    name: 'AddPhieuGiamGiaV2',
+    component: () => import('@/components/phieugiamgia/PhieuGiamGiaFormComponent.vue'),
+  },
+  {
+    path: '/phieu-giam-gia2/detail/:id',
+    name: 'DetailPhieuGiamGiaV2',
+    component: () => import('@/components/phieugiamgia/PhieuGiamGiaFormComponent.vue'),
+    props: true,
+  },
+  {
+    path: '/phieu-giam-gia2/edit/:id',
+    name: 'EditPhieuGiamGiaV2',
+    component: () => import('@/components/phieugiamgia/PhieuGiamGiaFormComponent.vue'),
+    props: true,
+  }
 ]
 
 const router = createRouter({
