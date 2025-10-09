@@ -25,13 +25,16 @@ async function handleResponse(res) {
   alert(msg);
   throw new Error(msg);
 }
-
 // Lấy danh sách
 export const getVouchers = async () => {
   const res = await fetch(`${API}/danh-sach`);
   return handleResponse(res);
 };
-
+// Lấy danh sách theo trang (backend dùng pageNo1 là 0-based)
+export const getVouchersPage = async (pageNo1 = 0) => {
+  const res = await fetch(`${API}/paging?pageNo1=${pageNo1}`);
+  return handleResponse(res);
+};
 // Lấy chi tiết 1 phiếu theo id
 export const getVoucherById = async (id) => {
   const res = await fetch(`${API}/detail/${id}`);
