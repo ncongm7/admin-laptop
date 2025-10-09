@@ -35,8 +35,9 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(it, idx) in filtered" :key="it.id">
-          <td>{{ idx + 1 }}</td>
+        <!-- dùng paged để hiển thị theo trang -->
+        <tr v-for="(it, idx) in paged" :key="it.id">
+          <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
           <td>{{ it.ma }}</td>
           <td>{{ it.tenPhieuGiamGia }}</td>
           <td>{{ showLoai(it.loaiPhieuGiamGia) }}</td>
@@ -54,16 +55,30 @@
             <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
           </td>
         </tr>
-        <tr v-if="filtered.length === 0">
+        <tr v-if="paged.length === 0">
           <td colspan="13" class="text-center text-muted">Không có dữ liệu</td>
         </tr>
       </tbody>
     </table>
+
+    <!-- Phân trang đơn giản -->
+    <div class="d-flex align-items-center justify-content-between mt-2">
+      <div>Tổng: {{ filtered.length }} bản ghi</div>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary" :disabled="page <= 1" @click="prevPage">
+          « Trang trước
+        </button>
+        <span>Trang {{ page }} / {{ totalPages || 1 }}</span>
+        <button class="btn btn-outline-secondary" :disabled="page >= totalPages" @click="nextPage">
+          Trang sau »
+        </button>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVouchers, deleteVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
 
@@ -71,18 +86,22 @@ const router = useRouter()
 const list = ref([])
 const q = ref('')
 
+// --- state phân trang ---
+const page = ref(1)       // 1-based
+const pageSize = ref(5)   // số dòng mỗi trang
+
 // Nạp danh sách
 const fetchList = async () => {
   try {
     const res = await getVouchers()
-    list.value = res?.data ?? res ?? []   // ưu tiên res.data, nếu không có thì dùng res
+    list.value = res?.data ?? res ?? []
+    page.value = 1
   } catch (e) {
-    // service đã alert khi lỗi, ở đây chỉ log cho dev
     console.error(e)
   }
 }
 
-
+// Lọc realtime ở client
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
   if (!s) return list.value
@@ -93,6 +112,20 @@ const filtered = computed(() => {
   )
 })
 
+// Tính trang & cắt trang
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
+const paged = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+
+// Chuyển trang
+const prevPage = () => { if (page.value > 1) page.value-- }
+const nextPage = () => { if (page.value < totalPages.value) page.value++ }
+
+// Khi gõ tìm kiếm -> quay về trang 1
+watch(q, () => { page.value = 1 })
+
 // Điều hướng
 const goToAdd = () => router.push('/phieu-giam-gia2/add')
 const viewDetail = (id) => router.push(`/phieu-giam-gia2/detail/${id}`)
@@ -102,30 +135,25 @@ const edit = (id) => router.push(`/phieu-giam-gia2/edit/${id}`)
 const remove = async (id) => {
   if (!confirm('Bạn có chắc muốn xóa không?')) return
   try {
-    const resp = await deleteVoucher(id)       // lỗi -> service alert + throw
+    const resp = await deleteVoucher(id)
     alert(resp?.message || 'Xóa thành công!')
-    fetchList()
+    await fetchList()
+    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
+    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
-    console.error(e) // đã alert ở service rồi, không cần alert lại
+    console.error(e)
   }
 }
-
 
 // Helpers hiển thị
 const showLoai = (n) => (n === 0 ? '%' : n === 1 ? 'VND' : n)
 const showDate = (v) => {
-  if (!v) return '';
-  const d = new Date(String(v)); // nhận ISO có 'Z' hoặc không
-  if (isNaN(d)) return String(v); // fallback
-  const pad = (n) => String(n).padStart(2, '0');
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mm = pad(d.getMinutes());
-  return `${y}-${m}-${day} ${hh}:${mm}`;
-};
-
+  if (!v) return ''
+  const d = new Date(String(v))
+  if (isNaN(d)) return String(v)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 onMounted(fetchList)
 </script>
