@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <header v-if="!isLoginPage" @toggle-sidebar="toggleSidebar"/>
+    <Header v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" />
     <div v-if="!isLoginPage" class="main-content">
       <SideBar v-show="!sidebarCollapsed" />
       <main class="main-area">
@@ -40,10 +40,12 @@ const isLoginPage = computed(() => route.path === '/login')
 
 .main-area {
   flex: 1 1 0;
-  padding: 24px;
-  background: #fff;
-  min-height: calc(100vh - 60px);
-  /* 60px là chiều cao header */
+  padding: 0;
+  /* Bỏ padding ở đây để các view tự quản lý */
+  background: #f4f6f9;
+  /* Màu nền chung cho khu vực nội dung */
+  min-height: calc(100vh - 64px);
+  /* 64px là chiều cao header mới */
   overflow-x: auto;
   transition: margin-left 0.2s;
 }
