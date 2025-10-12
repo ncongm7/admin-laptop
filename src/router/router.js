@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/user/LoginView.vue'
 // import ProductVariantsList from '@/views/sanpham/ProductVariantsList.vue'
-import EditPhieuGiamGia from '../views/EditPhieuGiamGia.vue'
-
 const routes = [
   // { path: '/', name: 'TrangChu', component: () => import('@/views/TrangChu.vue') },
   { path: '/', name: 'DashBoardView', component: () => import('@/views/DashboardView.vue') },
@@ -26,7 +24,7 @@ const routes = [
   {
     path: '/quan-li-giam-gia',
     name: 'QuanLiGiamGia',
-    component: () => import('@/views/QuanLiGiamGia.vue'),
+    component: () => import('@/views/dotgiamgia/QuanLiGiamGia.vue'),
   },
   {
     path: '/quan-li-giam-gia/add',
@@ -67,7 +65,7 @@ const routes = [
   {
     path: '/quan-li-phieu-giam-gia',
     name: 'QuanLiPhieuGiamGia',
-    component: () => import('@/views/QuanLiPhieuGiamGia.vue'),
+    component: () => import('@/views/phieugiamgia/QuanLiPhieuGiamGia.vue'),
   },
   {
     path: '/quan-li-phieu-giam-gia/add',
@@ -125,11 +123,14 @@ const routes = [
     name: 'Login',
     component: LoginView,
   },
+
+
+  
   ///Long phiếu giảm giá v2
   {
     path: '/phieu-giam-gia2',
     name: 'QuanLiPhieuGiamGiaV2',
-    component: () => import('@/views/QuanLiPhieuGiamGia.vue'),
+    component: () => import('@/views/phieugiamgia/QuanLiPhieuGiamGia.vue'),
   },
   {
     path: '/phieu-giam-gia2/add',
@@ -146,6 +147,35 @@ const routes = [
     path: '/phieu-giam-gia2/edit/:id',
     name: 'EditPhieuGiamGiaV2',
     component: () => import('@/components/phieugiamgia/PhieuGiamGiaFormComponent.vue'),
+    props: true,
+  },
+  {
+    path: '/dot-giam-gia',
+    name: 'QuanLiDotGiamGia',
+    component: () => import('@/views/dotgiamgia/QuanLiGiamGia.vue'),
+  },
+  {
+    path: '/dot-giam-gia/add',
+    name: 'AddDotGiamGia',
+    component: () => import('@/components/giamgia/DotGiamGiaFormComponnent.vue'),
+  },
+  {
+    path: '/dot-giam-gia/detail/:id',
+    name: 'DetailDotGiamGia',
+    component: () => import('@/components/giamgia/DotGiamGiaFormComponnent.vue'),
+    props: true,
+  },
+  {
+    path: '/dot-giam-gia/edit/:id',
+    name: 'EditDotGiamGia',
+    component: () => import('@/components/giamgia/DotGiamGiaFormComponnent.vue'),
+    props: true,
+  },
+  //Chi tiet dot giam gia
+  {
+    path: '/chi-tiet-giam-gia/:id',
+    name: 'DotGiamGiaChiTietView',
+    component: () => import('@/views/dotgiamgia/DotGiamGiaChiTietView.vue'),
     props: true,
   }
 ]
