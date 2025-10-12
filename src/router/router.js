@@ -45,7 +45,7 @@ const routes = [
   {
     path: '/quan-li-bao-hanh',
     name: 'QuanLiBaoHanh',
-    component: () => import('@/views/QuanLiBaoHanh.vue'),
+    component: () => import('@/views/baohanh/QuanLiBaoHanh.vue'),
   },
   {
     path: '/quan-li-thong-bao',
