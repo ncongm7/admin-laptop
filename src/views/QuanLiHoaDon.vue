@@ -44,6 +44,9 @@
             </select>
           </div>
           <div class="d-flex gap-2">
+            <button class="btn btn-dark btn-sm rounded-pill" @click="resetFilters">
+              <i class="bi bi-arrow-clockwise me-1"></i> Reset
+            </button>
             <button class="btn btn-dark btn-sm rounded-pill" @click="scanQR">
               <i class="bi bi-qr-code-scan me-1"></i> Quét QR
             </button>
@@ -259,11 +262,19 @@ const openDetail = (invoice) => {
 const printInvoice = (invoice) => alert(`In hóa đơn: ${invoice.code}`)
 
 const scanQR = () => {
-  alert('Chức năng Quét QR đang được phát triển!');
+  alert('Chức năng Quét QR đang được phát triển!')
 }
 
 const exportExcel = () => {
-  alert('Chức năng Xuất Excel đang được phát triển!');
+  alert('Chức năng Xuất Excel đang được phát triển!')
+}
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  typeFilter.value = ''
+  dateFrom.value = ''
+  dateTo.value = ''
+  activeStatusTab.value = ''
 }
 </script>
 

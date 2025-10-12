@@ -35,15 +35,19 @@
         </div>
       </div>
       <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
-        <button class="btn btn-success btn-sm" :disabled="currentStep === 0" @click="prevStep">
-          ← HOÀN TÁC
+        <button
+          class="btn btn-outline-success btn-sm"
+          :disabled="currentStep === 0"
+          @click="prevStep"
+        >
+          <i class="bi bi-arrow-left"></i> HOÀN TÁC
         </button>
         <button
-          class="btn btn-primary btn-sm"
+          class="btn btn-outline-primary btn-sm"
           :disabled="currentStep >= steps.length - 1"
           @click="nextStep"
         >
-          XÁC NHẬN →
+          XÁC NHẬN <i class="bi bi-arrow-right"></i>
         </button>
         <button class="btn btn-outline-danger btn-sm" @click="cancelInvoice">
           <i class="bi bi-trash"></i> HỦY HÓA ĐƠN
@@ -668,5 +672,38 @@ h6 {
 .btn-outline-purple:hover {
   background-color: purple;
   color: white;
+}
+
+/* --- CUSTOM OUTLINE BUTTONS --- */
+.btn-outline-success {
+  color: #16a34a;
+  border: 1px solid #16a34a;
+  background-color: transparent;
+}
+.btn-outline-success:hover:not(:disabled) {
+  background-color: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+.btn-outline-success:disabled {
+  color: #6c757d;
+  border-color: #6c757d;
+  background-color: transparent;
+}
+
+.btn-outline-primary {
+  color: #0d6efd;
+  border: 1px solid #0d6efd;
+  background-color: transparent;
+}
+.btn-outline-primary:hover:not(:disabled) {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+.btn-outline-primary:disabled {
+  color: #6c757d;
+  border-color: #6c757d;
+  background-color: transparent;
 }
 </style>
