@@ -45,7 +45,7 @@ const routes = [
   {
     path: '/quan-li-bao-hanh',
     name: 'QuanLiBaoHanh',
-    component: () => import('@/views/baohanh/QuanLiBaoHanh.vue'),
+    component: () => import('@/views/baohanh/QuanLiBaoHanhView.vue'),
   },
   {
     path: '/quan-li-thong-bao',
@@ -176,6 +176,13 @@ const routes = [
     path: '/chi-tiet-giam-gia/:id',
     name: 'DotGiamGiaChiTietView',
     component: () => import('@/views/dotgiamgia/DotGiamGiaChiTietView.vue'),
+    props: true,
+  },
+  //Lịch Sử Bảo Hành
+  {
+    path: '/lich-su-bao-hanh/:id',
+    name: 'DotGiamGiaChiTietView',
+    component: () => import('@/views/baohanh/LichSuBaoHanhView.vue'),
     props: true,
   }
 ]
