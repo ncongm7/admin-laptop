@@ -40,6 +40,7 @@
           <td>{{ it.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
           <td class="d-flex gap-2">
             <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
+            <button class="btn btn-info" @click="ViewLichSuBaoHanh(it.id)">Xem Lịch Sử</button>
           </td>
         </tr>
         <tr v-if="paged.length === 0">
@@ -67,6 +68,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { getPhieuBaoHanh, deletePhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const list = ref([])
 const q = ref('')
@@ -107,6 +111,7 @@ const paged = computed(() => {
 // Chuyển trang
 const prevPage = () => { if (page.value > 1) page.value-- }
 const nextPage = () => { if (page.value < totalPages.value) page.value++ }
+const ViewLichSuBaoHanh = (id) => router.push(`/lich-su-bao-hanh/${id}`)
 
 // Khi gõ tìm kiếm -> quay về trang 1
 watch(q, () => { page.value = 1 })

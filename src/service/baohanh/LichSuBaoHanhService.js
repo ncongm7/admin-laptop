@@ -1,4 +1,4 @@
-const API = 'http://localhost:8080/api/phieu-bao-hanh-quan-ly';
+const API = 'http://localhost:8080/api/lich-su-bao-hanh-quan-ly';
 
 // === Helper: xử lý response NGẮN GỌN ===
 async function handleResponse(res) {
@@ -22,17 +22,12 @@ async function handleResponse(res) {
   alert(msg);
   throw new Error(msg);
 }
-//Get All
-export const getPhieuBaoHanh = async () => {
-  const res = await fetch(`${API}/danh-sach`);
-  return handleResponse(res);
-};
 // Xóa
-export const deletePhieuBaoHanh = async (id) => {
+export const deleteLichSuBaoHanh = async (id) => {
   const res = await fetch(`${API}/delete/${id}`, { method: 'DELETE' });
   return handleResponse(res);
 };
-export const getPhieuBaoHanhById = async (id) => {
-  const res = await fetch(`${API}/detail/${id}`);
+export const LayLichSuBaoHanh = async (idPhieuBaoHanh) => {
+  const res = await fetch(`${API}/danh-sach/${idPhieuBaoHanh}`);
   return handleResponse(res);
 };
