@@ -9,32 +9,6 @@
           <div class="card-header bg-secondary text-white">
             <h4>Tìm theo ngày</h4>
           </div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label">Trường ngày</label>
-              <select class="form-select" v-model="dateField" :disabled="!list.length">
-                <option value="ngayTiepNhan">Ngày tiếp nhận</option>
-                <option value="ngayHoanThanh">Ngày hoàn thành</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Từ ngày</label>
-              <input type="date" class="form-control" v-model="dateFrom" :disabled="!list.length" />
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Đến ngày</label>
-              <input type="date" class="form-control" v-model="dateTo" :disabled="!list.length" />
-            </div>
-
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-outline-secondary" @click="clearDateFilter" :disabled="!dateFrom && !dateTo">
-                Xóa lọc ngày
-              </button>
-              <button type="button" class="btn btn-secondary ms-auto" @click="back">Quay lại</button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -89,19 +63,41 @@
 
     <div>
       <h4>Lịch sử bảo hành (Serial: {{ phieuBaoHanh.soSerial || 'N/A' }})</h4>
-      <div class="d-flex align-items-center justify-content-end mb-2">
-        <button class="btn btn-sm btn-outline-info me-2" @click="toggleSort" :disabled="!list.length">
-          Ngày tiếp nhận
-          <i :class="{'bi-arrow-down': sortDirection === 'desc', 'bi-arrow-up': sortDirection === 'asc'}"></i>
-        </button>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-success btn-sm" @click="toggleAddForm" :disabled="!phieuBaoHanh?.id">
+            {{ showAddForm ? 'Đóng' : 'Thêm lịch sử bảo hành' }}
+          </button>
+        </div>
 
-        <input
-          v-model="q"
-          class="form-control"
-          placeholder="Tìm kiếm FE theo mô tả lỗi"
-          style="max-width: 250px"
-          :disabled="!list.length"
-        />
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-info" @click="toggleSort" :disabled="!list.length">
+            Ngày tiếp nhận
+            <i :class="{ 'bi-arrow-down': sortDirection === 'desc', 'bi-arrow-up': sortDirection === 'asc' }"></i>
+          </button>
+
+          <input v-model="q" class="form-control" placeholder="Tìm kiếm FE theo mô tả lỗi" style="max-width: 250px"
+            :disabled="!list.length" />
+        </div>
+      </div>
+
+      <!-- Form thêm nhanh (inline), ẩn/hiện theo nút -->
+      <div v-if="showAddForm" class="card mb-3">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-12">
+              <label class="form-label">Mô tả lỗi *</label>
+              <textarea class="form-control" rows="3" v-model.trim="addDesc"
+                placeholder="Mô tả ngắn gọn sự cố..."></textarea>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <button class="btn btn-outline-secondary" @click="cancelAdd" :disabled="adding">Hủy</button>
+              <button class="btn btn-primary" @click="submitAdd" :disabled="adding || !addDesc">
+                {{ adding ? 'Đang lưu...' : 'Lưu' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="table-responsive">
@@ -141,7 +137,8 @@
             « Trang trước
           </button>
           <span>Trang {{ pageApplied }} / {{ totalPagesApplied || 1 }}</span>
-          <button class="btn btn-outline-secondary" :disabled="pageApplied >= totalPagesApplied" @click="nextPageApplied">
+          <button class="btn btn-outline-secondary" :disabled="pageApplied >= totalPagesApplied"
+            @click="nextPageApplied">
             Trang sau »
           </button>
         </div>
@@ -154,7 +151,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 // Dịch vụ
-import { LayLichSuBaoHanh, deleteLichSuBaoHanh } from '@/service/baohanh/LichSuBaoHanhService'
+import { LayLichSuBaoHanh, deleteLichSuBaoHanh, AddLichSuBaoHanh } from '@/service/baohanh/LichSuBaoHanhService'
 import { getPhieuBaoHanhById } from '@/service/baohanh/PhieuBaoHanhService'
 
 const router = useRouter()
@@ -291,12 +288,55 @@ const remove = async (lichSuId) => {
     console.error('Lỗi khi xóa:', e)
   }
 }
+// ----- ADD FORM (inline) -----
+const showAddForm = ref(false)
+const addDesc = ref('')
+const adding = ref(false)
+
+const toggleAddForm = () => {
+  // mở/đóng form
+  showAddForm.value = !showAddForm.value
+  if (showAddForm.value) addDesc.value = ''
+}
+
+const cancelAdd = () => {
+  if (adding.value) return
+  showAddForm.value = false
+  addDesc.value = ''
+}
+
+const submitAdd = async () => {
+  if (!phieuBaoHanh.value?.id) {
+    alert('Chưa có thông tin phiếu bảo hành.');
+    return;
+  }
+  if (!addDesc.value?.trim()) {
+    alert('Vui lòng nhập mô tả lỗi.');
+    return;
+  }
+
+  try {
+    adding.value = true;
+
+    // ✅ truyền ID phiếu + mô tả lỗi
+    await AddLichSuBaoHanh(phieuBaoHanh.value.id, addDesc.value.trim());
+
+    await fetchLichSu(phieuBaoHanh.value.id); // reload danh sách
+
+    showAddForm.value = false;
+    addDesc.value = '';
+    alert('Thêm lịch sử thành công!');
+  } catch (e) {
+    console.error(e);
+    alert('Lưu thất bại. Vui lòng thử lại.');
+  } finally {
+    adding.value = false;
+  }
+};
+
+
 
 // Clear date filter
-const clearDateFilter = () => {
-  dateFrom.value = ''
-  dateTo.value = ''
-}
 
 // Reset trang khi thay đổi bộ lọc
 watch([q, dateFrom, dateTo, dateField], () => {
