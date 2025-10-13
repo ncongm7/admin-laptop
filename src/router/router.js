@@ -63,6 +63,16 @@ const routes = [
     component: () => import('@/views/QuanLiSanPham.vue'),
   },
   {
+    path: '/quan-li-bien-the',
+    name: 'QuanLiBienThe',
+    component: () => import('@/views/QuanLiBienThe.vue'),
+  },
+  {
+    path: '/thuoc-tinh-san-pham',
+    name: 'ThuocTinhSanPham',
+    component: () => import('@/views/ThuocTinhSanPham.vue'),
+  },
+  {
     path: '/quan-li-phieu-giam-gia',
     name: 'QuanLiPhieuGiamGia',
     component: () => import('@/views/phieugiamgia/QuanLiPhieuGiamGia.vue'),
