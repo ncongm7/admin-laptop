@@ -6,8 +6,14 @@
       <!-- TÌM THEO NGÀY (FE) -->
       <div class="col-md-4">
         <div class="card">
-          <div class="card-header bg-secondary text-white">
-            <h4>Tìm theo ngày</h4>
+          <div class="card-header">
+            <h4>Tìm theo ngày tiếp nhận</h4>
+          </div>
+          <div class="card-body">
+            <div class="d-flex gap-2">
+              <input type="date" class="form-control" v-model="searchDate" />
+              <button class="btn btn-outline-secondary" @click="clearDateFilter" title="Xóa bộ lọc ngày">Xóa</button>
+            </div>
           </div>
         </div>
       </div>
@@ -119,8 +125,9 @@
               <td>{{ showDate(it.ngayHoanThanh) }}</td>
               <td>{{ it.moTaLoi }}</td>
               <td>{{ getLichSuTrangThai(it.trangThai) }}</td>
-              <td>
-                <button class="btn btn-danger btn-sm" @click="remove(it.id)">Xóa</button>
+              <td class="d-flex gap-2">
+                <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
+                <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
               </td>
             </tr>
             <tr v-if="pagedApplied.length === 0">
@@ -144,6 +151,13 @@
         </div>
       </div>
     </div>
+
+    <LichSuBaoHanhEditForm
+      v-if="isEditFormVisible"
+      :item-to-edit="selectedItem"
+      @close="closeEditForm"
+      @updated="handleUpdate"
+    />
   </main>
 </template>
 
@@ -153,6 +167,8 @@ import { useRoute, useRouter } from 'vue-router'
 // Dịch vụ
 import { LayLichSuBaoHanh, deleteLichSuBaoHanh, AddLichSuBaoHanh } from '@/service/baohanh/LichSuBaoHanhService'
 import { getPhieuBaoHanhById } from '@/service/baohanh/PhieuBaoHanhService'
+import LichSuBaoHanhEditForm from '@/components/baohanh/LichSuBaoHanhEditForm.vue'
+
 
 const router = useRouter()
 const route = useRoute()
@@ -165,15 +181,11 @@ const id = route.params.id
 // --- State cho bảng Lịch sử (Bảng Dưới) ---
 const q = ref('') // Tìm kiếm FE theo Mô tả lỗi
 const sortDirection = ref('desc') // Sắp xếp mặc định: mới nhất trước (theo Ngày tiếp nhận)
+const searchDate = ref('') // Tìm kiếm FE theo Ngày tiếp nhận
 
 // --- Pagination for APPLIED products table (bottom) ---
 const pageApplied = ref(1)
 const pageSizeApplied = ref(5)
-
-// --- FE Date filters ---
-const dateField = ref('ngayTiepNhan') // 'ngayTiepNhan' | 'ngayHoanThanh'
-const dateFrom = ref('')              // yyyy-mm-dd
-const dateTo = ref('')                // yyyy-mm-dd
 
 // Nạp thông tin Chi tiết Phiếu Bảo Hành (PBH)
 const fetchPhieuBaoHanhDetail = async (phieuId) => {
@@ -203,31 +215,6 @@ const fetchLichSu = async (phieuId) => {
   }
 }
 
-// --- Helpers ---
-const onlyDate = (v) => {
-  // Trả về chuỗi yyyy-mm-dd từ một giá trị ngày bất kỳ (Date/string)
-  if (!v) return ''
-  const d = new Date(String(v))
-  if (isNaN(d)) return ''
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-const inDateRange = (item) => {
-  // Chọn trường ngày theo dateField
-  const field = dateField.value
-  const raw = item?.[field]
-  if (!raw && (dateFrom.value || dateTo.value)) return false
-
-  const d = onlyDate(raw)
-  if (!d) return false
-
-  // So sánh chuỗi yyyy-mm-dd (an toàn vì cùng định dạng)
-  if (dateFrom.value && d < dateFrom.value) return false
-  if (dateTo.value && d > dateTo.value) return false
-  return true
-}
-
 // --- Logic Lọc và Sắp xếp cho Bảng Lịch sử ---
 const filtered = computed(() => {
   let filteredList = list.value.slice(0)
@@ -238,9 +225,21 @@ const filtered = computed(() => {
     filteredList = filteredList.filter((x) => (x.moTaLoi || '').toLowerCase().includes(s))
   }
 
-  // 2) Lọc theo khoảng ngày (FE) với trường được chọn
-  if (dateFrom.value || dateTo.value) {
-    filteredList = filteredList.filter((x) => inDateRange(x))
+  // 2) Lọc theo khoảng ngày tiếp nhận (FE, ±7 ngày)
+  if (searchDate.value) {
+    const centerDate = new Date(searchDate.value)
+    centerDate.setHours(0, 0, 0, 0) // Bắt đầu ngày
+
+    const sevenDays = 7 * 24 * 60 * 60 * 1000
+    const startDate = new Date(centerDate.getTime() - sevenDays)
+    const endDate = new Date(centerDate.getTime() + sevenDays)
+    endDate.setHours(23, 59, 59, 999) // Kết thúc ngày
+
+    filteredList = filteredList.filter((item) => {
+      if (!item.ngayTiepNhan) return false
+      const itemDate = new Date(item.ngayTiepNhan)
+      return itemDate >= startDate && itemDate <= endDate
+    })
   }
 
   // 3) Sắp xếp theo Ngày Tiếp Nhận
@@ -334,12 +333,37 @@ const submitAdd = async () => {
   }
 };
 
+// ----- EDIT FORM (modal) -----
+const isEditFormVisible = ref(false)
+const selectedItem = ref(null)
+
+const edit = (id) => {
+  const item = list.value.find(item => item.id === id);
+  if (item) {
+    selectedItem.value = { ...item }; // Create a copy to avoid direct mutation
+    isEditFormVisible.value = true;
+  }
+};
+
+const closeEditForm = () => {
+  isEditFormVisible.value = false;
+  selectedItem.value = null;
+};
+
+const handleUpdate = async () => {
+  await fetchLichSu(phieuBaoHanh.value.id);
+  closeEditForm();
+};
+
 
 
 // Clear date filter
+const clearDateFilter = () => {
+  searchDate.value = ''
+}
 
 // Reset trang khi thay đổi bộ lọc
-watch([q, dateFrom, dateTo, dateField], () => {
+watch([q, searchDate], () => {
   pageApplied.value = 1
 })
 

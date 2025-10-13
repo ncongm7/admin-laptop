@@ -40,3 +40,12 @@ export const AddLichSuBaoHanh = async (idPhieuBaoHanh, moTaLoi) => {
   });
   return handleResponse(res);
 };
+// Cập nhật
+export const updateLichSuBaoHanh = async (data, id) => {
+  const res = await fetch(`${API}/update/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
