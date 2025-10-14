@@ -26,7 +26,7 @@
             <select class="form-select" v-model="localFilters.trangThai">
               <option value="">Tất cả trạng thái</option>
               <option value="1">Hoạt động</option>
-              <option value="0">Ngừng hoạt động</option>
+              <option value="0">Ẩn</option>
             </select>
           </div>
         </div>
@@ -42,11 +42,18 @@
                   :min="minBound"
                   :max="maxBound"
                   step="1000000"
+                  v-model.number="localFilters.minPrice"
+                />
+                <input
+                  type="range"
+                  :min="minBound"
+                  :max="maxBound"
+                  step="1000000"
                   v-model.number="localFilters.maxPrice"
                 />
               </div>
               <div class="d-flex justify-content-between small mt-1 text-muted">
-                <span>{{ formatCurrency(minBound) }}</span>
+                <span>{{ formatCurrency(localFilters.minPrice || minBound) }}</span>
                 <span>{{ formatCurrency(localFilters.maxPrice || maxBound) }}</span>
               </div>
             </div>
@@ -79,12 +86,13 @@ const emit = defineEmits(['filter', 'reset', 'loading', 'filtered-data'])
 const localFilters = ref({
   search: '',
   trangThai: '',
-  minPrice: 0,
+  minPrice: null,
   maxPrice: null,
 })
 
 const productStore = useProductStore()
 const loading = ref(false)
+const error = ref(null) // Thêm để hiển thị lỗi nếu cần
 
 // Calculate dynamic price bounds
 const allPrices = computed(() => {
@@ -100,17 +108,23 @@ const allPrices = computed(() => {
   return prices
 })
 
-const minBound = computed(() => 0)
+const minBound = computed(() => {
+  if (!allPrices.value.length) return 0
+  return Math.max(0, Math.min(...allPrices.value))
+})
 const MAX_CAP = 100000000 // 100 million VND
 const maxBound = computed(() => {
   if (!allPrices.value.length) return MAX_CAP
   return Math.min(Math.max(...allPrices.value), MAX_CAP)
 })
 
+// Initialize and watch price bounds
 watch(
   () => [minBound.value, maxBound.value],
   ([min, max]) => {
-    localFilters.value.minPrice = min
+    if (localFilters.value.minPrice == null || localFilters.value.minPrice < min) {
+      localFilters.value.minPrice = min
+    }
     if (localFilters.value.maxPrice == null || localFilters.value.maxPrice > max) {
       localFilters.value.maxPrice = max
     }
@@ -118,36 +132,37 @@ watch(
   { immediate: true },
 )
 
+// Watch filters to ensure minPrice <= maxPrice
+watch(
+  localFilters,
+  (newVal) => {
+    if (newVal.minPrice > newVal.maxPrice) {
+      const temp = newVal.minPrice
+      newVal.minPrice = newVal.maxPrice
+      newVal.maxPrice = temp
+    }
+  },
+  { deep: true },
+)
+
 // Apply filters function
 const applyFilters = async () => {
   loading.value = true
   emit('loading', true)
+  error.value = null
 
   try {
-    // Prepare filter parameters - handle empty values properly
     const keyword = localFilters.value.search?.trim() || undefined
-    const trangThai = localFilters.value.trangThai
-      ? parseInt(localFilters.value.trangThai)
-      : undefined
-    const minPrice =
-      localFilters.value.minPrice && localFilters.value.minPrice > 0
-        ? localFilters.value.minPrice
-        : undefined
-    const maxPrice = localFilters.value.maxPrice || undefined
+    const trangThai = localFilters.value.trangThai ? parseInt(localFilters.value.trangThai) : undefined
+    const minPrice = localFilters.value.minPrice != null ? localFilters.value.minPrice : undefined
+    const maxPrice = localFilters.value.maxPrice != null ? localFilters.value.maxPrice : undefined
 
-    // Call advanced search API
     const response = await advancedSearch(keyword, trangThai, minPrice, maxPrice)
 
-    // Handle different response structures
     let data = response
-    if (response.data) {
-      data = response.data
-    }
-    if (response.content) {
-      data = response.content
-    }
+    if (response.data) data = response.data
+    else if (response.content) data = response.content
 
-    // Emit filtered data
     const resultData = Array.isArray(data)
       ? data
       : data.content && Array.isArray(data.content)
@@ -156,10 +171,8 @@ const applyFilters = async () => {
     emit('filtered-data', resultData)
     emit('filter', { keyword, trangThai, minPrice, maxPrice })
   } catch (err) {
+    error.value = err.message || 'Lỗi khi áp dụng bộ lọc'
     console.error('Filter error:', err)
-    console.error('Error response:', err.response?.data)
-
-    // If filter fails, show current products from store
     emit('filtered-data', productStore.products || [])
   } finally {
     loading.value = false
@@ -178,19 +191,14 @@ const resetFilters = async () => {
 
   loading.value = true
   emit('loading', true)
+  error.value = null
 
   try {
-    // Load all products when resetting
     const response = await getAllSanPham()
 
-    // Handle different response structures
     let data = response
-    if (response.data) {
-      data = response.data
-    }
-    if (response.content) {
-      data = response.content
-    }
+    if (response.data) data = response.data
+    else if (response.content) data = response.content
 
     const resultData = Array.isArray(data)
       ? data
@@ -199,6 +207,7 @@ const resetFilters = async () => {
         : []
     emit('filtered-data', resultData)
   } catch (err) {
+    error.value = err.message || 'Lỗi khi tải lại sản phẩm'
     console.error('Reset error:', err)
     emit('filtered-data', productStore.products || [])
   } finally {
@@ -237,16 +246,28 @@ const resetFilters = async () => {
   padding: 16px 24px;
 }
 
+.price-range {
+  position: relative;
+}
+
+.price-range .range-inputs {
+  position: relative;
+  height: 6px;
+}
+
 .price-range .range-inputs input[type='range'] {
+  position: absolute;
+  top: 0;
+  left: 0;
   appearance: none;
   width: 100%;
   height: 6px;
-  background: #e2f5ea;
-  border-radius: 999px;
-  outline: none;
+  background: transparent;
+  pointer-events: none;
 }
 
 .price-range .range-inputs input[type='range']::-webkit-slider-thumb {
+  pointer-events: auto;
   appearance: none;
   width: 16px;
   height: 16px;
@@ -255,10 +276,15 @@ const resetFilters = async () => {
   cursor: pointer;
 }
 
-.filter-footer {
-  padding: 16px;
-  border-top: 1px solid #f1f5f9;
-  text-align: right;
+.price-range .range-inputs::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: #e2f5ea;
+  border-radius: 999px;
 }
 
 .form-group {
@@ -325,5 +351,18 @@ const resetFilters = async () => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.filter-footer {
+  padding: 16px;
+  border-top: 1px solid #f1f5f9;
+  text-align: right;
+}
+
+/* Thêm style cho lỗi nếu cần */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
 }
 </style>

@@ -1,3 +1,4 @@
+```vue
 <template>
   <div class="product-list">
     <div class="table-responsive">
@@ -97,7 +98,7 @@
             </td>
             <td>
               <span :class="statusClass(product.trangThai)" class="badge">
-                {{ product.trangThai === 'ACTIVE' ? 'Hoạt động' : 'Ẩn' }}
+                {{ product.trangThai == 1 ? 'Hoạt động' : 'Ẩn' }}
               </span>
             </td>
             <td>{{ formatDateSafe(product) }}</td>
@@ -254,11 +255,10 @@ const stockStatusClass = (stock) => {
 }
 
 const statusClass = (status) => {
-  return status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'
+  return status === 1 ? 'bg-success' : 'bg-secondary'
 }
 
 const viewProduct = (product) => {
-  // Emit view event to parent component
   emit('view', product)
 }
 
