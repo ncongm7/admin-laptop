@@ -140,8 +140,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { formatCurrency } from '@/utils/formatters'
 import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
-import ProductImageGallery from '@/components/products/ProductImageGallery.vue'
-import ImeiManagement from '@/components/products/ImeiManagement.vue'
+import ProductImageGallery from '@/components/chitietsanpham/ProductImageGallery.vue'
+import ImeiManagement from '@/components/chitietsanpham/ImeiManagement.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -190,6 +190,4 @@ const goBack = () => {
 }
 
 .attribute-item .value {
-    font-size: 1.1rem;
-}
-</style>
+    font-size: 1.1rem

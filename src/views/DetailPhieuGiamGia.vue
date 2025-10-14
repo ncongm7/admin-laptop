@@ -6,7 +6,7 @@
 </template>
 <script setup>
 import { useRoute } from 'vue-router'
-import PhieuGiamGiaForm from '../components/phieugiamgia/PhieuGiamGiaForm.vue'
+import PhieuGiamGiaForm from '@/components/phieugiamgia/PhieuGiamGiaFormComponent.vue'
 const route = useRoute()
 const voucherId = route.params.id
 </script>
@@ -21,4 +21,4 @@ const voucherId = route.params.id
   font-weight: 700;
   margin-bottom: 24px;
 }
-</style> 
+<
