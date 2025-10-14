@@ -19,8 +19,6 @@
                 <MenuItem icon="bi-ticket-perforated" label="Quản lý phiếu giảm giá" to="/quan-li-phieu-giam-gia" sub
                     :collapsed="collapsed" @submenu-click="handleSubmenuClick" />
                 </MenuItem>
-                <MenuItem icon="bi-arrow-counterclockwise" label="Quản lý trả hàng" to="/quan-li-tra-hang"
-                    :collapsed="collapsed" />
                 <MenuItem icon="bi-shield-check" label="Quản lý bảo hành" to="/quan-li-bao-hanh"
                     :collapsed="collapsed" />
                 <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" :collapsed="collapsed" />
