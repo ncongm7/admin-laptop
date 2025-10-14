@@ -31,3 +31,21 @@ export const LayLichSuBaoHanh = async (idPhieuBaoHanh) => {
   const res = await fetch(`${API}/danh-sach/${idPhieuBaoHanh}`);
   return handleResponse(res);
 };
+// service/baohanh/LichSuBaoHanhService.js
+export const AddLichSuBaoHanh = async (idPhieuBaoHanh, moTaLoi) => {
+  const res = await fetch(`${API}/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idPhieuBaoHanh, moTaLoi }),
+  });
+  return handleResponse(res);
+};
+// Cập nhật
+export const updateLichSuBaoHanh = async (data, id) => {
+  const res = await fetch(`${API}/update/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
