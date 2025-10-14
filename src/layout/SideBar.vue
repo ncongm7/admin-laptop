@@ -21,9 +21,9 @@
                 </MenuItem>
                 <MenuItem icon="bi-shield-check" label="Quản lý bảo hành" to="/quan-li-bao-hanh"
                     :collapsed="collapsed" />
-                <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" :collapsed="collapsed" />
+                <!-- <MenuItem icon="bi-bar-chart" label="Thống kê" to="/thong-ke" :collapsed="collapsed" />
                 <MenuItem icon="bi-bell" label="Quản lý thông báo" to="/quan-li-thong-bao" :collapsed="collapsed" />
-                <MenuItem icon="bi-gear" label="Quản lý hệ thống" to="/quan-li-he-thong" :collapsed="collapsed" />
+                <MenuItem icon="bi-gear" label="Quản lý hệ thống" to="/quan-li-he-thong" :collapsed="collapsed" /> -->
             </ul>
         </nav>
         <div class="sidebar-footer p-3 mt-auto d-flex align-items-center gap-2">

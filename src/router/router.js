@@ -191,7 +191,7 @@ const routes = [
   //Lịch Sử Bảo Hành
   {
     path: '/lich-su-bao-hanh/:id',
-    name: 'DotGiamGiaChiTietView',
+    name: 'LichSuBaoHanhView',
     component: () => import('@/views/baohanh/LichSuBaoHanhView.vue'),
     props: true,
   }
