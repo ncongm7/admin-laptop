@@ -1,3 +1,4 @@
+<!-- // Update ProductFilter.vue to use advancedSearchPage for pagination -->
 <template>
   <div class="product-filter">
     <div class="filter-header">
@@ -79,7 +80,7 @@
 import { ref, computed, watch } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import { formatCurrency } from '@/utils/helpers'
-import { advancedSearch, getAllSanPham } from '@/service/sanpham/SanPhamService'
+import { advancedSearch, advancedSearchPage } from '@/service/sanpham/SanPhamService'
 
 const emit = defineEmits(['filter', 'reset', 'loading', 'filtered-data'])
 
@@ -157,7 +158,8 @@ const applyFilters = async () => {
     const minPrice = localFilters.value.minPrice != null ? localFilters.value.minPrice : undefined
     const maxPrice = localFilters.value.maxPrice != null ? localFilters.value.maxPrice : undefined
 
-    const response = await advancedSearch(keyword, trangThai, minPrice, maxPrice)
+    // Use advancedSearchPage for pagination
+    const response = await advancedSearchPage(keyword, trangThai, minPrice, maxPrice, 0, 10)
 
     let data = response
     if (response.data) data = response.data
@@ -194,7 +196,8 @@ const resetFilters = async () => {
   error.value = null
 
   try {
-    const response = await getAllSanPham()
+    // Use advancedSearchPage for pagination
+    const response = await advancedSearchPage('', '', null, null, 0, 10)
 
     let data = response
     if (response.data) data = response.data

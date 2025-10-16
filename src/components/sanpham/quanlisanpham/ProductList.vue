@@ -1,4 +1,4 @@
-```vue
+
 <template>
   <div class="product-list">
     <div class="table-responsive">
@@ -161,6 +161,8 @@ import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
 import { ref, computed } from 'vue'
 
+
+
 const props = defineProps({
   products: {
     type: Array,
@@ -279,7 +281,7 @@ const formatDateSafe = (product) => {
 }
 
 const formatUpdateDateSafe = (product) => {
-  return formatDate(product.ngayCapNhat || product.updatedAt)
+  return formatDate(product.ngaySua || product.updatedAt)
 }
 </script>
 

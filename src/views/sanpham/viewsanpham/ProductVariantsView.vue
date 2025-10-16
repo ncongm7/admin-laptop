@@ -1,3 +1,5 @@
+<!-- // Update ProductVariantsView.vue to fetch variants from API -->
+
 <template>
   <div class="product-variants-view">
     <!-- Header -->
@@ -153,39 +155,39 @@
               </td>
               <td>{{ index + 1 }}</td>
               <td>
-                <code class="sku-code">{{ variant.sku }}</code>
+                <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
                 <div class="d-flex align-items-center gap-2">
                   <div
                     class="color-dot"
-                    :style="{ backgroundColor: variant.color?.hex || '#000' }"
+                    :style="{ backgroundColor: getColorHex(variant.mauSac?.tenMau) }"
                   ></div>
-                  <span>{{ variant.color?.name }}</span>
+                  <span>{{ variant.mauSac?.tenMau }}</span>
                 </div>
               </td>
-              <td>{{ variant.cpu?.name }}</td>
-              <td>{{ variant.ram?.name }}</td>
-              <td>{{ variant.gpu?.name }}</td>
-              <td>{{ variant.screen?.name }}</td>
-              <td>{{ variant.battery?.name }}</td>
-              <td>{{ variant.storage?.name }}</td>
+              <td>{{ variant.cpu?.tenCpu }}</td>
+              <td>{{ variant.ram?.tenRam }}</td>
+              <td>{{ variant.gpu?.tenGpu }}</td>
+              <td>{{ variant.loaiManHinh?.kichThuoc }}</td>
+              <td>{{ variant.pin?.dungLuongPin }}</td>
+              <td>{{ variant.oCung?.dungLuong }}</td>
               <td>
                 <span class="price-text">{{ formatCurrency(variant.giaBan) }}</span>
               </td>
               <td>
                 <div class="stock-info">
                   <span :class="stockStatusClass(variant.soLuong)">{{ variant.soLuong }}</span>
-                  <small class="text-muted d-block">{{ variant.soLuong }} có sẵn</small>
+                  <small class="text-muted d-block">{{ variant.soLuongTon }} có sẵn</small>
                 </div>
               </td>
               <td>
                 <span :class="statusClass(variant.trangThai)" class="badge">
-                  {{ variant.trangThai === 'ACTIVE' ? 'Hoạt động' : 'Ẩn' }}
+                  {{ variant.trangThai === 1 ? 'Hoạt động' : 'Ẩn' }}
                 </span>
               </td>
               <td>{{ formatDate(variant.ngayTao) }}</td>
-              <td>{{ formatDate(variant.ngayCapNhat) }}</td>
+              <td>{{ formatDate(variant.ngaySua) }}</td>
               <td>
                 <div class="btn-group btn-group-sm">
                   <button
@@ -243,9 +245,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
+import { getAllSanPhamChiTiet } from '@/service/sanpham/SanPhamService'
 
 const loading = ref(false)
 const searchQuery = ref('')
@@ -262,85 +265,73 @@ const filters = ref({
   maxPrice: 62000000,
 })
 
-// Mock data - replace with actual API calls
-const variants = ref([
-  {
-    id: 1,
-    sku: 'SP1111-CPU003-RAM001-BN001-MS001-GPU001-MH001',
-    color: { name: 'Đen', hex: '#000000' },
-    cpu: { name: 'Intel Core i5 15400K' },
-    ram: { name: '16 GB DDR4' },
-    gpu: { name: 'RTX 5090' },
-    screen: { name: '17" 4K' },
-    battery: { name: '70Wh' },
-    storage: { name: '512 GB SSD' },
-    giaBan: 10000000,
-    soLuong: 0,
-    trangThai: 'ACTIVE',
-    ngayTao: '2024-01-15',
-    ngayCapNhat: '2024-01-15',
-  },
-  {
-    id: 2,
-    sku: 'SP1111-CPU003-RAM001-BN001-MS001-GPU001-MH002',
-    color: { name: 'Đỏ', hex: '#FF0000' },
-    cpu: { name: 'AMD Ryzen 7 5800H' },
-    ram: { name: '32 GB DDR4' },
-    gpu: { name: 'Radeon RX 7600M XT' },
-    screen: { name: '14" FHD' },
-    battery: { name: '50Wh' },
-    storage: { name: '256 GB SSD' },
-    giaBan: 8500000,
-    soLuong: 5,
-    trangThai: 'ACTIVE',
-    ngayTao: '2024-01-15',
-    ngayCapNhat: '2024-01-15',
-  },
-  {
-    id: 3,
-    sku: 'SP1111-CPU003-RAM001-BN001-MS001-GPU001-MH003',
-    color: { name: 'Xanh lá cây', hex: '#16a34a' },
-    cpu: { name: 'Intel Core i7 12700H' },
-    ram: { name: '16 GB DDR5' },
-    gpu: { name: 'RTX 3070' },
-    screen: { name: '15.6" FHD' },
-    battery: { name: '60Wh' },
-    storage: { name: '1TB SSD' },
-    giaBan: 12000000,
-    soLuong: 3,
-    trangThai: 'ACTIVE',
-    ngayTao: '2024-01-15',
-    ngayCapNhat: '2024-01-15',
-  },
-])
+// Fetch variants from API
+const variants = ref([])
+
+const fetchVariants = async () => {
+  try {
+    loading.value = true
+    const response = await getAllSanPhamChiTiet()
+    console.log('API response:', response)
+
+    // Handle different response formats
+    let data = response.data || response
+    
+    // If response has content property (from paginated responses)
+    if (response.content) {
+      data = response.content
+    }
+    
+    // Ensure we have an array of variants
+    if (Array.isArray(data)) {
+      variants.value = data
+    } else if (data && Array.isArray(data.content)) {
+      variants.value = data.content
+    } else {
+      variants.value = []
+    }
+  } catch (err) {
+    console.error('Error fetching variants:', err)
+    variants.value = [] // Reset if error occurs
+  } finally {
+    loading.value = false
+  }
+}
+
+// Initialize variants when component mounts
+onMounted(() => {
+  fetchVariants().then(() => {
+    console.log('Variants:', variants.value)
+  })
+})
 
 const filteredVariants = computed(() => {
   return variants.value.filter((variant) => {
     const matchesSearch =
       !searchQuery.value ||
-      variant.sku.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.cpu?.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.ram?.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.gpu?.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+      variant.maCtsp?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      variant.cpu?.tenCpu?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      variant.ram?.tenRam?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      variant.gpu?.tenGpu?.toLowerCase().includes(searchQuery.value.toLowerCase())
 
     const matchesCpu =
       !filters.value.cpu ||
-      variant.cpu?.name.toLowerCase().includes(filters.value.cpu.toLowerCase())
+      variant.cpu?.tenCpu?.toLowerCase().includes(filters.value.cpu.toLowerCase())
     const matchesRam =
       !filters.value.ram ||
-      variant.ram?.name.toLowerCase().includes(filters.value.ram.toLowerCase())
+      variant.ram?.tenRam?.toLowerCase().includes(filters.value.ram.toLowerCase())
     const matchesGpu =
       !filters.value.gpu ||
-      variant.gpu?.name.toLowerCase().includes(filters.value.gpu.toLowerCase())
+      variant.gpu?.tenGpu?.toLowerCase().includes(filters.value.gpu.toLowerCase())
     const matchesColor =
       !filters.value.color ||
-      variant.color?.name.toLowerCase().includes(filters.value.color.toLowerCase())
+      variant.mauSac?.tenMau?.toLowerCase().includes(filters.value.color.toLowerCase())
     const matchesStorage =
       !filters.value.storage ||
-      variant.storage?.name.toLowerCase().includes(filters.value.storage.toLowerCase())
+      variant.oCung?.dungLuong?.toLowerCase().includes(filters.value.storage.toLowerCase())
     const matchesScreen =
       !filters.value.screen ||
-      variant.screen?.name.toLowerCase().includes(filters.value.screen.toLowerCase())
+      variant.loaiManHinh?.kichThuoc?.toLowerCase().includes(filters.value.screen.toLowerCase())
     const matchesPrice = !filters.value.maxPrice || variant.giaBan <= filters.value.maxPrice
 
     return (
@@ -405,6 +396,15 @@ const bulkDelete = () => {
 
 const settingsVariant = (variant) => {
   console.log('Settings variant:', variant)
+}
+
+const getColorHex = (tenMau) => {
+  const colorMap = {
+    'Đen': '#000000',
+    'Bạc': '#C0C0C0',
+    'Xám': '#808080',
+  }
+  return colorMap[tenMau] || '#000000'
 }
 </script>
 

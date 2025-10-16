@@ -1,3 +1,4 @@
+
 <template>
   <div class="products-management">
     <!-- Main Content -->
@@ -89,9 +90,6 @@ const filters = ref({
 const fetchData = async () => {
   try {
     loading.value = true
-
-    // Test API connection first
-    const apiWorking = await productStore.testApiConnection()
 
     await productStore.fetchAllProducts()
   } catch (err) {
