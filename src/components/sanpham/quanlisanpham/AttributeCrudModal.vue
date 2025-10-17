@@ -15,41 +15,72 @@
                   v-model="form.code"
                   type="text"
                   class="form-control form-control-sm"
+                  :class="{ 'is-invalid': errors.code }"
                   required
                 />
+                <div v-if="errors.code" class="invalid-feedback">{{ errors.code }}</div>
               </div>
               <div class="col-md-5">
-                <label class="form-label small">Tên</label>
+                <label class="form-label small">{{ getFieldLabel('name') }}</label>
                 <input
                   v-model="form.name"
                   type="text"
                   class="form-control form-control-sm"
+                  :class="{ 'is-invalid': errors.name }"
                   required
                 />
+                <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
               </div>
               <div class="col-md-4">
                 <label class="form-label small">Trạng thái</label>
                 <select v-model="form.status" class="form-select form-select-sm">
-                  <option value="ACTIVE">Hoạt động</option>
-                  <option value="INACTIVE">Ẩn</option>
+                  <option value=1>Hoạt động</option>
+                  <option value=0>Ẩn</option>
                 </select>
+              </div>
+              <!-- Color picker for MauSac -->
+              <div v-if="props.type === 'color'" class="col-md-4">
+                <label class="form-label small">Mã màu (Hex)</label>
+                <div class="color-picker-group">
+                  <input
+                    v-model="form.colorHex"
+                    type="color"
+                    class="form-control form-control-color"
+                    style="width: 50px; height: 38px;"
+                  />
+                  <input
+                    v-model="form.colorHex"
+                    type="text"
+                    class="form-control form-control-sm ms-2"
+                    :class="{ 'is-invalid': errors.colorHex }"
+                    placeholder="#000000"
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                  />
+                </div>
+                <div v-if="errors.colorHex" class="invalid-feedback">{{ errors.colorHex }}</div>
               </div>
               <div class="col-12">
                 <label class="form-label small">Mô tả</label>
-                <input
+                <textarea
                   v-model="form.description"
-                  type="text"
                   class="form-control form-control-sm"
-                />
+                  rows="2"
+                  :class="{ 'is-invalid': errors.description }"
+                ></textarea>
+                <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
               </div>
             </div>
             <div class="mt-2 d-flex gap-2">
-              <button class="btn btn-primary btn-sm" type="submit">
+              <button class="btn btn-primary btn-sm" type="submit" :disabled="loading">
+                <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
                 {{ editingIndex === -1 ? 'Thêm' : 'Cập nhật' }}
               </button>
-              <button class="btn btn-secondary btn-sm" type="button" @click="resetForm">
+              <button class="btn btn-secondary btn-sm" type="button" @click="resetForm" :disabled="loading">
                 Làm mới
               </button>
+            </div>
+            <div v-if="generalError" class="alert alert-danger alert-sm mt-2">
+              {{ generalError }}
             </div>
           </form>
 
@@ -59,7 +90,7 @@
                 <tr>
                   <th width="60">#</th>
                   <th>Mã</th>
-                  <th>Tên</th>
+                  <th>{{ getFieldLabel('name') }}</th>
                   <th>Mô tả</th>
                   <th>Trạng thái</th>
                   <th width="110">Thao tác</th>
@@ -71,22 +102,36 @@
                 </tr>
                 <tr v-else v-for="(it, idx) in items" :key="it.id || idx">
                   <td>{{ idx + 1 }}</td>
-                  <td>{{ it.code }}</td>
-                  <td>{{ it.name }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <span v-if="props.type === 'color' && it.colorHex" 
+                            class="color-preview me-2" 
+                            :style="{ backgroundColor: it.colorHex }"></span>
+                      {{ it.code }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <span v-if="props.type === 'color' && it.colorHex" 
+                            class="color-preview me-2" 
+                            :style="{ backgroundColor: it.colorHex }"></span>
+                      {{ it.name }}
+                    </div>
+                  </td>
                   <td>{{ it.description }}</td>
                   <td>
                     <span
-                      :class="['badge', it.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary']"
+                      :class="['badge', it.status === 1 ? 'bg-success' : 'bg-secondary']"
                     >
-                      {{ it.status === 'ACTIVE' ? 'Hoạt động' : 'Ẩn' }}
+                      {{ it.status === 1 ? 'Hoạt động' : 'Ẩn' }}
                     </span>
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm">
-                      <button class="btn btn-outline-secondary" @click="editItem(idx)">
+                      <button class="btn btn-outline-secondary" @click="editItem(idx)" :disabled="loading">
                         <i class="bi bi-pencil"></i>
                       </button>
-                      <button class="btn btn-outline-danger" @click="removeItem(idx)">
+                      <button class="btn btn-outline-danger" @click="showDeleteConfirm(it, idx)" :disabled="loading">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
@@ -102,20 +147,35 @@
       </div>
     </div>
     <div class="attr-backdrop fade show"></div>
+    
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      ref="confirmDialog"
+      :type="confirmType"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :confirm-text="confirmButtonText"
+      @confirm="handleConfirmAction"
+    />
+    
+    <!-- Toast Notifications -->
+    <NotificationToast ref="toast" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import {
-  getCPUList,
-  getGPUList,
-  getRamList,
-  getOCungList,
-  getMauSacList,
-  getLoaiManHinhList,
-  getPinList,
+  getCPUList, createCPU, updateCPU, deleteCPU,
+  getGPUList, createGPU, updateGPU, deleteGPU,
+  getRamList, createRam, updateRam, deleteRam,
+  getOCungList, createOCung, updateOCung, deleteOCung,
+  getMauSacList, createMauSac, updateMauSac, deleteMauSac,
+  getLoaiManHinhList, createLoaiManHinh, updateLoaiManHinh, deleteLoaiManHinh,
+  getPinList, createPin, updatePin, deletePin,
 } from '@/service/sanpham/SanPhamService'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import NotificationToast from '@/components/common/NotificationToast.vue'
 
 const props = defineProps({
   type: { type: String, required: true },
@@ -134,20 +194,81 @@ const mapTitle = {
 }
 
 const mapApiFunction = {
-  cpu: getCPUList,
-  ram: getRamList,
-  gpu: getGPUList,
-  color: getMauSacList,
-  storage: getOCungList,
-  'screen-type': getLoaiManHinhList,
-  battery: getPinList,
+  cpu: { 
+    list: getCPUList, 
+    create: createCPU, 
+    update: updateCPU, 
+    delete: deleteCPU,
+    fields: { code: 'maCpu', name: 'tenCpu', description: 'moTa', status: 'trangThai' }
+  },
+  ram: { 
+    list: getRamList, 
+    create: createRam, 
+    update: updateRam, 
+    delete: deleteRam,
+    fields: { code: 'maRam', name: 'tenRam', description: 'moTa', status: 'trangThai' }
+  },
+  gpu: { 
+    list: getGPUList, 
+    create: createGPU, 
+    update: updateGPU, 
+    delete: deleteGPU,
+    fields: { code: 'maGpu', name: 'tenGpu', description: 'moTa', status: 'trangThai' }
+  },
+  color: { 
+    list: getMauSacList, 
+    create: createMauSac, 
+    update: updateMauSac, 
+    delete: deleteMauSac,
+    fields: { code: 'maMau', name: 'tenMau', description: 'moTa', status: 'trangThai' }
+  },
+  storage: { 
+    list: getOCungList, 
+    create: createOCung, 
+    update: updateOCung, 
+    delete: deleteOCung,
+    fields: { code: 'maOCung', name: 'dungLuong', description: 'moTa', status: 'trangThai' }
+  },
+  'screen-type': { 
+    list: getLoaiManHinhList, 
+    create: createLoaiManHinh, 
+    update: updateLoaiManHinh, 
+    delete: deleteLoaiManHinh,
+    fields: { code: 'maLoaiManHinh', name: 'kichThuoc', description: 'moTa', status: 'trangThai' }
+  },
+  battery: { 
+    list: getPinList, 
+    create: createPin, 
+    update: updatePin, 
+    delete: deletePin,
+    fields: { code: 'maPin', name: 'dungLuong', description: 'moTa', status: 'trangThai' }
+  },
 }
 
 const title = computed(() => mapTitle[props.type] || 'Thuộc tính')
 
 const items = ref([])
 const editingIndex = ref(-1)
-const form = ref({ code: '', name: '', description: '', status: 'ACTIVE' })
+const editingItem = ref(null)
+const loading = ref(false)
+const errors = ref({})
+const generalError = ref('')
+const form = ref({ 
+  code: '', 
+  name: '', 
+  description: '', 
+  status: 1,
+  colorHex: '#000000' // For color type
+})
+
+// Confirm dialog refs and state
+const confirmDialog = ref(null)
+const toast = ref(null)
+const confirmType = ref('danger')
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmButtonText = ref('Xác nhận')
+const pendingAction = ref(null)
 
 // Load data from API
 const loadData = async () => {
@@ -155,28 +276,42 @@ const loadData = async () => {
     return
   }
 
+  loading.value = true
   try {
-    const response = await mapApiFunction[props.type]()
+    const response = await mapApiFunction[props.type].list()
     const data = response.data || response
 
     if (Array.isArray(data)) {
-      // Map the API response to our expected format
+      const fields = mapApiFunction[props.type].fields
+      // Map the API response to our expected format and sort by newest first
       items.value = data.map((item, index) => ({
-        id: item.id || index + 1,
-        code:
-          item.ma ||
-          item.code ||
-          `${props.type.toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
-        name: item.ten || item.name || item.tenThuocTinh || `${title.value} ${index + 1}`,
-        description: item.moTa || item.description || item.ghiChu || '',
-        status: item.trangThai || item.status || 'ACTIVE',
-      }))
+        id: item.id,
+        code: item[fields.code] || '',
+        name: item[fields.name] || '',
+        description: item[fields.description] || '',
+        status: item[fields.status] || 1,
+        colorHex: item.hexCode || item.mauHex || '#000000', // For color type
+        originalData: item, // Keep original data for updates
+        createdAt: item.createdAt || item.ngayTao || item.created_at || Date.now() - index // Fallback ordering
+      })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      
+      console.log('Loaded items:', items.value.length, 'items')
     } else {
       items.value = []
     }
   } catch (err) {
-    // Silently use mock data if API fails
-    items.value = generateMockData()
+    console.error('Error loading data:', err)
+    
+    // Check if API endpoint exists
+    if (err.response && err.response.status === 404) {
+      generalError.value = `API endpoint cho ${title.value} chưa được implement`
+      // Use mock data for development
+      items.value = generateMockData()
+    } else {
+      generalError.value = 'Không thể tải dữ liệu: ' + (err.message || 'Lỗi không xác định')
+    }
+  } finally {
+    loading.value = false
   }
 }
 
@@ -233,26 +368,259 @@ const generateMockData = () => {
 
 function resetForm() {
   editingIndex.value = -1
-  form.value = { code: '', name: '', description: '', status: 'ACTIVE' }
+  editingItem.value = null
+  form.value = { 
+    code: '', 
+    name: '', 
+    description: '', 
+    status: 1,
+    colorHex: '#000000'
+  }
+  errors.value = {}
+  generalError.value = ''
 }
 
-function saveItem() {
-  if (editingIndex.value === -1) {
-    items.value = [...items.value, { ...form.value, id: Date.now() }]
-  } else {
-    items.value.splice(editingIndex.value, 1, { ...form.value })
+// Get field labels based on type
+const getFieldLabel = (field) => {
+  const labels = {
+    cpu: { name: 'Tên CPU' },
+    ram: { name: 'Dung lượng RAM' },
+    gpu: { name: 'Tên GPU' },
+    color: { name: 'Tên màu' },
+    storage: { name: 'Dung lượng ổ cứng' },
+    'screen-type': { name: 'Kích thước màn hình' },
+    battery: { name: 'Dung lượng pin' },
   }
-  resetForm()
+  return labels[props.type]?.[field] || 'Tên'
+}
+
+// Frontend validation
+const validateForm = () => {
+  const newErrors = {}
+  
+  if (!form.value.code?.trim()) {
+    newErrors.code = 'Mã không được để trống'
+  }
+  
+  if (!form.value.name?.trim()) {
+    newErrors.name = 'Tên không được để trống'
+  }
+  
+  // Validate hex code for color type
+  if (props.type === 'color' && form.value.colorHex) {
+    const hexPattern = /^#[0-9A-Fa-f]{6}$/
+    if (!hexPattern.test(form.value.colorHex)) {
+      newErrors.colorHex = 'Mã màu phải có định dạng #RRGGBB (ví dụ: #FF0000)'
+    }
+  }
+  
+  errors.value = newErrors
+  return Object.keys(newErrors).length === 0
+}
+
+async function saveItem() {
+  if (!mapApiFunction[props.type]) return
+
+  // Clear previous errors
+  errors.value = {}
+  generalError.value = ''
+  
+  // Frontend validation
+  if (!validateForm()) {
+    generalError.value = 'Vui lòng kiểm tra lại thông tin nhập vào'
+    return
+  }
+  
+  loading.value = true
+
+  console.log('Saving item:', {
+    type: props.type,
+    isCreating: editingIndex.value === -1,
+    form: form.value
+  })
+
+  try {
+    const fields = mapApiFunction[props.type].fields
+    const payload = {
+      [fields.code]: form.value.code,
+      [fields.name]: form.value.name,
+      [fields.description]: form.value.description,
+      [fields.status]: Number(form.value.status)
+    }
+
+    // Add hex code for color type
+    if (props.type === 'color') {
+      payload.hexCode = form.value.colorHex
+      payload.mauHex = form.value.colorHex
+    }
+
+    const isCreating = editingIndex.value === -1
+    let response
+    
+    if (isCreating) {
+      // Create new item
+      response = await mapApiFunction[props.type].create(payload)
+    } else {
+      // Update existing item
+      const itemId = editingItem.value.id
+      response = await mapApiFunction[props.type].update(itemId, payload)
+    }
+
+    console.log('Save successful, response:', response)
+    
+    // Reload data after successful save
+    await loadData()
+    resetForm()
+    
+    console.log('Showing success toast:', {
+      isCreating,
+      title: title.value,
+      toastRef: toast.value
+    })
+    
+    // Show success notification
+    toast.value?.addToast({
+      type: 'success',
+      title: isCreating ? 'Thêm thành công!' : 'Cập nhật thành công!',
+      message: `${title.value} đã được ${isCreating ? 'thêm mới' : 'cập nhật'} thành công.`,
+      duration: 3000
+    })
+    
+  } catch (err) {
+    console.error('Error saving item:', err)
+    
+    // Check if API endpoint exists
+    if (err.response && err.response.status === 404) {
+      generalError.value = `API endpoint cho ${title.value} chưa được implement`
+      toast.value?.addToast({
+        type: 'warning',
+        title: 'API chưa sẵn sàng',
+        message: `Chức năng quản lý ${title.value} chưa được triển khai trên server`,
+        duration: 5000
+      })
+      return
+    }
+    
+    // Handle validation errors from backend
+    if (err.response && err.response.data) {
+      const errorData = err.response.data
+      
+      if (errorData.errors) {
+        // Field-specific errors - map backend field names to frontend field names
+        const fields = mapApiFunction[props.type].fields
+        const fieldMapping = {
+          [fields.code]: 'code',
+          [fields.name]: 'name', 
+          [fields.description]: 'description',
+          [fields.status]: 'status',
+          'hexCode': 'colorHex',
+          'mauHex': 'colorHex'
+        }
+        
+        Object.keys(errorData.errors).forEach(backendField => {
+          const frontendField = fieldMapping[backendField] || backendField
+          errors.value[frontendField] = errorData.errors[backendField]
+        })
+        
+        generalError.value = 'Vui lòng kiểm tra lại thông tin nhập vào'
+      } else {
+        // General error message
+        generalError.value = errorData.message || 'Có lỗi xảy ra khi lưu dữ liệu'
+      }
+    } else {
+      generalError.value = 'Không thể lưu dữ liệu: ' + (err.message || 'Lỗi không xác định')
+    }
+    
+    // Show error notification
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi!',
+      message: generalError.value,
+      duration: 5000
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 function editItem(index) {
   editingIndex.value = index
-  form.value = { ...items.value[index] }
+  editingItem.value = items.value[index]
+  form.value = { 
+    code: items.value[index].code,
+    name: items.value[index].name,
+    description: items.value[index].description,
+    status: items.value[index].status,
+    colorHex: items.value[index].colorHex || '#000000'
+  }
+  errors.value = {}
+  generalError.value = ''
 }
 
-function removeItem(index) {
-  items.value.splice(index, 1)
-  if (editingIndex.value === index) resetForm()
+function showDeleteConfirm(item, index) {
+  confirmType.value = 'danger'
+  confirmTitle.value = 'Xác nhẫn xóa'
+  confirmMessage.value = `Bạn có chắc chắn muốn xóa "${item.name}"? Hành động này không thể hoàn tác.`
+  confirmButtonText.value = 'Xóa'
+  pendingAction.value = { type: 'delete', item, index }
+  confirmDialog.value?.show()
+}
+
+function handleConfirmAction() {
+  if (pendingAction.value?.type === 'delete') {
+    return deleteItem(pendingAction.value.item, pendingAction.value.index)
+  }
+}
+
+async function deleteItem(item, index) {
+  if (!mapApiFunction[props.type]) return
+
+  loading.value = true
+  try {
+    await mapApiFunction[props.type].delete(item.id)
+    
+    // Remove from local array
+    items.value.splice(index, 1)
+    
+    // Reset form if editing this item
+    if (editingIndex.value === index) {
+      resetForm()
+    }
+    
+    // Show success notification
+    toast.value?.addToast({
+      type: 'success',
+      title: 'Xóa thành công!',
+      message: `${item.name} đã được xóa khỏi hệ thống.`,
+      duration: 3000
+    })
+    
+  } catch (err) {
+    console.error('Error deleting item:', err)
+    const errorMessage = 'Không thể xóa: ' + (err.response?.data?.message || err.message || 'Lỗi không xác định')
+    generalError.value = errorMessage
+    
+    // Show error notification
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi xóa!',
+      message: errorMessage,
+      duration: 5000
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// Test function for debugging
+const testToast = () => {
+  console.log('Testing toast:', toast.value)
+  toast.value?.addToast({
+    type: 'success',
+    title: 'Test Toast',
+    message: 'This is a test notification',
+    duration: 3000
+  })
 }
 
 // Load data when component mounts or type changes
@@ -330,5 +698,58 @@ watch(
     left: 0;
     width: 100%;
   }
+}
+
+/* Color picker styles */
+.color-picker-group {
+  display: flex;
+  align-items: center;
+}
+
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #e5e7eb;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.form-control-color {
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+.form-control-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* Loading and error styles */
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.alert-sm {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.is-invalid {
+  border-color: #dc3545;
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc3545;
 }
 </style>

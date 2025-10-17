@@ -2,7 +2,14 @@
 
 <template>
   <div class="product-variants-view">
-    <!-- Header -->
+    <!-- Debug Info (remove in production) -->
+    <div class="debug-info mb-2" v-if="showDebug">
+      <small class="text-muted">
+        Debug: CPUs({{ productStore.cpus.length }}), RAMs({{ productStore.rams.length }}), 
+        GPUs({{ productStore.gpus.length }}), Colors({{ productStore.colors.length }}), 
+        Storages({{ productStore.storages.length }}), Screens({{ productStore.screens.length }})
+      </small>
+    </div>
 
     <!-- Filter Section -->
     <div class="filter-card mb-4">
@@ -14,78 +21,94 @@
       </div>
       <div class="filter-content">
         <div class="row g-3">
-          <!-- Row 1 -->
           <div class="col-md-3">
             <label class="form-label">CPU</label>
             <select class="form-select" v-model="filters.cpu">
-              <option value="">Chọn CPU</option>
-              <option value="intel-i5">Intel Core i5</option>
-              <option value="intel-i7">Intel Core i7</option>
-              <option value="amd-ryzen5">AMD Ryzen 5</option>
-              <option value="amd-ryzen7">AMD Ryzen 7</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.cpus.length === 0" disabled>Đang tải...</option>
+              <option v-for="c in productStore.cpus" :key="c.id" :value="c.tenCpu">{{ c.tenCpu }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">RAM</label>
             <select class="form-select" v-model="filters.ram">
-              <option value="">Chọn RAM</option>
-              <option value="8gb">8GB</option>
-              <option value="16gb">16GB</option>
-              <option value="32gb">32GB</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.rams.length === 0" disabled>Đang tải...</option>
+              <option v-for="r in productStore.rams" :key="r.id" :value="r.tenRam">{{ r.tenRam }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">GPU</label>
             <select class="form-select" v-model="filters.gpu">
-              <option value="">Chọn GPU</option>
-              <option value="rtx-3060">RTX 3060</option>
-              <option value="rtx-3070">RTX 3070</option>
-              <option value="rtx-3080">RTX 3080</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.gpus.length === 0" disabled>Đang tải...</option>
+              <option v-for="g in productStore.gpus" :key="g.id" :value="g.tenGpu">{{ g.tenGpu }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Màu sắc</label>
             <select class="form-select" v-model="filters.color">
-              <option value="">Chọn màu sắc</option>
-              <option value="den">Đen</option>
-              <option value="bac">Bạc</option>
-              <option value="xam">Xám</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.colors.length === 0" disabled>Đang tải...</option>
+              <option v-for="c in productStore.colors" :key="c.id" :value="c.hexCode || c.tenMau">
+                <span class="color-option">
+                  {{ c.tenMau }} {{ c.hexCode ? `(${c.hexCode})` : '' }}
+                </span>
+              </option>
             </select>
           </div>
 
-          <!-- Row 2 -->
           <div class="col-md-3">
-            <label class="form-label">Bộ nhớ</label>
+            <label class="form-label">Ổ cứng</label>
             <select class="form-select" v-model="filters.storage">
-              <option value="">Chọn bộ nhớ</option>
-              <option value="256ssd">256GB SSD</option>
-              <option value="512ssd">512GB SSD</option>
-              <option value="1tssd">1TB SSD</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.storages.length === 0" disabled>Đang tải...</option>
+              <option v-for="s in productStore.storages" :key="s.id" :value="s.dungLuong">{{ s.dungLuong }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Màn hình</label>
             <select class="form-select" v-model="filters.screen">
-              <option value="">Chọn màn hình</option>
-              <option value="14fhd">14" FHD</option>
-              <option value="15fhd">15.6" FHD</option>
-              <option value="17fhd">17" FHD</option>
+              <option value="">Tất cả</option>
+              <option v-if="productStore.screens.length === 0" disabled>Đang tải...</option>
+              <option v-for="sc in productStore.screens" :key="sc.id" :value="sc.kichThuoc">{{ sc.kichThuoc }}</option>
             </select>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Khoảng giá</label>
-            <div class="price-range">
-              <input
-                type="range"
-                class="form-range"
-                min="0"
-                max="62000000"
-                step="100000"
-                v-model="filters.maxPrice"
+          <div class="col-md-3">
+            <label class="form-label">Giá từ</label>
+            <input 
+              type="number" 
+              class="form-control" 
+              placeholder="Giá tối thiểu"
+              v-model.number="filters.minPrice"
+              :min="0"
+              :max="maxPrice || 100000000"
+            />
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Giá đến</label>
+            <div class="price-input-group">
+              <input 
+                type="number" 
+                class="form-control" 
+                placeholder="Giá tối đa"
+                v-model.number="filters.maxPrice"
+                :min="filters.minPrice || 0"
+                :max="maxPrice || 100000000"
               />
-              <div class="d-flex justify-content-between small text-muted mt-1">
-                <span>0 ₫</span>
-                <span>62.000.000 ₫</span>
+              <div class="price-range-slider mt-2">
+                <input
+                  type="range"
+                  class="form-range"
+                  :min="0"
+                  :max="maxPrice || 100000000"
+                  :step="Math.max(1000, Math.floor((maxPrice || 100000000) / 1000))"
+                  v-model.number="filters.maxPrice"
+                />
+                <div class="d-flex justify-content-between small text-muted mt-1">
+                  <span>0₫</span>
+                  <span>{{ formatCurrency(maxPrice || 100000000) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -98,15 +121,20 @@
       <div class="list-header d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-3">
           <h5 class="mb-0">Danh sách biến thể</h5>
-          <span class="badge bg-success">{{ filteredVariants.length }}</span>
+          <span class="badge bg-success">{{ variantsList.length }}</span>
         </div>
         <div class="search-box">
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Tìm kiếm biến thể..."
-            v-model="searchQuery"
-          />
+          <div class="input-group">
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="Tìm theo sku, tên sản phẩm, CPU, RAM, GPU..."
+              v-model="searchQuery" 
+            />
+            <button class="btn btn-outline-secondary" type="button" @click="clearSearch">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -143,42 +171,50 @@
                 </div>
               </td>
             </tr>
-            <tr v-else-if="filteredVariants.length === 0">
+            <tr v-else-if="variantsList.length === 0">
               <td colspan="16" class="text-center py-5 text-muted">
                 <i class="bi bi-box-seam display-5"></i>
                 <p class="mt-3">Không có biến thể nào</p>
               </td>
             </tr>
-            <tr v-for="(variant, index) in filteredVariants" :key="variant.id">
+            <tr v-for="(variant, index) in paginatedVariants" :key="variant.id">
               <td class="text-center">
                 <input type="checkbox" v-model="selectedVariants" :value="variant.id" />
               </td>
-              <td>{{ index + 1 }}</td>
+              <td>{{ (currentPage * pageSize) + index + 1 }}</td>
               <td>
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div
-                    class="color-dot"
-                    :style="{ backgroundColor: getColorHex(variant.mauSac?.tenMau) }"
-                  ></div>
-                  <span>{{ variant.mauSac?.tenMau }}</span>
+                <div class="color-display" v-if="variant.mauSac">
+                  <div class="d-flex align-items-center">
+                    <span 
+                      v-if="variant.mauSac.hexCode" 
+                      class="color-preview me-2" 
+                      :style="{ backgroundColor: variant.mauSac.hexCode }"
+                      :title="variant.mauSac.hexCode"
+                    ></span>
+                    <div class="color-info">
+                      <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
+                      <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
+                    </div>
+                  </div>
                 </div>
+                <span v-else class="text-muted">-</span>
               </td>
-              <td>{{ variant.cpu?.tenCpu }}</td>
-              <td>{{ variant.ram?.tenRam }}</td>
-              <td>{{ variant.gpu?.tenGpu }}</td>
-              <td>{{ variant.loaiManHinh?.kichThuoc }}</td>
-              <td>{{ variant.pin?.dungLuongPin }}</td>
-              <td>{{ variant.oCung?.dungLuong }}</td>
+              <td>{{ variant.tenCpu || 'N/A' }}</td>
+              <td>{{ variant.tenRam || 'N/A' }}</td>
+              <td>{{ variant.tenGpu || 'N/A' }}</td>
+              <td>{{ variant.kichThuocManHinh || 'N/A' }}</td>
+              <td>{{ variant.dungLuongPin || 'N/A' }}</td>
+              <td>{{ variant.dungLuongOCung || 'N/A' }}</td>
               <td>
                 <span class="price-text">{{ formatCurrency(variant.giaBan) }}</span>
               </td>
               <td>
                 <div class="stock-info">
-                  <span :class="stockStatusClass(variant.soLuong)">{{ variant.soLuong }}</span>
-                  <small class="text-muted d-block">{{ variant.soLuongTon }} có sẵn</small>
+                  <span :class="stockStatusClass(variant.soLuongTon)">{{ variant.soLuongTon || 0 }}</span>
+                  <small class="text-muted d-block">có sẵn</small>
                 </div>
               </td>
               <td>
@@ -186,22 +222,14 @@
                   {{ variant.trangThai === 1 ? 'Hoạt động' : 'Ẩn' }}
                 </span>
               </td>
-              <td>{{ formatDate(variant.ngayTao) }}</td>
-              <td>{{ formatDate(variant.ngaySua) }}</td>
+              <td>{{ formatDate(variant.createdAt) || 'N/A' }}</td>
+              <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
               <td>
                 <div class="btn-group btn-group-sm">
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    @click="editVariant(variant)"
-                    title="Chỉnh sửa"
-                  >
+                  <button class="btn btn-outline-secondary btn-sm" @click="editVariant(variant)" title="Chỉnh sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    @click="settingsVariant(variant)"
-                    title="Cài đặt"
-                  >
+                  <button class="btn btn-outline-secondary btn-sm" @click="settingsVariant(variant)" title="Cài đặt">
                     <i class="bi bi-gear"></i>
                   </button>
                 </div>
@@ -226,34 +254,64 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-wrapper mt-4" v-if="!loading && filteredVariants.length > 0">
-      <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-          <li class="page-item disabled">
-            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Trước</a>
-          </li>
-          <li class="page-item active"><a class="page-link green-pagination" href="#">1</a></li>
-          <li class="page-item"><a class="page-link green-pagination" href="#">2</a></li>
-          <li class="page-item"><a class="page-link green-pagination" href="#">3</a></li>
-          <li class="page-item">
-            <a class="page-link green-pagination" href="#">Tiếp</a>
-          </li>
-        </ul>
-      </nav>
+    <div class="pagination-wrapper mt-4" v-if="!loading && totalElements > 0">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="pagination-info">
+          <span class="text-muted">
+            Hiển thị {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} 
+            trong tổng số {{ totalElements }} biến thể
+          </span>
+        </div>
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center mb-0">
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)" 
+                 :tabindex="currentPage === 0 ? -1 : 0">Trước</a>
+            </li>
+            <li v-for="page in visiblePages" :key="page" 
+                class="page-item" :class="{ active: page === currentPage }">
+              <a class="page-link green-pagination" href="#" @click.prevent="goToPage(page)">{{ page + 1 }}</a>
+            </li>
+            <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
+              <a class="page-link green-pagination" href="#" @click.prevent="goToPage(currentPage + 1)"
+                 :tabindex="currentPage >= totalPages - 1 ? -1 : 0">Tiếp</a>
+            </li>
+          </ul>
+        </nav>
+        <div class="page-size-selector">
+          <select class="form-select form-select-sm" v-model="pageSize" @change="changePageSize">
+            <option value="10">10/trang</option>
+            <option value="20">20/trang</option>
+            <option value="50">50/trang</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
-import { getAllSanPhamChiTiet } from '@/service/sanpham/SanPhamService'
+import { useProductStore } from '@/stores/productStore'
 
-const loading = ref(false)
+const productStore = useProductStore()
+
+const loading = computed(() => productStore.variantsLoading)
+const variants = computed(() => productStore.variants)
+
+// Pagination state
+const currentPage = ref(0)
+const pageSize = ref(20)
+const totalElements = ref(0)
+const totalPages = ref(0)
+
 const searchQuery = ref('')
 const selectedVariants = ref([])
 const selectAll = ref(false)
+const showDebug = ref(false) // Set to false in production
+const maxPrice = ref(100000000) // Dynamic max price
 
 const filters = ref({
   cpu: '',
@@ -262,94 +320,172 @@ const filters = ref({
   color: '',
   storage: '',
   screen: '',
-  maxPrice: 62000000,
+  minPrice: null,
+  maxPrice: null,
 })
 
-// Fetch variants from API
-const variants = ref([])
+// debounce + trigger fetch
+let debounceTimer = null
+const triggerFetch = () => {
+  return new Promise((resolve) => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(async () => {
+      try {
+        const response = await productStore.fetchFilteredVariants({
+          keyword: searchQuery.value?.trim() || null,
+          cpu: filters.value.cpu || null,
+          ram: filters.value.ram || null,
+          gpu: filters.value.gpu || null,
+          color: filters.value.color || null,
+          storage: filters.value.storage || null,
+          screen: filters.value.screen || null,
+          minPrice: filters.value.minPrice || null,
+          maxPrice: filters.value.maxPrice || null,
+        }, currentPage.value, pageSize.value)
+        
+        // Update pagination info if response contains pagination data
+        if (response && typeof response === 'object' && response.totalElements !== undefined) {
+          totalElements.value = response.totalElements
+          totalPages.value = response.totalPages
+        } else {
+          totalElements.value = variants.value.length
+          totalPages.value = Math.ceil(totalElements.value / pageSize.value)
+        }
+        resolve(response)
+      } catch (err) {
+        console.error('Error fetching variants:', err)
+        resolve(null)
+      }
+    }, 300)
+  })
+}
 
-const fetchVariants = async () => {
+
+// Initialize variants when component mounts
+onMounted(async () => {
   try {
-    loading.value = true
-    const response = await getAllSanPhamChiTiet()
-    console.log('API response:', response)
-
-    // Handle different response formats
-    let data = response.data || response
-    
-    // If response has content property (from paginated responses)
-    if (response.content) {
-      data = response.content
+    // Load attributes first
+    await productStore.loadAttributes()
+    if (showDebug.value) {
+      console.log('Attributes loaded')
+      console.log('CPUs:', productStore.cpus.length)
+      console.log('RAMs:', productStore.rams.length)
+      console.log('GPUs:', productStore.gpus.length)
+      console.log('Colors:', productStore.colors.length)
+      console.log('Storages:', productStore.storages.length)
+      console.log('Screens:', productStore.screens.length)
     }
     
-    // Ensure we have an array of variants
-    if (Array.isArray(data)) {
-      variants.value = data
-    } else if (data && Array.isArray(data.content)) {
-      variants.value = data.content
-    } else {
-      variants.value = []
-    }
+    // Then fetch variants
+    await triggerFetch()
+    
+    // Calculate and set max price after data is loaded
+    nextTick(() => {
+      maxPrice.value = calculateMaxPrice()
+      if (!filters.value.maxPrice) {
+        filters.value.maxPrice = maxPrice.value
+      }
+    })
   } catch (err) {
-    console.error('Error fetching variants:', err)
-    variants.value = [] // Reset if error occurs
-  } finally {
-    loading.value = false
+    console.error('Error initializing component:', err)
+  }
+})
+
+// watch changes to auto-fetch
+watch([
+  searchQuery, 
+  () => filters.value.cpu, 
+  () => filters.value.ram, 
+  () => filters.value.gpu, 
+  () => filters.value.color, 
+  () => filters.value.storage, 
+  () => filters.value.screen, 
+  () => filters.value.minPrice,
+  () => filters.value.maxPrice
+], () => {
+  currentPage.value = 0 // Reset to first page when filters change
+  triggerFetch()
+})
+
+const variantsList = computed(() => variants.value || [])
+
+// Calculate max price from variants
+const calculateMaxPrice = () => {
+  try {
+    if (!variantsList.value || !variantsList.value.length) return 100000000
+    const prices = variantsList.value
+      .filter(v => v && v.trangThai === 1 && v.giaBan) // Only active variants with price
+      .map(v => Number(v.giaBan))
+      .filter(price => !isNaN(price) && price > 0) // Filter out invalid prices
+    
+    if (prices.length === 0) return 100000000
+    const calculatedMax = Math.max(...prices)
+    return Math.ceil(calculatedMax / 1000000) * 1000000 // Round up to nearest million
+  } catch (error) {
+    console.warn('Error calculating max price:', error)
+    return 100000000
   }
 }
 
-// Initialize variants when component mounts
-onMounted(() => {
-  fetchVariants().then(() => {
-    console.log('Variants:', variants.value)
-  })
+// Watch variants to update max price
+watch(variantsList, () => {
+  const newMaxPrice = calculateMaxPrice()
+  if (newMaxPrice !== maxPrice.value) {
+    maxPrice.value = newMaxPrice
+    if (!filters.value.maxPrice || filters.value.maxPrice > newMaxPrice) {
+      filters.value.maxPrice = newMaxPrice
+    }
+  }
+}, { deep: true })
+
+// Computed for client-side pagination (fallback)
+const paginatedVariants = computed(() => {
+  if (!variantsList.value.length) return []
+  
+  // If server-side pagination is working, return all variants
+  // Otherwise, do client-side pagination
+  const start = currentPage.value * pageSize.value
+  const end = start + pageSize.value
+  return variantsList.value.slice(start, end)
 })
 
-const filteredVariants = computed(() => {
-  return variants.value.filter((variant) => {
-    const matchesSearch =
-      !searchQuery.value ||
-      variant.maCtsp?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.cpu?.tenCpu?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.ram?.tenRam?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      variant.gpu?.tenGpu?.toLowerCase().includes(searchQuery.value.toLowerCase())
-
-    const matchesCpu =
-      !filters.value.cpu ||
-      variant.cpu?.tenCpu?.toLowerCase().includes(filters.value.cpu.toLowerCase())
-    const matchesRam =
-      !filters.value.ram ||
-      variant.ram?.tenRam?.toLowerCase().includes(filters.value.ram.toLowerCase())
-    const matchesGpu =
-      !filters.value.gpu ||
-      variant.gpu?.tenGpu?.toLowerCase().includes(filters.value.gpu.toLowerCase())
-    const matchesColor =
-      !filters.value.color ||
-      variant.mauSac?.tenMau?.toLowerCase().includes(filters.value.color.toLowerCase())
-    const matchesStorage =
-      !filters.value.storage ||
-      variant.oCung?.dungLuong?.toLowerCase().includes(filters.value.storage.toLowerCase())
-    const matchesScreen =
-      !filters.value.screen ||
-      variant.loaiManHinh?.kichThuoc?.toLowerCase().includes(filters.value.screen.toLowerCase())
-    const matchesPrice = !filters.value.maxPrice || variant.giaBan <= filters.value.maxPrice
-
-    return (
-      matchesSearch &&
-      matchesCpu &&
-      matchesRam &&
-      matchesGpu &&
-      matchesColor &&
-      matchesStorage &&
-      matchesScreen &&
-      matchesPrice
-    )
-  })
+// Pagination helpers
+const visiblePages = computed(() => {
+  const pages = []
+  const maxVisible = 5
+  let start = Math.max(0, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(totalPages.value - 1, start + maxVisible - 1)
+  
+  // Adjust start if we're near the end
+  if (end - start < maxVisible - 1) {
+    start = Math.max(0, end - maxVisible + 1)
+  }
+  
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  return pages
 })
+
+const goToPage = (page) => {
+  if (page >= 0 && page < totalPages.value && page !== currentPage.value) {
+    currentPage.value = page
+    triggerFetch()
+  }
+}
+
+const changePageSize = () => {
+  currentPage.value = 0
+  triggerFetch()
+}
+
+const applyFilters = () => {
+  triggerFetch()
+}
 
 const toggleSelectAll = () => {
   if (selectAll.value) {
-    selectedVariants.value = filteredVariants.value.map((v) => v.id)
+    selectedVariants.value = variantsList.value.map((v) => v.id)
   } else {
     selectedVariants.value = []
   }
@@ -364,8 +500,13 @@ const clearFilters = () => {
     color: '',
     storage: '',
     screen: '',
-    maxPrice: 62000000,
+    minPrice: null,
+    maxPrice: maxPrice.value,
   }
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
 }
 
 const stockStatusClass = (stock) => {
@@ -375,16 +516,16 @@ const stockStatusClass = (stock) => {
 }
 
 const statusClass = (status) => {
-  return status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'
+  return status === 1 ? 'bg-success' : 'bg-secondary'
 }
 
 const editVariant = (variant) => {
   console.log('Edit variant:', variant)
 }
 
-const deleteVariant = (variant) => {
-  console.log('Delete variant:', variant)
-}
+// const deleteVariant = (variant) => {
+//   console.log('Delete variant:', variant)
+// }
 
 const bulkEdit = () => {
   console.log('Bulk edit variants:', selectedVariants.value)
@@ -553,6 +694,98 @@ const getColorHex = (tenMau) => {
   padding: 16px;
   border-top: 1px solid #f1f5f9;
   background: #fafbfc;
+}
+
+.pagination-info {
+  font-size: 14px;
+}
+
+.page-size-selector {
+  width: 120px;
+}
+
+.page-size-selector .form-select {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* Debug info styling */
+.debug-info {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: monospace;
+}
+
+.price-input-group {
+  position: relative;
+}
+
+.price-range-slider {
+  margin-top: 8px;
+}
+
+.price-range-slider .form-range {
+  height: 4px;
+}
+
+.price-range-slider .form-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #16a34a;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.price-range-slider .form-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #16a34a;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Search box improvements */
+.search-box {
+  width: 500px;
+}
+
+.search-box .input-group .btn {
+  border-left: none;
+}
+
+.search-box .form-control:focus + .btn {
+  border-color: #86efac;
+}
+
+/* Color display styles */
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #e5e7eb;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.color-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.color-name {
+  font-weight: 500;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.color-hex {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
 }
 
 /* Button styling for consistency */
