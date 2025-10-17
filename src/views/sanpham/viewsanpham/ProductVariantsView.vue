@@ -1,5 +1,6 @@
 <!-- // Update ProductVariantsView.vue to fetch variants from API -->
 
+<!-- Update ProductVariantsView.vue template -->
 <template>
   <div class="product-variants-view">
     <!-- Header -->
@@ -120,19 +121,19 @@
               </th>
               <th width="30">STT</th>
               <th width="100">SKU</th>
-              <th width="60">Màu</th>
+              <th width="60">MÀU</th>
               <th width="80">CPU</th>
               <th width="60">RAM</th>
               <th width="70">GPU</th>
-              <th width="70">Màn hình</th>
-              <th width="50">Pin</th>
-              <th width="70">Ổ cứng</th>
-              <th width="75">Giá bán</th>
-              <th width="60">Kho</th>
-              <th width="65">Trạng thái</th>
-              <th width="70">Tạo</th>
-              <th width="70">Cập nhật</th>
-              <th width="60">Tác vụ</th>
+              <th width="70">MÀN HÌNH</th>
+              <th width="50">PIN</th>
+              <th width="70">Ổ CỨNG</th>
+              <th width="75">GIÁ BÁN</th>
+              <th width="60">SỐ LƯỢNG TỒN</th>
+              <th width="65">TRẠNG THÁI</th>
+              <th width="70">NGÀY TẠO</th>
+              <th width="70">NGÀY CẬP NHẬT</th>
+              <th width="60">TÁC VỤ</th>
             </tr>
           </thead>
           <tbody>
@@ -166,12 +167,24 @@
                   <span>{{ variant.mauSac?.tenMau }}</span>
                 </div>
               </td>
-              <td>{{ variant.cpu?.tenCpu }}</td>
-              <td>{{ variant.ram?.tenRam }}</td>
-              <td>{{ variant.gpu?.tenGpu }}</td>
-              <td>{{ variant.loaiManHinh?.kichThuoc }}</td>
-              <td>{{ variant.pin?.dungLuongPin }}</td>
-              <td>{{ variant.oCung?.dungLuong }}</td>
+              <td>
+                {{ variant.cpu?.tenCpu || variant.cpu?.name || variant.cpu?.id || 'N/A' }}
+              </td>
+              <td>
+                {{ variant.ram?.tenRam || variant.ram?.name || variant.ram?.id || 'N/A' }}
+              </td>
+              <td>
+                {{ variant.gpu?.tenGpu || variant.gpu?.name || variant.gpu?.id || 'N/A' }}
+              </td>
+              <td>
+                {{ variant.loaiManHinh?.kichThuoc || variant.loaiManHinh?.name || variant.loaiManHinh?.id || 'N/A' }}
+              </td>
+              <td>
+                {{ variant.pin?.dungLuongPin || variant.pin?.name || variant.pin?.id || 'N/A' }}
+              </td>
+              <td>
+                {{ variant.oCung?.dungLuong || variant.oCung?.name || variant.oCung?.id || 'N/A' }}
+              </td>
               <td>
                 <span class="price-text">{{ formatCurrency(variant.giaBan) }}</span>
               </td>
@@ -268,45 +281,105 @@ const filters = ref({
 // Fetch variants from API
 const variants = ref([])
 
+// In ProductVariantsView.vue
+// Update ProductVariantsView.vue
+// Update ProductVariantsView.vue
 const fetchVariants = async () => {
   try {
     loading.value = true
-    const response = await getAllSanPhamChiTiet()
-    console.log('API response:', response)
+    console.log('Starting fetchVariants...')
 
+    const response = await getAllSanPhamChiTiet()
+    console.log('API response received:', response)
+    
+    // Log response type and structure
+    console.log('Response type:', typeof response)
+    console.log('Response has data:', response.data !== undefined)
+    console.log('Response has content:', response.content !== undefined)
+    
     // Handle different response formats
     let data = response.data || response
     
     // If response has content property (from paginated responses)
     if (response.content) {
       data = response.content
+      console.log('Using response.content:', data)
     }
     
     // Ensure we have an array of variants
     if (Array.isArray(data)) {
+      console.log('Data is already an array, using directly')
       variants.value = data
     } else if (data && Array.isArray(data.content)) {
+      console.log('Data has content array, using content')
       variants.value = data.content
+    } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+      // Try to extract array from the object
+      console.log('Data is an object, trying to find array')
+      const dataArray = Object.values(data).find(item => Array.isArray(item))
+      if (dataArray) {
+        console.log('Found array in object:', dataArray)
+        variants.value = dataArray
+      } else {
+        console.log('No array found in object, using empty array')
+        variants.value = []
+      }
     } else {
+      console.log('Data is not an array or object with array, using empty array')
       variants.value = []
+    }
+    
+    // Log the final variants array
+    console.log('Final variants array:', variants.value)
+    console.log('Variants count:', variants.value.length)
+    
+    // Check if any variant has expected properties
+    if (variants.value.length > 0) {
+      console.log('First variant:', variants.value[0])
+      console.log('First variant has maCtsp:', variants.value[0].maCtsp !== undefined)
+      console.log('First variant has cpu:', variants.value[0].cpu !== undefined)
+      console.log('First variant has ram:', variants.value[0].ram !== undefined)
+      console.log('First variant has gpu:', variants.value[0].gpu !== undefined)
+      console.log('First variant has mauSac:', variants.value[0].mauSac !== undefined)
+      console.log('First variant has oCung:', variants.value[0].oCung !== undefined)
+      console.log('First variant has loaiManHinh:', variants.value[0].loaiManHinh !== undefined)
+      console.log('First variant has pin:', variants.value[0].pin !== undefined)
+      console.log('First variant has giaBan:', variants.value[0].giaBan !== undefined)
+      console.log('First variant has soLuong:', variants.value[0].soLuong !== undefined)
+      console.log('First variant has trangThai:', variants.value[0].trangThai !== undefined)
+      console.log('First variant has ngayTao:', variants.value[0].ngayTao !== undefined)
+      console.log('First variant has ngaySua:', variants.value[0].ngaySua !== undefined)
     }
   } catch (err) {
     console.error('Error fetching variants:', err)
+    console.error('Error message:', err.message)
+    console.error('Error stack:', err.stack)
     variants.value = [] // Reset if error occurs
   } finally {
     loading.value = false
+    console.log('fetchVariants completed')
   }
 }
 
 // Initialize variants when component mounts
+
 onMounted(() => {
   fetchVariants().then(() => {
     console.log('Variants:', variants.value)
+    console.log('Filtered variants:', filteredVariants.value)
   })
 })
 
+// In ProductVariantsView.vue
+// Update filteredVariants computed property
 const filteredVariants = computed(() => {
+  console.log('Filtering variants...')
+  console.log('Search query:', searchQuery.value)
+  console.log('Filters:', filters.value)
+  
   return variants.value.filter((variant) => {
+    console.log('Checking variant:', variant.maCtsp)
+    
     const matchesSearch =
       !searchQuery.value ||
       variant.maCtsp?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -334,7 +407,7 @@ const filteredVariants = computed(() => {
       variant.loaiManHinh?.kichThuoc?.toLowerCase().includes(filters.value.screen.toLowerCase())
     const matchesPrice = !filters.value.maxPrice || variant.giaBan <= filters.value.maxPrice
 
-    return (
+    const result = (
       matchesSearch &&
       matchesCpu &&
       matchesRam &&
@@ -344,6 +417,9 @@ const filteredVariants = computed(() => {
       matchesScreen &&
       matchesPrice
     )
+    
+    console.log('Variant matches:', result)
+    return result
   })
 })
 

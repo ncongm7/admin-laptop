@@ -36,12 +36,6 @@
                         <input type="text" class="form-control" v-model="form.maSanPham" />
                       </div>
 
-                      <!-- <div class="col-md-12">
-                                                <label class="form-label">Mô tả ngắn</label>
-                                                <textarea class="form-control" rows="3"
-                                                    v-model="form.moTaNgan"></textarea>
-                                            </div> -->
-
                       <div class="col-md-12">
                         <label class="form-label">Mô tả chi tiết</label>
                         <textarea
@@ -143,7 +137,24 @@
                     </div>
                   </div>
                   <div class="card-body">
-                    <div class="variant-creation-section">
+                    <!-- Loading indicator -->
+                    <div v-if="attributeLoading" class="text-center py-4">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                      </div>
+                      <p class="mt-2">Đang tải dữ liệu thuộc tính...</p>
+                    </div>
+
+                    <!-- Error message -->
+                    <div v-else-if="attributeError" class="alert alert-danger" role="alert">
+                      {{ attributeError }}
+                      <button type="button" class="btn btn-sm btn-danger ms-2" @click="loadAttributes">
+                        Thử lại
+                      </button>
+                    </div>
+
+                    <!-- Variant creation form -->
+                    <div v-else class="variant-creation-section">
                       <h6 class="variant-subtitle mb-3">Tạo biến thể tự động</h6>
 
                       <div class="variant-selectors">
@@ -541,18 +552,25 @@ const displays = computed(() => attributeStore.getDisplays)
 const batteries = computed(() => attributeStore.getBatteries)
 // const cameras = computed(() => attributeStore.getCameras)
 
-onMounted(() => {
-  if (
-    cpus.value.length === 0 ||
-    rams.value.length === 0 ||
-    gpus.value.length === 0 ||
-    storages.value.length === 0 ||
-    colors.value.length === 0 ||
-    displays.value.length === 0 ||
-    batteries.value.length === 0
-  ) {
-    attributeStore.fetchAttributes()
+const attributeLoading = ref(false)
+const attributeError = ref(null)
+
+const loadAttributes = async () => {
+  try {
+    attributeLoading.value = true
+    attributeError.value = null
+    await attributeStore.fetchAttributes()
+  } catch (error) {
+    attributeError.value = 'Không thể tải dữ liệu thuộc tính'
+    console.error('Error loading attributes:', error)
+  } finally {
+    attributeLoading.value = false
   }
+}
+
+onMounted(async () => {
+  // Always fetch attributes when component is mounted to ensure data is loaded
+  await loadAttributes()
 })
 
 const props = defineProps({

@@ -1,4 +1,3 @@
-
 <template>
   <div class="products-management">
     <!-- Main Content -->
@@ -165,10 +164,25 @@ const editProduct = (product) => {
 }
 
 const viewDetail = async (product) => {
-  const detail = await productStore.fetchProductByIdSP(product.id)
-  selectedProduct.value = { id: product.id, ...product }
-  useProductDetailStore1.productDetail = { ...detail }
-  router.push(`/products/${product.id}/detail`)
+  try {
+    // Fetch detailed product information
+    const detail = await productStore.fetchProductByIdSP(product.id)
+    // Set the selected product with both list data and detailed data
+    selectedProduct.value = {
+      ...product,
+      ...detail,
+    }
+    // Update the product detail store
+    useProductDetailStore1.productDetail = { ...detail }
+    // Navigate to the product detail page
+    router.push(`/products/${product.id}/detail`)
+  } catch (error) {
+    console.error('Error fetching product details:', error)
+    // Still navigate to the page even if detail fetch fails
+    selectedProduct.value = { ...product }
+    useProductDetailStore1.productDetail = { ...product }
+    router.push(`/products/${product.id}/detail`)
+  }
 }
 
 const editFromDetail = () => {

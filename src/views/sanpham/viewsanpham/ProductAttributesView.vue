@@ -138,49 +138,6 @@ import { ref, computed } from 'vue'
 
 const emit = defineEmits(['open-attribute-modal'])
 
-// Mock data - replace with actual API calls
-// const attributes = ref({
-//   cpu: [
-//     { id: 1, name: 'Intel Core i5', code: 'I5', status: 'ACTIVE' },
-//     { id: 2, name: 'Intel Core i7', code: 'I7', status: 'ACTIVE' },
-//     { id: 3, name: 'AMD Ryzen 5', code: 'R5', status: 'ACTIVE' },
-//   ],
-//   ram: [
-//     { id: 1, name: '8GB', code: '8G', status: 'ACTIVE' },
-//     { id: 2, name: '16GB', code: '16G', status: 'ACTIVE' },
-//     { id: 3, name: '32GB', code: '32G', status: 'ACTIVE' },
-//   ],
-//   gpu: [
-//     { id: 1, name: 'NVIDIA RTX 3060', code: 'RTX3060', status: 'ACTIVE' },
-//     { id: 2, name: 'NVIDIA RTX 3070', code: 'RTX3070', status: 'ACTIVE' },
-//   ],
-//   color: [
-//     { id: 1, name: 'Đen', code: 'BLACK', status: 'ACTIVE' },
-//     { id: 2, name: 'Bạc', code: 'SILVER', status: 'ACTIVE' },
-//     { id: 3, name: 'Xám', code: 'GRAY', status: 'ACTIVE' },
-//   ],
-//   storage: [
-//     { id: 1, name: '256GB SSD', code: '256SSD', status: 'ACTIVE' },
-//     { id: 2, name: '512GB SSD', code: '512SSD', status: 'ACTIVE' },
-//     { id: 3, name: '1TB SSD', code: '1TSSD', status: 'ACTIVE' },
-//   ],
-//   'screen-type': [
-//     { id: 1, name: 'IPS', code: 'IPS', status: 'ACTIVE' },
-//     { id: 2, name: 'OLED', code: 'OLED', status: 'ACTIVE' },
-//   ],
-//   battery: [
-//     { id: 1, name: '50Wh', code: '50W', status: 'ACTIVE' },
-//     { id: 2, name: '70Wh', code: '70W', status: 'ACTIVE' },
-//   ],
-// })
-
-// const cpuCount = computed(() => attributes.value.cpu.length)
-// const ramCount = computed(() => attributes.value.ram.length)
-// const gpuCount = computed(() => attributes.value.gpu.length)
-// const colorCount = computed(() => attributes.value.color.length)
-// const storageCount = computed(() => attributes.value.storage.length)
-// const screenTypeCount = computed(() => attributes.value['screen-type'].length)
-// const batteryCount = computed(() => attributes.value.battery.length)
 
 const openAttributeModal = (type) => {
   emit('open-attribute-modal', type)

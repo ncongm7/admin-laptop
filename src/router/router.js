@@ -95,12 +95,12 @@ const routes = [
     component: () => import('@/views/AddPhieuGiamGia.vue'),
     props: true
   },
-  {
-    path: '/product-variants',
-    name: 'ProductVariantsList',
-    component: () => import('@/views/sanpham/ProductVariantsList.vue'),
-    alias: '/inventory', // Cho phép /inventory cũng vào trang này
-  },
+  // {
+  //   path: '/product-variants',
+  //   name: 'ProductVariantsList',
+  //   component: () => import('@/views/sanpham/ProductVariantsList.vue'),
+  //   alias: '/inventory', // Cho phép /inventory cũng vào trang này
+  // },
 
   {
     path: '/products/:productId/variants',
@@ -114,13 +114,7 @@ const routes = [
     component: () => import('@/views/sanpham/viewsanpham/ProductDetailManagement.vue'),
     meta: { requiresAuth: true, role: ['ADMIN', 'NHAN_VIEN'] },
   },
-  // {
-  //   path: '/products/:productId/variants/:variantId',
-  //   name: 'ProductDetailView',
-  //   // Kiểm tra và sửa đường dẫn import
-  //   component: () => import('@/components/chitietsanpham/ProductDetailView.vue'),
-  //   meta: { requiresAuth: true, role: ['ADMIN', 'NHAN_VIEN'] },
-  // },
+
   {
     path: '/nhan-vien',
     name: 'NhanVien',
