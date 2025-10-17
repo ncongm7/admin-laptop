@@ -1,11 +1,11 @@
 <template>
   <div class="nhanvien-form-wrapper">
     <div class="header-breadcrumb">
-      <h1 class="main-title">Thêm Nhân Viên</h1>
+      <h1 class="main-title">Sửa Nhân Viên</h1>
       <div class="breadcrumb">
         <router-link to="/" class="breadcrumb-link">Trang chủ</router-link> /
         <router-link to="/nhan-vien" class="breadcrumb-link">Nhân viên</router-link> /
-        <span>Thêm nhân viên</span>
+        <span>Sửa nhân viên</span>
       </div>
     </div>
     <form class="form-card" @submit.prevent="onSubmit">
@@ -32,58 +32,29 @@
           >
         </label>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Mã nhân viên</label>
-          <input
-            v-model="form.maNhanVien"
-            type="text"
-            class="form-control"
-            placeholder="Nhập mã (bỏ trống sẽ tự tạo)"
-          />
+          <input v-model="form.maNhanVien" type="text" class="form-control" />
         </div>
         <div class="form-group">
           <label>Tên nhân viên</label>
-          <input
-            v-model="form.name"
-            type="text"
-            class="form-control"
-            placeholder="Nhập tên nhân viên"
-            required
-          />
-        </div>
-        <div class="form-group">
-          <label>Số điện thoại</label>
-          <input
-            v-model="form.phone"
-            type="text"
-            class="form-control"
-            placeholder="Nhập số điện thoại"
-            required
-          />
+          <input v-model="form.name" type="text" class="form-control" required />
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
-          <label>Email</label>
-          <input
-            v-model="form.email"
-            type="email"
-            class="form-control"
-            placeholder="Nhập email"
-            required
-          />
+          <label>Số điện thoại</label>
+          <input v-model="form.phone" type="text" class="form-control" required />
         </div>
         <div class="form-group">
-          <label>Chức vụ</label>
-          <input
-            v-model="form.chucVu"
-            type="text"
-            class="form-control"
-            placeholder="Ví dụ: Nhân viên, Quản trị"
-          />
+          <label>Email</label>
+          <input v-model="form.email" type="email" class="form-control" required />
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Giới tính</label>
@@ -104,48 +75,38 @@
       <div class="form-row">
         <div class="form-group">
           <label>Chức vụ</label>
-          <input
-            v-model="form.chucVu"
-            type="text"
-            class="form-control"
-            placeholder="Ví dụ: Bán hàng"
-          />
+          <input v-model="form.chucVu" type="text" class="form-control" />
         </div>
         <div class="form-group" style="flex: 2">
           <label>Địa chỉ</label>
-          <input
-            v-model="form.diaChi"
-            type="text"
-            class="form-control"
-            placeholder="Nhập địa chỉ"
-          />
+          <input v-model="form.diaChi" type="text" class="form-control" />
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group" style="flex: 1">
           <label>Đánh giá</label>
-          <textarea
-            v-model="form.danhGia"
-            class="form-control"
-            rows="3"
-            placeholder="Ghi chú, đánh giá"
-          ></textarea>
+          <textarea v-model="form.danhGia" class="form-control" rows="3"></textarea>
         </div>
       </div>
+
       <div class="form-actions">
         <button type="button" class="btn btn-cancel" @click="onCancel">Hủy</button>
-        <button type="submit" class="btn btn-success">Thêm</button>
+        <button type="submit" class="btn btn-success">Lưu</button>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { nhanVienApi } from '@/service/ApiNhanVien'
+
+const route = useRoute()
 const router = useRouter()
+const id = route.params.id
+
 const form = ref({
   maNhanVien: '',
   name: '',
@@ -153,11 +114,12 @@ const form = ref({
   email: '',
   gender: 'Nam',
   trangThai: 1,
-  chucVu: 'Bán hàng',
+  chucVu: '',
   diaChi: '',
   danhGia: '',
   avatar: '',
 })
+
 function onAvatarChange(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -167,21 +129,37 @@ function onAvatarChange(e) {
   }
   reader.readAsDataURL(file)
 }
+
 function onCancel() {
   router.push('/nhan-vien')
 }
+
+onMounted(async () => {
+  const { data } = await nhanVienApi.getOne(id)
+  form.value.maNhanVien = data.maNhanVien || ''
+  form.value.name = data.hoTen || ''
+  form.value.phone = data.soDienThoai || ''
+  form.value.email = data.email || ''
+  form.value.gender = data.gioiTinh === 0 ? 'Nữ' : 'Nam'
+  form.value.trangThai = typeof data.trangThai === 'number' ? data.trangThai : 1
+  form.value.chucVu = data.chucVu || ''
+  form.value.diaChi = data.diaChi || ''
+  form.value.danhGia = data.danhGia || ''
+  form.value.avatar = data.anhNhanVien || ''
+})
+
 function onSubmit() {
-  // Normalize & validate
+  // normalize
   form.value.name = (form.value.name || '').trim()
   form.value.phone = (form.value.phone || '').trim()
   form.value.email = (form.value.email || '').trim().toLowerCase()
-
   if (!form.value.name || !form.value.phone || !form.value.email) {
     alert('Vui lòng nhập Tên, Số điện thoại và Email')
     return
   }
+
   const payload = {
-    maNhanVien: form.value.maNhanVien || `NV${Date.now().toString().slice(-6)}`,
+    maNhanVien: (form.value.maNhanVien || '').trim(),
     hoTen: form.value.name,
     soDienThoai: form.value.phone,
     email: form.value.email,
@@ -192,15 +170,16 @@ function onSubmit() {
     danhGia: form.value.danhGia || '',
     trangThai: Number(form.value.trangThai),
   }
+
   nhanVienApi
-    .add(payload)
+    .update(id, payload)
     .then(() => router.push('/nhan-vien'))
     .catch((e) => {
       const data = e?.response?.data
-      const fallback = 'Thêm nhân viên thất bại.'
+      const fallback = 'Cập nhật nhân viên thất bại.'
       const msg =
         typeof data === 'string' ? data : data?.message || (data ? JSON.stringify(data) : fallback)
-      console.error('Add nhân viên lỗi:', e)
+      console.error('Update nhân viên lỗi:', e)
       alert(msg)
     })
 }
@@ -210,80 +189,4 @@ function onSubmit() {
 .nhanvien-form-wrapper {
   background: #f4f6fb;
   min-height: 100vh;
-  padding: 32px 24px 40px 24px;
-}
-.header-breadcrumb {
-  margin-bottom: 18px;
-}
-.main-title {
-  color: #1aaf5d;
-  font-size: 2.1rem;
-  font-weight: 800;
-  margin-bottom: 2px;
-}
-.breadcrumb {
-  font-size: 1.1rem;
-  color: #1aaf5d;
-  margin-bottom: 12px;
-}
-.breadcrumb-link {
-  color: #1aaf5d;
-  text-decoration: underline;
-  cursor: pointer;
-}
-.form-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px #1976d211;
-  padding: 40px 32px 32px 32px;
-  max-width: 100%;
-  width: 100%;
-  margin: 0;
-}
-.form-avatar-row {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 32px;
-}
-.avatar-upload-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  position: relative;
-}
-.avatar-upload-input {
-  display: none;
-}
-.avatar-upload-preview {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: #f4f6fb;
-  border: 2.5px dashed #bdbdbd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  overflow: hidden;
-  position: relative;
-}
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
-}
-.avatar-upload-text {
-  font-size: 1.05em;
-  color: #888;
-  margin-top: 6px;
-  text-align: center;
-}
-.form-row {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 18px;
-}
-.form-group
+  padding: 32

@@ -91,7 +91,7 @@ const routes = [
     path: '/quan-li-phieu-giam-gia/edit/:id',
     name: 'EditPhieuGiamGia',
     component: () => import('@/views/AddPhieuGiamGia.vue'),
-    props: true
+    props: true,
   },
   {
     path: '/product-variants',
@@ -133,9 +133,13 @@ const routes = [
     name: 'Login',
     component: LoginView,
   },
+  {
+    path: '/nhan-vien/sua/:id',
+    name: 'NhanVienUpdateForm',
+    component: () => import('@/components/taikhoan/NhanVienUpdateForm.vue'),
+    props: true,
+  },
 
-
-  
   ///Long phiếu giảm giá v2
   {
     path: '/phieu-giam-gia2',
@@ -194,7 +198,7 @@ const routes = [
     name: 'LichSuBaoHanhView',
     component: () => import('@/views/baohanh/LichSuBaoHanhView.vue'),
     props: true,
-  }
+  },
 ]
 
 const router = createRouter({
