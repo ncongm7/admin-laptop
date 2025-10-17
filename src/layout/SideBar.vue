@@ -8,8 +8,10 @@
                 <MenuItem icon="bi-receipt" label="Quản lý hóa đơn" to="/quan-li-hoa-don" :collapsed="collapsed" />
                 <MenuItem icon="bi-box-seam" label="Quản lý sản phẩm" :collapsed="collapsed">
                 <MenuItem icon="bi-grid" label="Danh sách sản phẩm" to="/quan-li-san-pham" sub :collapsed="collapsed" />
-                <MenuItem icon="bi-diagram-3" label="Quản lý biến thể" to="/quan-li-bien-the" sub :collapsed="collapsed" />
-                <MenuItem icon="bi-gear" label="Thuộc tính sản phẩm" to="/thuoc-tinh-san-pham" sub :collapsed="collapsed" />
+                <MenuItem icon="bi-diagram-3" label="Quản lý biến thể" to="/quan-li-bien-the" sub
+                    :collapsed="collapsed" />
+                <MenuItem icon="bi-gear" label="Thuộc tính sản phẩm" to="/thuoc-tinh-san-pham" sub
+                    :collapsed="collapsed" />
                 </MenuItem>
                 <MenuItem icon="bi-people" label="Quản lý tài khoản & người dùng" to="/quan-li-tai-khoan"
                     :collapsed="collapsed" />
@@ -26,13 +28,7 @@
                 <MenuItem icon="bi-gear" label="Quản lý hệ thống" to="/quan-li-he-thong" :collapsed="collapsed" /> -->
             </ul>
         </nav>
-        <div class="sidebar-footer p-3 mt-auto d-flex align-items-center gap-2">
-            <img class="sidebar-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="avatar" />
-            <div v-if="!collapsed">
-                <span class="fw-semibold">Admin</span>
-                <div class="sidebar-role">Quản trị viên</div>
-            </div>
-        </div>
+
     </aside>
 </template>
 

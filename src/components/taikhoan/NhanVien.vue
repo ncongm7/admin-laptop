@@ -14,12 +14,7 @@
       <div class="filter-row filter-row-top">
         <div class="filter-col search-col">
           <label class="form-label">Tìm kiếm</label>
-          <input
-            type="text"
-            v-model="search"
-            class="form-control"
-            placeholder="Mã, tên, email, SDT..."
-          />
+          <input type="text" v-model="search" class="form-control" placeholder="Mã, tên, email, SDT..." />
         </div>
         <div class="filter-col status-col">
           <label class="form-label">Trạng thái</label>
@@ -80,7 +75,7 @@
                       {{ user.status ? 'Đang làm' : 'Đã nghỉ' }}
                     </span>
                     <label class="switch">
-                      <input type="checkbox" v-model="user.status" />
+                      <input type="checkbox" v-model="user.status" @change="onToggleStatus(user)" />
                       <span class="slider round"></span>
                     </label>
                   </div>
@@ -127,8 +122,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  nhanVienApi,
+  mapDtoToUi,
+  mapFormToRequest,
+  mapEntityToRequest,
+} from '@/service/ApiNhanVien'
 
 const router = useRouter()
 
@@ -138,71 +139,12 @@ const pageSize = ref(5)
 const currentPage = ref(1)
 // Đã xoá các biến liên quan modal thêm/sửa
 
-const users = reactive([
-  {
-    id: 1,
-    code: 'NV000001',
-    name: 'Nguyễn Đức Minh',
-    email: 'ducminh2212345@gmail.com',
-    phone: '0986221206',
-    address: 'vô gia cư, Phường Trúc Bạch, Quận Ba Đình, Thành phố Hà Nội',
-    status: false,
-  },
-  {
-    id: 2,
-    code: 'NV000002',
-    name: 'Nguyễn Việt Khoa',
-    email: 'KhoaNV212@gmail.com',
-    phone: '0988193939',
-    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
-    status: false,
-  },
-  {
-    id: 3,
-    code: 'NV000003',
-    name: 'Đinh Mạnh Phước',
-    email: 'PhuocDM912@gmail.com',
-    phone: '0986880912',
-    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
-    status: false,
-  },
-  {
-    id: 4,
-    code: 'NV000004',
-    name: 'Nguyễn Hữu Huân',
-    email: 'huanek2006@gmail.com',
-    phone: '0986912296',
-    address: 'Ngọc Thụy, Long Biên, Hà Nội',
-    status: false,
-  },
-  {
-    id: 5,
-    code: 'NV000005',
-    name: 'Lê Quang Phúc',
-    email: 'PhucLQ890@gmail.com',
-    phone: '0986872711',
-    address: 'Yên Hoà, Cầu Giấy, Hà Nội',
-    status: false,
-  },
-  {
-    id: 6,
-    code: 'NV000006',
-    name: 'Nguyễn Văn A',
-    email: 'vana@example.com',
-    phone: '0912345678',
-    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
-    status: true,
-  },
-  {
-    id: 7,
-    code: 'NV000007',
-    name: 'Trần Thị B',
-    email: 'thib@example.com',
-    phone: '0987654321',
-    address: 'Mai Dịch, Cầu Giấy, Hà Nội',
-    status: true,
-  },
-])
+const users = reactive([])
+
+async function loadUsers() {
+  const { data } = await nhanVienApi.listAll()
+  users.splice(0, users.length, ...data.map(mapDtoToUi))
+}
 
 const filteredUsers = computed(() => {
   let result = users.filter((u) => {
@@ -234,13 +176,26 @@ function resetFilter() {
 function openAdd() {
   router.push('/nhan-vien/them')
 }
-function openEdit() {
-  // Nếu muốn sửa, có thể chuyển sang trang sửa riêng hoặc mở modal sửa
-  // Hiện tại chỉ giữ lại logic xóa
+function openEdit(user) {
+  router.push(`/nhan-vien/sua/${user.id}`)
 }
 function deleteUser(user) {
-  const idx = users.findIndex((u) => u.id === user.id)
-  if (idx !== -1) users.splice(idx, 1)
+  nhanVienApi.remove(user.id).then(() => {
+    const idx = users.findIndex((u) => u.id === user.id)
+    if (idx !== -1) users.splice(idx, 1)
+  })
+}
+
+onMounted(() => {
+  loadUsers()
+})
+
+async function onToggleStatus(user) {
+  // Fetch the latest entity from backend to avoid losing fields
+  const { data } = await nhanVienApi.getOne(user.id)
+  const payload = mapEntityToRequest(data)
+  payload.trangThai = user.status ? 1 : 0
+  await nhanVienApi.update(user.id, payload)
 }
 </script>
 
@@ -250,43 +205,55 @@ function deleteUser(user) {
   min-height: 100vh;
   padding: 24px 0 32px 0;
 }
+
 .header-breadcrumb {
   margin-bottom: 18px;
 }
+
 .main-title {
-  color: #1aaf5d;
   font-size: 2.1rem;
   font-weight: 800;
   margin-bottom: 2px;
+  background: linear-gradient(90deg, #1aaf5d, #22c55e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
+
 .breadcrumb {
   font-size: 1.1rem;
   color: #1aaf5d;
   margin-bottom: 12px;
 }
+
 .breadcrumb-link {
   color: #1aaf5d;
   text-decoration: underline;
   cursor: pointer;
 }
+
 .filter-card {
-  background: #fff;
+  background: #ffffffcc;
+  backdrop-filter: blur(6px);
   border-radius: 14px;
-  box-shadow: 0 2px 12px #1976d211;
-  padding: 18px 18px 10px 18px;
+  box-shadow: 0 8px 24px #1976d222;
+  padding: 18px 18px 12px 18px;
   margin-bottom: 18px;
+  border: 1px solid #e8f5e9;
 }
+
 .filter-row {
   display: flex;
   flex-wrap: nowrap;
   gap: 18px;
   align-items: flex-end;
 }
+
 .filter-col {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+
 .search-col {
   flex: 2;
   min-width: 260px;
@@ -296,6 +263,7 @@ function deleteUser(user) {
   position: relative;
   justify-content: flex-end;
 }
+
 .total-label-fixed {
   font-size: 1.15em;
   color: #1aaf5d;
@@ -303,6 +271,7 @@ function deleteUser(user) {
   margin-top: 8px;
   margin-bottom: 0;
 }
+
 .status-col {
   flex: 1.2;
   min-width: 180px;
@@ -310,6 +279,7 @@ function deleteUser(user) {
   flex-direction: column;
   justify-content: flex-end;
 }
+
 .btn-col-fixed {
   flex: 3;
   display: flex;
@@ -318,67 +288,89 @@ function deleteUser(user) {
   align-items: flex-end;
   flex-wrap: nowrap;
 }
+
 .filter-col status-col {
   flex: 1.2;
 }
+
 .total-col {
   flex: 1;
 }
+
 .btn-col {
   flex: 2.5;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .status-radio-group {
   display: flex;
   gap: 12px;
   align-items: center;
   margin-top: 2px;
 }
+
 .total-label {
   font-size: 1.1em;
   color: #1aaf5d;
   font-weight: 700;
 }
+
 .total-number {
   font-size: 1.1em;
   color: #1aaf5d;
   font-weight: 800;
 }
+
 .btn {
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1em;
-  padding: 7px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.98em;
+  padding: 9px 18px;
   border: none;
   outline: none;
-  transition: all 0.18s;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    background 0.18s ease,
+    color 0.18s ease;
   cursor: pointer;
 }
+
+.btn:active {
+  transform: translateY(1px);
+}
+
 .btn-success {
   background: #1aaf5d;
   color: #fff;
 }
+
 .btn-success:hover {
   background: #178f4a;
 }
+
 .btn-outline {
   background: #fff;
-  color: #1aaf5d;
-  border: 1.5px solid #1aaf5d;
+  color: #16a34a;
+  border: 1.5px solid #16a34a;
+  box-shadow: 0 2px 6px #16a34a22;
 }
+
 .btn-outline:hover {
-  background: #1aaf5d;
+  background: #16a34a;
   color: #fff;
 }
+
 .card {
-  border-radius: 14px;
-  box-shadow: 0 2px 12px #1976d211;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px #00000014;
   background: #fff;
-  border: none;
+  border: 1px solid #eef7f1;
   margin-bottom: 18px;
 }
+
 .table {
   width: 100%;
   border-radius: 10px;
@@ -386,6 +378,7 @@ function deleteUser(user) {
   background: #fff;
   margin-bottom: 0;
 }
+
 .table th,
 .table td {
   vertical-align: middle;
@@ -393,27 +386,36 @@ function deleteUser(user) {
   padding: 12px 6px;
   font-size: 1em;
 }
+
 .table th {
-  color: #1aaf5d;
+  color: #16a34a;
   font-weight: 700;
   background: #f4f6fb;
   border-bottom: 2px solid #e3eafc;
 }
+
 .table-hover tbody tr:hover {
-  background: #e3f2fd44;
+  background: #ecfdf5;
 }
+
+.custom-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
 .user-code {
   color: #1aaf5d;
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
+
 .status-toggle-group {
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
 }
+
 .status-badge {
   font-size: 1em;
   padding: 6px 18px;
@@ -425,28 +427,34 @@ function deleteUser(user) {
   letter-spacing: 0.5px;
   box-shadow: 0 1px 4px #ffcdd233;
 }
+
 .status-badge.active {
-  background: #e3fbe8;
-  color: #1aaf5d;
-  border: 1.5px solid #b2dfdb;
+  background: #e7f9ef;
+  color: #16a34a;
+  border: 1.5px solid #bfe7d2;
 }
+
 .status-badge.inactive {
   background: #ffeaea;
   color: #e53935;
   border: 1.5px solid #ffcdd2;
 }
+
 .switch {
   position: relative;
   display: inline-block;
   width: 38px;
   height: 22px;
 }
+
 .switch input {
   display: none;
 }
+
 .slider.round {
   border-radius: 22px;
 }
+
 .slider {
   position: absolute;
   cursor: pointer;
@@ -458,6 +466,7 @@ function deleteUser(user) {
   transition: 0.4s;
   border-radius: 22px;
 }
+
 .slider:before {
   position: absolute;
   content: '';
@@ -469,42 +478,52 @@ function deleteUser(user) {
   transition: 0.4s;
   border-radius: 50%;
 }
-.switch input:checked + .slider {
+
+.switch input:checked+.slider {
   background-color: #1aaf5d;
 }
-.switch input:checked + .slider:before {
+
+.switch input:checked+.slider:before {
   transform: translateX(16px);
 }
+
 .action-btn-group {
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
 }
+
 .btn-action-edit {
-  background: #fffde7;
-  color: #fbc02d;
-  border-radius: 8px;
+  background: #fffef2;
+  color: #d97706;
+  border-radius: 10px;
   padding: 6px 10px;
-  font-size: 1.1em;
-  border: none;
+  font-size: 1.05em;
+  border: 1px solid #fde68a;
+  box-shadow: 0 2px 6px #f59e0b22;
 }
+
 .btn-action-edit:hover {
-  background: #fbc02d;
+  background: #f59e0b;
   color: #fff;
 }
+
 .btn-action-delete {
-  background: #ffebee;
-  color: #e53935;
-  border-radius: 8px;
+  background: #fff5f5;
+  color: #dc2626;
+  border-radius: 10px;
   padding: 6px 10px;
-  font-size: 1.1em;
-  border: none;
+  font-size: 1.05em;
+  border: 1px solid #fecaca;
+  box-shadow: 0 2px 6px #ef444422;
 }
+
 .btn-action-delete:hover {
-  background: #e53935;
+  background: #ef4444;
   color: #fff;
 }
+
 .pagination-row {
   display: flex;
   align-items: center;
@@ -515,12 +534,14 @@ function deleteUser(user) {
   border-top: 1px solid #e3eafc;
   font-size: 1em;
 }
+
 .page-size-select select {
   border-radius: 6px;
   border: 1px solid #e3eafc;
   padding: 2px 8px;
   margin: 0 4px;
 }
+
 .pagination-controls button {
   border: none;
   background: #1aaf5d;
@@ -532,14 +553,17 @@ function deleteUser(user) {
   cursor: pointer;
   transition: background 0.18s;
 }
+
 .pagination-controls button:disabled {
   background: #bdbdbd;
   cursor: not-allowed;
 }
+
 .page-info {
   color: #888;
   font-size: 0.98em;
 }
+
 /* Modal giữ lại style cũ */
 .modal-overlay {
   position: fixed;
@@ -554,14 +578,17 @@ function deleteUser(user) {
   justify-content: center;
   animation: fadeIn 0.2s;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
+
 .modal-detail {
   background: #fff;
   border-radius: 18px;
@@ -573,16 +600,19 @@ function deleteUser(user) {
   position: relative;
   animation: modalPop 0.22s cubic-bezier(0.4, 2, 0.6, 1);
 }
+
 @keyframes modalPop {
   from {
     transform: scale(0.85);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
   }
 }
+
 .modal-close {
   position: absolute;
   top: 16px;
@@ -595,12 +625,15 @@ function deleteUser(user) {
   transition: color 0.18s;
   z-index: 2;
 }
+
 .modal-close:hover {
   color: #1aaf5d;
 }
+
 .modal-info {
   text-align: center;
 }
+
 .modal-name {
   font-size: 1.5rem;
   font-weight: 700;
@@ -608,6 +641,7 @@ function deleteUser(user) {
   margin-bottom: 18px;
   margin-top: 0;
 }
+
 .modal-row {
   font-size: 1.08rem;
   margin-bottom: 10px;
@@ -616,12 +650,14 @@ function deleteUser(user) {
   justify-content: center;
   gap: 8px;
 }
+
 .modal-label {
   font-weight: 600;
   color: #555;
   min-width: 110px;
   text-align: right;
 }
+
 .modal-input {
   flex: 1 1 0;
   padding: 8px 12px;
@@ -632,22 +668,26 @@ function deleteUser(user) {
   margin-left: 8px;
   transition: border 0.2s;
 }
+
 .modal-input:focus {
   border-color: #1aaf5d;
   outline: none;
 }
+
 .modal-edit-actions {
   display: flex;
   justify-content: center;
   gap: 16px;
   margin-top: 18px;
 }
+
 .btn-col-horizontal {
   flex: 3;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
 }
+
 .btn-row {
   display: flex;
   flex-direction: row;
@@ -655,6 +695,7 @@ function deleteUser(user) {
   width: 100%;
   justify-content: flex-end;
 }
+
 .btn-row-block {
   display: flex;
   flex-direction: row;
@@ -663,6 +704,7 @@ function deleteUser(user) {
   justify-content: flex-end;
   margin-top: 16px;
 }
+
 .filter-row-top {
   display: flex;
   flex-direction: row;
@@ -670,6 +712,7 @@ function deleteUser(user) {
   align-items: flex-end;
   margin-bottom: 0;
 }
+
 .filter-row-bottom {
   display: flex;
   flex-direction: row;
@@ -678,6 +721,7 @@ function deleteUser(user) {
   margin-top: 10px;
   gap: 12px;
 }
+
 .total-label-form {
   font-size: 1.1em;
   color: #1aaf5d;
@@ -685,6 +729,7 @@ function deleteUser(user) {
   margin-left: 2px;
   margin-bottom: 0;
 }
+
 .btn-row-form {
   display: flex;
   flex-direction: row;
@@ -692,17 +737,20 @@ function deleteUser(user) {
   justify-content: flex-end;
   flex: 1;
 }
+
 .table-header-row {
   padding: 16px 24px 0 24px;
   font-size: 1.08em;
   font-weight: 600;
   color: #222;
 }
+
 .table-total-label {
   color: #888;
   font-size: 1em;
   font-weight: 500;
 }
+
 .custom-table {
   border-radius: 10px;
   overflow: hidden;
@@ -710,6 +758,7 @@ function deleteUser(user) {
   margin-bottom: 0;
   width: 100%;
 }
+
 .custom-table th,
 .custom-table td {
   vertical-align: middle;
@@ -718,66 +767,55 @@ function deleteUser(user) {
   font-size: 1em;
   border-bottom: 1.5px solid #e3eafc;
 }
+
 .custom-table th {
   color: #222;
   font-weight: 700;
   background: #f4f6fb;
   border-bottom: 2px solid #e3eafc;
 }
+
 .user-code-link {
   color: #1aaf5d;
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
+
 @media (max-width: 1024px) {
   .filter-row {
     flex-wrap: wrap;
     gap: 8px;
   }
+
   .filter-row-top,
   .filter-row-bottom {
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
   }
+
   .btn-row {
     flex-wrap: wrap;
     gap: 6px;
     justify-content: flex-start;
   }
+
   .btn-row-block {
     flex-wrap: wrap;
     gap: 6px;
     justify-content: flex-start;
   }
+
   .pagination-row {
     flex-direction: column;
     gap: 8px;
   }
 }
+
 @media (max-width: 768px) {
   .nhanvien-wrapper {
-    padding: 8px 0 12px 0;
+      padding: 12px;
+    }
   }
-  .main-title {
-    font-size: 1.3rem;
-  }
-  .filter-card {
-    padding: 8px;
-  }
-  .table th,
-  .table td {
-    font-size: 0.95em;
-    padding: 8px 2px;
-  }
-  .pagination-row {
-    font-size: 0.95em;
-  }
-  .btn-row-block {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-  }
-}
 </style>
