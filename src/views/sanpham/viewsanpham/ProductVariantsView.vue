@@ -91,27 +91,6 @@
             <div class="price-input-group">
               <input 
                 type="number" 
-                class="form-control" 
-                placeholder="Giá tối đa"
-                v-model.number="filters.maxPrice"
-                :min="filters.minPrice || 0"
-                :max="maxPrice || 100000000"
-              />
-              <div class="price-range-slider mt-2">
-                <input
-                  type="range"
-                  class="form-range"
-                  :min="0"
-                  :max="maxPrice || 100000000"
-                  :step="Math.max(1000, Math.floor((maxPrice || 100000000) / 1000))"
-                  v-model.number="filters.maxPrice"
-                />
-                <div class="d-flex justify-content-between small text-muted mt-1">
-                  <span>0₫</span>
-                  <span>{{ formatCurrency(maxPrice || 100000000) }}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -187,17 +166,17 @@
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
-                <div class="color-display" v-if="variant.mauSac">
+                <div class="color-display" v-if="variant.tenMauSac">
                   <div class="d-flex align-items-center">
                     <span 
-                      v-if="variant.mauSac.hexCode" 
+                      v-if="variant.hexCode" 
                       class="color-preview me-2" 
-                      :style="{ backgroundColor: variant.mauSac.hexCode }"
-                      :title="variant.mauSac.hexCode"
+                      :style="{ backgroundColor: variant.hexCode}"
+                      :title="variant.hexCode || variant.mauSac?.hexCode"
                     ></span>
                     <div class="color-info">
-                      <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
-                      <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
+                      <div class="color-name">{{ variant.tenMauSac }}</div>
+                      <div v-if="variant.hexCode || variant.mauSac?.hexCode" class="color-hex">{{ variant.hexCode || variant.mauSac?.hexCode }}</div>
                     </div>
                   </div>
                 </div>
@@ -288,6 +267,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -721,30 +701,6 @@ const getColorHex = (tenMau) => {
 
 .price-input-group {
   position: relative;
-}
-
-.price-range-slider {
-  margin-top: 8px;
-}
-
-.price-range-slider .form-range {
-  height: 4px;
-}
-
-.price-range-slider .form-range::-webkit-slider-thumb {
-  width: 16px;
-  height: 16px;
-  background-color: #16a34a;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.price-range-slider .form-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background-color: #16a34a;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Search box improvements */
