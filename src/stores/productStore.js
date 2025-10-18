@@ -1,6 +1,6 @@
 // Update productStore.js to handle the paginated response
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import {
   createSanPham,
   updateSanPham,
@@ -15,14 +15,17 @@ import {
   getRamList,
   advancedSearch,
   advancedSearchPage,
+  getAllSanPhamChiTiet,
+  deleteCTSP,
+  searchSanPhamChiTiet
 } from '@/service/sanpham/SanPhamService'
-import client from '@/utils/api'
-
+// import client from '@/utils/api'
 export const useProductStore = defineStore('products', () => {
   const products = ref([])
+  const variants = ref([]) // chi tiết sản phẩm (CTSP)
   const loading = ref(false)
+  const variantsLoading = ref(false)
   const error = ref(null) // Thêm để theo dõi lỗi
-  const productDetail = ref({})
 
   // Attributes
   const brands = ref([])
@@ -37,6 +40,25 @@ export const useProductStore = defineStore('products', () => {
   const batteries = ref([])
   const cameras = ref([])
 
+   // Normalize a ChiTietSanPhamResponse into structure used by component
+  const normalizeCtsp = (item) => {
+    return {
+      ...item,
+      // backend returns flat fields like tenCpu, tenRam, dungLuongOCung, ...
+      cpu: item.tenCpu ? { tenCpu: item.tenCpu, id: item.idCpu } : (item.cpu || null),
+      ram: item.tenRam ? { tenRam: item.tenRam, id: item.idRam } : (item.ram || null),
+      gpu: item.tenGpu ? { tenGpu: item.tenGpu, id: item.idGpu } : (item.gpu || null),
+      oCung: item.dungLuongOCung ? { dungLuong: item.dungLuongOCung, id: item.idOCung } : (item.oCung || null),
+      loaiManHinh: item.kichThuocManHinh ? { kichThuoc: item.kichThuocManHinh, id: item.idLoaiManHinh } : (item.loaiManHinh || null),
+      pin: item.dungLuongPin ? { dungLuongPin: item.dungLuongPin, id: item.idPin } : (item.pin || null),
+      mauSac: item.tenMauSac ? { tenMau: item.tenMauSac, id: item.idMauSac } : (item.mauSac || null),
+      tenSanPham: item.tenSanPham || item.productName || '',
+      maCtsp: item.maCtsp || item.code || '',
+      giaBan: item.giaBan,
+      soLuongTon: item.soLuongTon,
+    }
+  } 
+  
   // Lấy toàn bộ sản phẩm
   const fetchAllProducts = async () => {
     loading.value = true
@@ -78,30 +100,139 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
+  // Lấy toàn bộ variants (chi tiết sản phẩm)
+ const fetchAllVariants = async () => {
+    variantsLoading.value = true
+    error.value = null
+    try {
+      const res = await getAllSanPhamChiTiet()
+      const data = res.data || res
+      if (Array.isArray(data)) {
+        variants.value = data.map(normalizeCtsp)
+      } else if (data && Array.isArray(data.content)) {
+        variants.value = data.content.map(normalizeCtsp)
+      } else {
+        variants.value = []
+      }
+      return variants.value
+    } catch (err) {
+      error.value = err.message || 'Không thể tải danh sách biến thể'
+      variants.value = []
+      throw err
+    } finally {
+      variantsLoading.value = false
+    }
+  }
+
+ // Xóa 1 biến thể (nếu cần)
+  const removeVariant = async (id) => {
+    variantsLoading.value = true
+    try {
+      await deleteCTSP(id)
+      variants.value = variants.value.filter((v) => v.id !== id)
+    } catch (err) {
+      error.value = err.message || 'Không thể xóa biến thể'
+      throw err
+    } finally {
+      variantsLoading.value = false
+    }
+  }
+
+
+  // Fetch filtered variants (server-side)
+   const fetchFilteredVariants = async (filters = {}, page = 0, size = 20) => {
+    variantsLoading.value = true
+    error.value = null
+    try {
+      const params = {
+        keyword: filters.keyword ?? null,
+        cpu: filters.cpu ?? null,
+        gpu: filters.gpu ?? null,
+        ram: filters.ram ?? null,
+        color: filters.color ?? null,
+        storage: filters.storage ?? null,
+        screen: filters.screen ?? null,
+        minPrice: filters.minPrice ?? null,
+        maxPrice: filters.maxPrice ?? null,
+        page,
+        size,
+      }
+      
+      const response = await searchSanPhamChiTiet(params)
+      
+      const data = response.data || response
+      let list = []
+      let paginationInfo = {}
+      
+      if (data && data.content) {
+        // Paginated response
+        list = data.content
+        paginationInfo = {
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          currentPage: data.number,
+          pageSize: data.size,
+          first: data.first,
+          last: data.last
+        }
+      } else if (Array.isArray(data)) {
+        // Simple array response
+        list = data
+        paginationInfo = {
+          totalElements: data.length,
+          totalPages: Math.ceil(data.length / size),
+          currentPage: page,
+          pageSize: size
+        }
+      }
+      
+      variants.value = list.map(normalizeCtsp)
+      
+      // Return both variants and pagination info
+      return {
+        content: variants.value,
+        ...paginationInfo
+      }
+    } catch (err) {
+      error.value = err.message || 'Không thể tải biến thể'
+      console.error('Error in fetchFilteredVariants:', err)
+      variants.value = []
+      throw err
+    } finally {
+      variantsLoading.value = false
+    }
+  }
+
   // Load attributes
   const loadAttributes = async () => {
     try {
-      const [cpuRes, gpuRes, ramRes, pinRes, oCungRes, mauSacRes, loaiManHinhRes] =
-        await Promise.all([
-          getCPUList(),
-          getGPUList(),
-          getRamList(), // Fixed endpoint
-          getPinList(),
-          getOCungList(),
-          getMauSacList(),
-          getLoaiManHinhList(),
-        ])
-
-      cpus.value = cpuRes.data || []
-      gpus.value = gpuRes.data || []
-      rams.value = ramRes.data || []
-      batteries.value = pinRes.data || []
-      storages.value = oCungRes.data || []
-      colors.value = mauSacRes.data || []
-      screens.value = loaiManHinhRes.data || []
+      const [cpuRes, gpuRes, ramRes, ocungRes, mauRes, screenRes, pinRes] = await Promise.all([
+        getCPUList().catch(() => ({ data: [] })),
+        getGPUList().catch(() => ({ data: [] })),
+        getRamList().catch(() => ({ data: [] })),
+        getOCungList().catch(() => ({ data: [] })),
+        getMauSacList().catch(() => ({ data: [] })),
+        getLoaiManHinhList().catch(() => ({ data: [] })),
+        getPinList().catch(() => ({ data: [] })),
+      ])
+      
+      // Filter only active items (trangThai = 1) and ensure hexCode for colors
+      cpus.value = (cpuRes.data || []).filter(item => item.trangThai === 1)
+      gpus.value = (gpuRes.data || []).filter(item => item.trangThai === 1)
+      rams.value = (ramRes.data || []).filter(item => item.trangThai === 1)
+      storages.value = (ocungRes.data || []).filter(item => item.trangThai === 1)
+      colors.value = (mauRes.data || [])
+        .filter(item => item.trangThai === 1)
+        .map(item => ({
+          ...item,
+          hexCode: item.hexCode || item.mauHex || '#000000' // Ensure hexCode exists
+        }))
+      screens.value = (screenRes.data || []).filter(item => item.trangThai === 1)
+      batteries.value = (pinRes.data || []).filter(item => item.trangThai === 1)
+      
+      
     } catch (err) {
-      error.value = err.message || 'Lỗi tải thuộc tính'
-      console.error('Error loading attributes:', err)
+      console.error('Error loading attributes', err)
     }
   }
 
@@ -122,6 +253,7 @@ export const useProductStore = defineStore('products', () => {
       loading.value = false
     }
   }
+
 
   // Sửa sản phẩm
   const editProduct = async (id, productData) => {
@@ -181,21 +313,7 @@ export const useProductStore = defineStore('products', () => {
     error.value = null
     try {
       const response = await getAllSanPham({ id })
-      const productData = response.data || response
-
-      console.log('Fetched product data:', productData)
-      console.log('Available fields in product data:', Object.keys(productData))
-
-      // Update the product detail ref
-      productDetail.value = productData
-
-      // Also update in the products array if it exists there
-      const index = products.value.findIndex((p) => p.id == id)
-      if (index !== -1) {
-        products.value[index] = { ...products.value[index], ...productData }
-      }
-
-      return productData
+      return response.data || response
     } catch (err) {
       error.value = err.message || 'Không thể tải thông tin sản phẩm'
       console.error('Error fetching product:', err)
@@ -239,14 +357,7 @@ export const useProductStore = defineStore('products', () => {
   }
 
   // Advanced search with pagination
-  const advancedSearchProductsPage = async (
-    keyword,
-    trangThai,
-    minPrice,
-    maxPrice,
-    page = 0,
-    size = 10,
-  ) => {
+  const advancedSearchProductsPage = async (keyword, trangThai, minPrice, maxPrice, page = 0, size = 10) => {
     loading.value = true
     error.value = null
     try {
@@ -263,14 +374,11 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
-  // Computed property to get a product by ID
-  const getProductByIdComputed = computed(() => (id) => {
-    return products.value.find((product) => product.id == id) || null
-  })
-
   return {
     products,
+    variants,
     loading,
+    variantsLoading,
     error,
     brands,
     cpus,
@@ -283,11 +391,13 @@ export const useProductStore = defineStore('products', () => {
     oses,
     batteries,
     cameras,
-    productDetail,
     fetchAllProducts,
+    fetchAllVariants,
+    fetchFilteredVariants,
     addProduct,
     editProduct,
     removeProduct,
+    removeVariant,
     getProductById,
     filterByKeyword,
     filterByBrand,
@@ -295,6 +405,5 @@ export const useProductStore = defineStore('products', () => {
     loadAttributes,
     advancedSearchProducts,
     advancedSearchProductsPage,
-    getProductByIdComputed,
   }
 })

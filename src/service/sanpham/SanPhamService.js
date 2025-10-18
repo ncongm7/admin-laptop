@@ -1,8 +1,9 @@
-// Update SanPhamService.js to fix the RAM endpoint and add proper API calls
+// Update SanPhamService.js to add getAllSanPhamChiTiet method
 import client from '@/utils/api'
 
 const BASE_ROUTE = '/api/san-pham'
 const CTSP_ROUTE = '/api/chi-tiet-san-pham'
+// const UPLOAD_ROUTE = "/api/upload";
 
 // SẢN PHẨM
 export const getAllSanPham = (params) => {
@@ -27,9 +28,18 @@ export const createSanPham = (formData) => {
   })
 }
 
+// export const getComboboxData = () => {
+//   return client.get(`${BASE_ROUTE}/combobox-data`)
+// }
+
 // CHI TIẾT SẢN PHẨM
 export const getAllSanPhamChiTiet = () => {
   return client.get(`${CTSP_ROUTE}`)
+}
+
+// New: search CTSP with filters + paging
+export const searchSanPhamChiTiet = (params) => {
+  return client.get(`${CTSP_ROUTE}/search`, { params })
 }
 
 export const createChiTietSanPham = (payloadList) => {
@@ -119,34 +129,125 @@ export const advancedSearchPage = (keyword, trangThai, minPrice, maxPrice, page 
   return client.get(`${BASE_ROUTE}/search/advanced-filter/page`, { params })
 }
 
-export const getCPUList = () => {
-  return client.get(`/api/cpu`)
-}
-
-export const getGPUList = () => {
-  return client.get(`/api/gpu`)
-}
-
-export const getLoaiManHinhList = () => {
-  return client.get(`/api/loai-man-hinh`)
-}
-
-export const getMauSacList = () => {
-  return client.get(`/api/mau-sac`)
-}
-
-export const getOCungList = () => {
-  return client.get(`/api/o-cung`)
-}
-
-export const getPinList = () => {
-  return client.get(`/api/pin`)
-}
-
-export const getRamList = () => {
-  return client.get(`/api/ram`) // Fixed from /api/ramhell to /api/ram
-}
-
 export const deleteCTSP = (id) => {
   return client.delete(`${CTSP_ROUTE}/${id}`)
+}
+
+// ===== CPU CRUD =====
+export const getCPUList = () => {
+  return client.get('/api/cpu')
+}
+
+export const createCPU = (payload) => {
+  return client.post('/api/cpu', payload)
+}
+
+export const updateCPU = (id, payload) => {
+  return client.put(`/api/cpu/${id}`, payload)
+}
+
+export const deleteCPU = (id) => {
+  return client.delete(`/api/cpu/${id}`)
+}
+
+// ===== GPU CRUD =====
+export const getGPUList = () => {
+  return client.get('/api/gpu')
+}
+
+export const createGPU = (payload) => {
+  return client.post('/api/gpu', payload)
+}
+
+export const updateGPU = (id, payload) => {
+  return client.put(`/api/gpu/${id}`, payload)
+}
+
+export const deleteGPU = (id) => {
+  return client.delete(`/api/gpu/${id}`)
+}
+
+// ===== RAM CRUD =====
+export const getRamList = () => {
+  return client.get('/api/ram')
+}
+
+export const createRam = (payload) => {
+  return client.post('/api/ram', payload)
+}
+
+export const updateRam = (id, payload) => {
+  return client.put(`/api/ram/${id}`, payload)
+}
+
+export const deleteRam = (id) => {
+  return client.delete(`/api/ram/${id}`)
+}
+
+// ===== Ổ CỨNG CRUD =====
+export const getOCungList = () => {
+  return client.get('/api/o-cung')
+}
+
+export const createOCung = (payload) => {
+  return client.post('/api/o-cung', payload)
+}
+
+export const updateOCung = (id, payload) => {
+  return client.put(`/api/o-cung/${id}`, payload)
+}
+
+export const deleteOCung = (id) => {
+  return client.delete(`/api/o-cung/${id}`)
+}
+
+// ===== MÀU SẮC CRUD =====
+export const getMauSacList = () => {
+  return client.get('/api/mau-sac')
+}
+
+export const createMauSac = (payload) => {
+  return client.post('/api/mau-sac', payload)
+}
+
+export const updateMauSac = (id, payload) => {
+  return client.put(`/api/mau-sac/${id}`, payload)
+}
+
+export const deleteMauSac = (id) => {
+  return client.delete(`/api/mau-sac/${id}`)
+}
+
+// ===== LOẠI MÀN HÌNH CRUD =====
+export const getLoaiManHinhList = () => {
+  return client.get('/api/loai-man-hinh')
+}
+
+export const createLoaiManHinh = (payload) => {
+  return client.post('/api/loai-man-hinh', payload)
+}
+
+export const updateLoaiManHinh = (id, payload) => {
+  return client.put(`/api/loai-man-hinh/${id}`, payload)
+}
+
+export const deleteLoaiManHinh = (id) => {
+  return client.delete(`/api/loai-man-hinh/${id}`)
+}
+
+// ===== PIN CRUD =====
+export const getPinList = () => {
+  return client.get('/api/pin')
+}
+
+export const createPin = (payload) => {
+  return client.post('/api/pin', payload)
+}
+
+export const updatePin = (id, payload) => {
+  return client.put(`/api/pin/${id}`, payload)
+}
+
+export const deletePin = (id) => {
+  return client.delete(`/api/pin/${id}`)
 }
