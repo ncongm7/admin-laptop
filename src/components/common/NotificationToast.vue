@@ -1,28 +1,26 @@
 <template>
-  <Teleport to="body">
-    <div class="toast-container">
-      <div
-        v-for="toast in toasts"
-        :key="toast.id"
-        :class="[
-          'toast-item',
-          `toast-${toast.type}`,
-          { 'toast-show': toast.show, 'toast-hide': !toast.show }
-        ]"
-      >
-        <div class="toast-icon">
-          <i :class="getIcon(toast.type)"></i>
-        </div>
-        <div class="toast-content">
-          <div class="toast-title">{{ toast.title }}</div>
-          <div class="toast-message">{{ toast.message }}</div>
-        </div>
-        <button class="toast-close" @click="removeToast(toast.id)">
-          <i class="bi bi-x"></i>
-        </button>
+  <div class="toast-container">
+    <div
+      v-for="toast in toasts"
+      :key="toast.id"
+      :class="[
+        'toast-item',
+        `toast-${toast.type}`,
+        { 'toast-show': toast.show, 'toast-hide': !toast.show }
+      ]"
+    >
+      <div class="toast-icon">
+        <i :class="getIcon(toast.type)"></i>
       </div>
+      <div class="toast-content">
+        <div class="toast-title">{{ toast.title }}</div>
+        <div class="toast-message">{{ toast.message }}</div>
+      </div>
+      <button class="toast-close" @click="removeToast(toast.id)">
+        <i class="bi bi-x"></i>
+      </button>
     </div>
-  </Teleport>
+  </div>
 </template>
 
 <script setup>

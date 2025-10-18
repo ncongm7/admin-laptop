@@ -64,9 +64,9 @@
                                             {{ product.trangThai === 'ACTIVE' ? 'Hiển thị' : 'Ẩn' }}
                                         </span>
                                     </div>
-                                    <div class="product-brand mt-2">
+                                    <!-- <div class="product-brand mt-2">
                                         <strong>Hãng:</strong> {{ product.hang?.tenHang || 'N/A' }}
-                                    </div>
+                                    </div> -->
                                 </div>
 
                                 <!-- Specifications -->

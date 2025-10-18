@@ -14,9 +14,6 @@
           <i class="bi bi-plus-circle"></i>
           <span class="btn-label small-text">Thêm sản phẩm</span>
         </button>
-        <button class="btn btn-outline-success btn-sm">
-          <i class="bi bi-arrow-clockwise"></i> Làm mới
-        </button>
       </div>
     </div>
 

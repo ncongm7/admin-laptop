@@ -16,7 +16,10 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         productIdGlobal.value = productId
         console.log('Setting productIdGlobal.value to:', productId)
       } else {
-        console.warn('fetchProductVariants called with undefined productId, keeping current value:', productIdGlobal.value)
+        console.warn(
+          'fetchProductVariants called with undefined productId, keeping current value:',
+          productIdGlobal.value,
+        )
       }
       loading.value = true
       console.log('Fetching variants for productId:', productId)
@@ -64,7 +67,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         mauSacId: variantData.mau_sac_id,
         giaBan: variantData.giaBan,
         thoiGianBaoHanh: variantData.thoiGianBaoHanh,
-        sanPhamId: variantData.san_pham_id
+        sanPhamId: variantData.san_pham_id,
       }
 
       console.log('Sending add data:', transformedData)
@@ -112,7 +115,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         mauSacId: variantData.mau_sac_id,
         giaBan: variantData.giaBan,
         thoiGianBaoHanh: variantData.thoiGianBaoHanh,
-        sanPhamId: productIdGlobal.value || variantData.san_pham_id // Fallback nếu productIdGlobal.value là undefined
+        sanPhamId: productIdGlobal.value || variantData.san_pham_id, // Fallback nếu productIdGlobal.value là undefined
       }
 
       console.log('productIdGlobal.value:', productIdGlobal.value)
@@ -158,7 +161,8 @@ export const useProductDetailStore = defineStore('productDetail', () => {
       await api.delete(`/ctsp/${variantId}`)
 
       // Làm mới danh sách
-      const productId = variants.value.find((v) => v.id === variantId)?.san_pham_id || productIdGlobal.value
+      const productId =
+        variants.value.find((v) => v.id === variantId)?.san_pham_id || productIdGlobal.value
       if (productId) {
         console.log('Refreshing variants after delete with productId:', productId)
         await fetchProductVariants(productId)
@@ -195,6 +199,23 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     }
   }
 
+  // Fetch product detail
+  const fetchProductDetail = async (productId) => {
+    try {
+      loading.value = true
+      // Use the product store's method to fetch product details
+      // This assumes that the product detail is fetched through the product store
+      console.log('fetchProductDetail called for productId:', productId)
+      // We'll set the productDetail from the productStore in the component
+      // since the productDetailStore doesn't have direct access to productStore
+    } catch (err) {
+      error.value = err.message
+      console.error('Error fetching product detail:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     variants,
     allVariants: computed(() => variants.value), // Thêm computed property
@@ -204,6 +225,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     productDetail,
     fetchProductVariants,
     fetchAllVariants,
+    fetchProductDetail,
     addVariant,
     updateVariant,
     deleteVariant,

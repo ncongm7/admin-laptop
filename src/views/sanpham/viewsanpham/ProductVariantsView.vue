@@ -1,5 +1,6 @@
 <!-- // Update ProductVariantsView.vue to fetch variants from API -->
 
+<!-- Update ProductVariantsView.vue template -->
 <template>
   <div class="product-variants-view">
     <!-- Debug Info (remove in production) -->
@@ -90,27 +91,6 @@
             <div class="price-input-group">
               <input 
                 type="number" 
-                class="form-control" 
-                placeholder="Giá tối đa"
-                v-model.number="filters.maxPrice"
-                :min="filters.minPrice || 0"
-                :max="maxPrice || 100000000"
-              />
-              <div class="price-range-slider mt-2">
-                <input
-                  type="range"
-                  class="form-range"
-                  :min="0"
-                  :max="maxPrice || 100000000"
-                  :step="Math.max(1000, Math.floor((maxPrice || 100000000) / 1000))"
-                  v-model.number="filters.maxPrice"
-                />
-                <div class="d-flex justify-content-between small text-muted mt-1">
-                  <span>0₫</span>
-                  <span>{{ formatCurrency(maxPrice || 100000000) }}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -148,19 +128,19 @@
               </th>
               <th width="30">STT</th>
               <th width="100">SKU</th>
-              <th width="60">Màu</th>
+              <th width="60">MÀU</th>
               <th width="80">CPU</th>
               <th width="60">RAM</th>
               <th width="70">GPU</th>
-              <th width="70">Màn hình</th>
-              <th width="50">Pin</th>
-              <th width="70">Ổ cứng</th>
-              <th width="75">Giá bán</th>
-              <th width="60">Kho</th>
-              <th width="65">Trạng thái</th>
-              <th width="70">Tạo</th>
-              <th width="70">Cập nhật</th>
-              <th width="60">Tác vụ</th>
+              <th width="70">MÀN HÌNH</th>
+              <th width="50">PIN</th>
+              <th width="70">Ổ CỨNG</th>
+              <th width="75">GIÁ BÁN</th>
+              <th width="60">SỐ LƯỢNG TỒN</th>
+              <th width="65">TRẠNG THÁI</th>
+              <th width="70">NGÀY TẠO</th>
+              <th width="70">NGÀY CẬP NHẬT</th>
+              <th width="60">TÁC VỤ</th>
             </tr>
           </thead>
           <tbody>
@@ -186,17 +166,17 @@
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
-                <div class="color-display" v-if="variant.mauSac">
+                <div class="color-display" v-if="variant.tenMauSac">
                   <div class="d-flex align-items-center">
                     <span 
-                      v-if="variant.mauSac.hexCode" 
+                      v-if="variant.hexCode" 
                       class="color-preview me-2" 
-                      :style="{ backgroundColor: variant.mauSac.hexCode }"
-                      :title="variant.mauSac.hexCode"
+                      :style="{ backgroundColor: variant.hexCode}"
+                      :title="variant.hexCode || variant.mauSac?.hexCode"
                     ></span>
                     <div class="color-info">
-                      <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
-                      <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
+                      <div class="color-name">{{ variant.tenMauSac }}</div>
+                      <div v-if="variant.hexCode || variant.mauSac?.hexCode" class="color-hex">{{ variant.hexCode || variant.mauSac?.hexCode }}</div>
                     </div>
                   </div>
                 </div>
@@ -287,6 +267,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -720,30 +701,6 @@ const getColorHex = (tenMau) => {
 
 .price-input-group {
   position: relative;
-}
-
-.price-range-slider {
-  margin-top: 8px;
-}
-
-.price-range-slider .form-range {
-  height: 4px;
-}
-
-.price-range-slider .form-range::-webkit-slider-thumb {
-  width: 16px;
-  height: 16px;
-  background-color: #16a34a;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.price-range-slider .form-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background-color: #16a34a;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Search box improvements */

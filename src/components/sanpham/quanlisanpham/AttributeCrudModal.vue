@@ -292,7 +292,7 @@ const loadData = async () => {
         status: item[fields.status] || 1,
         colorHex: item.hexCode || item.mauHex || '#000000', // For color type
         originalData: item, // Keep original data for updates
-        createdAt: item.createdAt || item.ngayTao || item.created_at || Date.now() - index // Fallback ordering
+        createdAt: item.createdAt || item.created_at || item.ngayTao || new Date(Date.now() - index * 1000).toISOString() // Fallback ordering
       })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       
       console.log('Loaded items:', items.value.length, 'items')
@@ -612,16 +612,6 @@ async function deleteItem(item, index) {
   }
 }
 
-// Test function for debugging
-const testToast = () => {
-  console.log('Testing toast:', toast.value)
-  toast.value?.addToast({
-    type: 'success',
-    title: 'Test Toast',
-    message: 'This is a test notification',
-    duration: 3000
-  })
-}
 
 // Load data when component mounts or type changes
 onMounted(() => {
