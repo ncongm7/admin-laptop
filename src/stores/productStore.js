@@ -5,7 +5,9 @@ import {
   createSanPham,
   updateSanPham,
   deleteSanPham,
+  bulkDeleteSanPham,
   getAllSanPham,
+  getSanPhamById,
   getCPUList,
   getGPUList,
   getLoaiManHinhList,
@@ -17,7 +19,8 @@ import {
   advancedSearchPage,
   getAllSanPhamChiTiet,
   deleteCTSP,
-  searchSanPhamChiTiet
+  searchSanPhamChiTiet,
+  updateChiTietSanPham
 } from '@/service/sanpham/SanPhamService'
 // import client from '@/utils/api'
 export const useProductStore = defineStore('products', () => {
@@ -102,6 +105,20 @@ export const useProductStore = defineStore('products', () => {
         console.log('No products found')
       }
 
+      // Load variants for each product to calculate min/max prices
+      await fetchAllVariants()
+      
+      // Map variants to products
+      products.value = products.value.map(product => {
+        const productVariants = variants.value.filter(variant => 
+          variant.idSanPham === product.id || variant.sanPhamId === product.id
+        )
+        return {
+          ...product,
+          variants: productVariants
+        }
+      })
+
       await loadAttributes()
       return products.value
     } catch (err) {
@@ -146,6 +163,30 @@ export const useProductStore = defineStore('products', () => {
       variants.value = variants.value.filter((v) => v.id !== id)
     } catch (err) {
       error.value = err.message || 'Không thể xóa biến thể'
+      throw err
+    } finally {
+      variantsLoading.value = false
+    }
+  }
+
+  // Cập nhật 1 biến thể
+  const updateVariant = async (id, payload) => {
+    variantsLoading.value = true
+    error.value = null
+    try {
+      const response = await updateChiTietSanPham(id, payload)
+      const updatedVariant = response.data || response
+      
+      // Update the variant in the local array
+      const index = variants.value.findIndex((v) => v.id === id)
+      if (index !== -1) {
+        variants.value[index] = normalizeCtsp(updatedVariant)
+      }
+      
+      return updatedVariant
+    } catch (err) {
+      error.value = err.message || 'Không thể cập nhật biến thể'
+      console.error('Error updating variant:', err)
       throw err
     } finally {
       variantsLoading.value = false
@@ -275,12 +316,25 @@ export const useProductStore = defineStore('products', () => {
     loading.value = true
     error.value = null
     try {
+      console.log('ProductStore: Updating product with ID:', id, 'Data:', productData)
+      
       const response = await updateSanPham(id, productData)
       const updatedProduct = response.data || response
+      
+      console.log('ProductStore: Update response:', updatedProduct)
+      
+      // Update the product in the local array
       const index = products.value.findIndex((p) => p.id === id)
       if (index !== -1) {
-        products.value[index] = updatedProduct
+        // Preserve variants if they exist
+        const existingVariants = products.value[index].variants || []
+        products.value[index] = {
+          ...updatedProduct,
+          variants: productData.variants || existingVariants
+        }
+        console.log('ProductStore: Updated product in local array:', products.value[index])
       }
+      
       return updatedProduct
     } catch (err) {
       error.value = err.message || 'Không thể cập nhật sản phẩm'
@@ -310,13 +364,49 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
+  // Xóa nhiều sản phẩm
+  const bulkRemoveProducts = async (ids) => {
+    loading.value = true
+    error.value = null
+    try {
+      // Try bulk delete first, fallback to individual deletes if not supported
+      try {
+        await bulkDeleteSanPham(ids)
+      } catch (bulkError) {
+        // If bulk delete fails, delete individually
+        console.warn('Bulk delete not supported, falling back to individual deletes')
+        const deletePromises = ids.map(id => deleteSanPham(id))
+        await Promise.all(deletePromises)
+      }
+      
+      // Remove deleted products from local state
+      products.value = products.value.filter((p) => !ids.includes(p.id))
+    } catch (err) {
+      error.value = err.message || 'Không thể xóa sản phẩm'
+      console.error('Error bulk deleting products:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Lấy chi tiết sản phẩm theo id
   const getProductById = async (id) => {
     loading.value = true
     error.value = null
     try {
-      const response = await getAllSanPham({ id })
-      return response.data || response
+      const response = await getSanPhamById(id)
+      const productData = response.data || response
+      
+      // Load variants for this product
+      const productVariants = variants.value.filter(variant => 
+        variant.idSanPham === id || variant.sanPhamId === id
+      )
+      
+      return {
+        ...productData,
+        variants: productVariants
+      }
     } catch (err) {
       error.value = err.message || 'Không thể tải thông tin sản phẩm'
       console.error('Error fetching product:', err)
@@ -416,7 +506,9 @@ export const useProductStore = defineStore('products', () => {
     editProduct,
     updateProduct,
     removeProduct,
+    bulkRemoveProducts,
     removeVariant,
+    updateVariant,
     getProductById,
     filterByKeyword,
     filterByBrand,

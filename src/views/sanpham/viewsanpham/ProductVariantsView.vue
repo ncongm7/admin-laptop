@@ -51,7 +51,7 @@
             <select class="form-select" v-model="filters.color">
               <option value="">Tất cả</option>
               <option v-if="productStore.colors.length === 0" disabled>Đang tải...</option>
-              <option v-for="c in productStore.colors" :key="c.id" :value="c.hexCode || c.tenMau">
+              <option v-for="c in productStore.colors" :key="c.id" :value="c.tenMau">
                 <span class="color-option">
                   {{ c.tenMau }} {{ c.hexCode ? `(${c.hexCode})` : '' }}
                 </span>
@@ -88,9 +88,14 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Giá đến</label>
-            <div class="price-input-group">
-              <input 
-                type="number" 
+            <input 
+              type="number" 
+              class="form-control" 
+              placeholder="Giá tối đa"
+              v-model.number="filters.maxPrice"
+              :min="filters.minPrice || 0"
+              :max="maxPrice || 100000000"
+            />
           </div>
         </div>
       </div>
@@ -166,17 +171,17 @@
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
-                <div class="color-display" v-if="variant.tenMauSac">
+                <div class="color-display" v-if="variant.mauSac">
                   <div class="d-flex align-items-center">
                     <span 
-                      v-if="variant.hexCode" 
+                      v-if="variant.mauSac.hexCode" 
                       class="color-preview me-2" 
-                      :style="{ backgroundColor: variant.hexCode}"
-                      :title="variant.hexCode || variant.mauSac?.hexCode"
+                      :style="{ backgroundColor: variant.mauSac.hexCode }"
+                      :title="variant.mauSac.hexCode"
                     ></span>
                     <div class="color-info">
-                      <div class="color-name">{{ variant.tenMauSac }}</div>
-                      <div v-if="variant.hexCode || variant.mauSac?.hexCode" class="color-hex">{{ variant.hexCode || variant.mauSac?.hexCode }}</div>
+                      <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
+                      <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
                     </div>
                   </div>
                 </div>
@@ -209,8 +214,8 @@
                   <button class="btn btn-outline-secondary btn-sm" @click="editVariant(variant)" title="Chỉnh sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-outline-secondary btn-sm" @click="settingsVariant(variant)" title="Cài đặt">
-                    <i class="bi bi-gear"></i>
+                  <button class="btn btn-outline-danger btn-sm" @click="deleteVariant(variant)" title="Xóa">
+                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
@@ -224,10 +229,7 @@
     <div v-if="selectedVariants.length > 0" class="bulk-actions mt-3 p-3 bg-light rounded">
       <div class="d-flex align-items-center gap-3">
         <span class="fw-semibold">{{ selectedVariants.length }} biến thể đã chọn</span>
-        <button class="btn btn-outline-success btn-sm" @click="bulkEdit">
-          <i class="bi bi-pencil"></i> Chỉnh sửa hàng loạt
-        </button>
-        <button class="btn btn-outline-success btn-sm" @click="bulkDelete">
+        <button class="btn btn-outline-danger btn-sm" @click="bulkDelete">
           <i class="bi bi-trash"></i> Xóa hàng loạt
         </button>
       </div>
@@ -267,7 +269,33 @@
         </div>
       </div>
     </div>
+
   </div>
+
+  <!-- Edit Variant Modal -->
+  <VariantEditModal 
+    ref="editModal"
+    @updated="handleVariantUpdated"
+  />
+
+  <!-- Simple Test Modal -->
+  <div class="modal fade" id="testModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Test Modal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>This is a test modal to check if Bootstrap is working.</p>
+          <p>Variant ID: {{ selectedVariantForEdit?.id }}</p>
+          <p>Variant Code: {{ selectedVariantForEdit?.maCtsp }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -276,6 +304,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
 import { useProductStore } from '@/stores/productStore'
+import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 
 const productStore = useProductStore()
 
@@ -293,6 +322,10 @@ const selectedVariants = ref([])
 const selectAll = ref(false)
 const showDebug = ref(false) // Set to false in production
 const maxPrice = ref(100000000) // Dynamic max price
+
+// Modal refs
+const editModal = ref(null)
+const selectedVariantForEdit = ref(null)
 
 const filters = ref({
   cpu: '',
@@ -482,12 +515,29 @@ const clearFilters = () => {
     storage: '',
     screen: '',
     minPrice: null,
-    maxPrice: maxPrice.value,
+    maxPrice: null,
   }
+  // Reset to first page and reload all variants
+  currentPage.value = 0
+  triggerFetch()
 }
 
 const clearSearch = () => {
   searchQuery.value = ''
+  // Reset all filters to show all variants
+  filters.value = {
+    cpu: '',
+    ram: '',
+    gpu: '',
+    color: '',
+    storage: '',
+    screen: '',
+    minPrice: null,
+    maxPrice: null,
+  }
+  // Reset to first page and reload all variants
+  currentPage.value = 0
+  triggerFetch()
 }
 
 const stockStatusClass = (stock) => {
@@ -500,24 +550,131 @@ const statusClass = (status) => {
   return status === 1 ? 'bg-success' : 'bg-secondary'
 }
 
-const editVariant = (variant) => {
+const editVariant = async (variant) => {
   console.log('Edit variant:', variant)
+  
+  try {
+    // Ensure attributes are loaded
+    await productStore.loadAttributes()
+    
+    // Wait for next tick to ensure modal is rendered
+    await nextTick()
+    
+    // Load variant data into modal
+    if (editModal.value) {
+      editModal.value.resetForm()
+      editModal.value.loadVariantData(variant)
+    }
+    
+    // Show modal
+    const modalElement = document.getElementById('variantEditModal')
+    if (modalElement) {
+      // Create new modal instance each time to avoid issues
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        // Dispose any existing instance first
+        const existingModal = bootstrap.Modal.getInstance(modalElement)
+        if (existingModal) {
+          existingModal.dispose()
+        }
+        
+        // Create new instance and show
+        const modal = new bootstrap.Modal(modalElement, {
+          backdrop: true,
+          keyboard: true,
+          focus: true
+        })
+        modal.show()
+      } else {
+        // Manual show as fallback
+        modalElement.classList.add('show', 'd-block')
+        modalElement.style.display = 'block'
+        modalElement.setAttribute('aria-modal', 'true')
+        modalElement.setAttribute('role', 'dialog')
+        document.body.classList.add('modal-open')
+        
+        // Add backdrop
+        const backdrop = document.createElement('div')
+        backdrop.className = 'modal-backdrop fade show'
+        backdrop.id = 'modal-backdrop'
+        document.body.appendChild(backdrop)
+      }
+    }
+  } catch (error) {
+    console.error('Error opening edit modal:', error)
+    alert('Có lỗi khi mở form chỉnh sửa: ' + error.message)
+  }
 }
 
-// const deleteVariant = (variant) => {
-//   console.log('Delete variant:', variant)
-// }
 
-const bulkEdit = () => {
-  console.log('Bulk edit variants:', selectedVariants.value)
+const deleteVariant = async (variant) => {
+  // Enhanced confirmation dialog
+  const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể "${variant.maCtsp}"?\n\nThông tin biến thể:\n- CPU: ${variant.tenCpu || 'N/A'}\n- RAM: ${variant.tenRam || 'N/A'}\n- Màu sắc: ${variant.mauSac?.tenMau || 'N/A'}\n- Giá bán: ${formatCurrency(variant.giaBan)}\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    try {
+      console.log('Deleting variant:', variant)
+      
+      // Call API to delete variant
+      await productStore.removeVariant(variant.id)
+      
+      // Reload the variants list
+      await triggerFetch()
+      
+      // Show success message
+      alert('Xóa biến thể thành công!')
+    } catch (error) {
+      console.error('Error deleting variant:', error)
+      alert('Có lỗi khi xóa biến thể: ' + (error.message || 'Vui lòng thử lại'))
+    }
+  }
 }
 
-const bulkDelete = () => {
-  console.log('Bulk delete variants:', selectedVariants.value)
+const bulkDelete = async () => {
+  if (selectedVariants.value.length === 0) {
+    alert('Vui lòng chọn ít nhất một biến thể để xóa')
+    return
+  }
+  
+  // Get selected variant details for confirmation
+  const selectedVariantDetails = variantsList.value
+    .filter(v => selectedVariants.value.includes(v.id))
+    .map(v => `- ${v.maCtsp} (${v.tenCpu || 'N/A'}, ${v.tenRam || 'N/A'}, ${v.mauSac?.tenMau || 'N/A'})`)
+    .slice(0, 5) // Show only first 5 for readability
+  
+  const moreCount = selectedVariants.value.length - selectedVariantDetails.length
+  const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?\n\nDanh sách biến thể sẽ bị xóa:\n${selectedVariantDetails.join('\n')}${moreCount > 0 ? `\n... và ${moreCount} biến thể khác` : ''}\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    try {
+      console.log('Bulk deleting variants:', selectedVariants.value)
+      
+      // Call API to delete multiple variants
+      const deletePromises = selectedVariants.value.map(id => productStore.removeVariant(id))
+      await Promise.all(deletePromises)
+      
+      // After successful deletion, clear selection and reload the variants list
+      selectedVariants.value = []
+      selectAll.value = false
+      await triggerFetch()
+      
+      // Show success message
+      alert('Xóa các biến thể thành công!')
+    } catch (error) {
+      console.error('Error bulk deleting variants:', error)
+      alert('Có lỗi khi xóa các biến thể: ' + (error.message || 'Vui lòng thử lại'))
+      
+      // Reload to refresh the state
+      await triggerFetch()
+    }
+  }
 }
 
-const settingsVariant = (variant) => {
-  console.log('Settings variant:', variant)
+const handleVariantUpdated = () => {
+  // Reload variants list after successful update
+  triggerFetch()
+  
+  // Show success message
+  alert('Cập nhật biến thể thành công!')
 }
 
 const getColorHex = (tenMau) => {
@@ -701,6 +858,30 @@ const getColorHex = (tenMau) => {
 
 .price-input-group {
   position: relative;
+}
+
+.price-range-slider {
+  margin-top: 8px;
+}
+
+.price-range-slider .form-range {
+  height: 4px;
+}
+
+.price-range-slider .form-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #16a34a;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.price-range-slider .form-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #16a34a;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Search box improvements */

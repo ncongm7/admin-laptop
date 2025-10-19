@@ -432,9 +432,6 @@
                             </small>
                           </div>
                           <div v-if="form.variants.length > 0" class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm" @click="refreshAndClose">
-                              <i class="bi bi-arrow-clockwise"></i> Lưu & Quay lại
-                            </button>
                             <button type="button" class="btn btn-outline-success btn-sm" @click="close">
                               <i class="bi bi-check"></i> Hoàn thành
                             </button>
@@ -596,55 +593,70 @@
             Quay lại Quản lý sản phẩm
           </button>
         </div>
-        </div>
       </div>
     </div>
     <div class="modal-backdrop fade show"></div>
 
-    <!-- Serial Management Modal -->
-    <div v-if="showSerialModal" class="modal fade show d-block" tabindex="-1" style="z-index: 1060;">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">
-              Quản lý Serial Numbers
-              <span v-if="!currentVariant?.id" class="badge bg-warning ms-2">Preview</span>
-            </h5>
-            <button type="button" class="btn-close" @click="closeSerialModal"></button>
-          </div>
-          <div class="modal-body">
-            <div v-if="currentVariant" class="serial-management">
-              <!-- Variant Info -->
-              <div class="variant-info mb-3">
-                <h6>Biến thể: {{ currentVariantIndex + 1 }}</h6>
-                <p class="text-muted mb-0">Giá: {{ currentVariant.giaBan?.toLocaleString() }} VNĐ</p>
-                <div v-if="!currentVariant.id" class="alert alert-info mt-2">
-                  <i class="bi bi-info-circle me-2"></i>
-                  Đây là biến thể xem trước. Vui lòng lưu sản phẩm trước để quản lý serial numbers.
-                </div>
+    <!-- Serial Management Modal - Floating on top -->
+    <teleport to="body">
+      <div v-if="showSerialModal" class="serial-modal-overlay">
+        <div class="serial-modal-wrapper">
+          <div class="serial-modal-dialog">
+            <div class="serial-modal-content">
+              <div class="serial-modal-header">
+                <h5 class="serial-modal-title">
+                  Quản lý Serial Numbers
+                  <span v-if="!currentVariant?.id" class="badge bg-warning ms-2">Preview</span>
+                </h5>
+                <button type="button" class="btn-close" @click="closeSerialModal"></button>
               </div>
-
-              <!-- Add Serial Input -->
-              <div class="serial-input-section mb-4" v-if="currentVariant.id">
-                <label class="form-label">Thêm Serial Numbers</label>
-                <div class="input-group">
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="serialInput"
-                    placeholder="Nhập serial numbers (cách nhau bằng dấu phẩy)"
-                  />
-                  <button class="btn btn-primary" @click="addSerialNumbers" :disabled="loading">
-                    <i class="bi bi-plus"></i> Thêm
-                  </button>
+              <div class="serial-modal-body">
+                <!-- Variant Info -->
+                <div class="mb-3">
+                  <h6 class="section-title">Thông tin biến thể:</h6>
+                  <div class="variant-info-grid">
+                    <div class="info-item">
+                      <span class="info-label">SKU:</span>
+                      <span class="info-value">Tự động tạo</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Cấu hình:</span>
+                      <span
+                        class="info-value text-truncate"
+                        :title="getVariantConfig(currentVariantIndex)"
+                        >{{ getVariantConfig(currentVariantIndex) }}</span
+                      >
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Giá bán:</span>
+                      <span class="info-value">{{ formatPrice(currentVariant?.giaBan) }}</span>
+                    </div>
+                  </div>
                 </div>
-                <small class="text-muted">Ví dụ: SN001, SN002, SN003</small>
-              </div>
 
-              <!-- Excel Import Section -->
-              <div class="excel-import-section mb-4" v-if="currentVariant.id">
-                <label class="form-label fw-semibold">Import từ Excel:</label>
-                <div class="d-flex gap-2">
+                <!-- Add Serial Number -->
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Thêm Serial Number:</label>
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="serialInput"
+                      placeholder="Nhập serial (VD: 123456, 789012)"
+                    />
+                    <button type="button" class="btn btn-success" @click="addSerialNumbers">
+                      <i class="bi bi-plus-lg"></i> Thêm
+                    </button>
+                  </div>
+                  <small class="text-muted"
+                    >Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;)</small
+                  >
+                </div>
+
+                <!-- Import from Excel -->
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Import từ Excel:</label>
+                  <div class="d-flex gap-2">
                     <input
                       type="file"
                       ref="excelFileInput"
@@ -666,9 +678,9 @@
                     >
                       <i class="bi bi-download"></i> Tải mẫu
                     </button>
+                  </div>
+                  <small class="text-muted">Hỗ trợ file .xlsx, .csv</small>
                 </div>
-                <small class="text-muted">Hỗ trợ file .xlsx, .csv</small>
-              </div>
 
                 <!-- Serial Numbers List -->
                 <div class="serial-list-section">
@@ -717,23 +729,25 @@
                       </tbody>
                     </table>
                   </div>
-                  <div v-else class="empty-state text-center py-4">
-                    <i class="bi bi-inbox fs-1 text-muted"></i>
-                    <p class="text-muted">Chưa có serial number nào</p>
+                  <div v-else class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Chưa có serial number nào</p>
                   </div>
                 </div>
               </div>
+              <div class="serial-modal-footer">
+                <button type="button" class="btn btn-secondary" @click="closeSerialModal">
+                  <i class="bi bi-x-lg"></i> Hủy
+                </button>
+                <button type="button" class="btn btn-success" @click="saveSerials">
+                  <i class="bi bi-check-lg"></i> Lưu
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeSerialModal">
-              <i class="bi bi-x-lg"></i> Đóng
-            </button>
           </div>
         </div>
       </div>
-    </div>
-    <div v-if="showSerialModal" class="modal-backdrop fade show" style="z-index: 1055;"></div>
+    </teleport>
   </div>
 </template>
 
@@ -850,13 +864,6 @@ const calculateTotalCombinations = computed(() => {
 
 const displayVariants = computed(() => {
   return form.value.variants.length > 0 ? form.value.variants : previewVariants.value
-})
-
-const currentVariant = computed(() => {
-  if (currentVariantIndex.value >= 0 && displayVariants.value.length > currentVariantIndex.value) {
-    return displayVariants.value[currentVariantIndex.value]
-  }
-  return null
 })
 
 // Generate preview variants when selections or price change
@@ -1100,20 +1107,6 @@ const save = async () => {
 }
 
 const close = () => {
-  emit('close')
-}
-
-const refreshAndClose = () => {
-  // Emit save event to refresh product list
-  emit('save', {
-    id: form.value.id,
-    tenSanPham: form.value.tenSanPham,
-    maSanPham: form.value.maSanPham,
-    moTaChiTiet: form.value.moTaChiTiet,
-    trangThai: form.value.trangThai,
-    anhDaiDien: form.value.anhDaiDien,
-    images: form.value.images
-  })
   emit('close')
 }
 
@@ -1491,60 +1484,6 @@ const getSelectedBatteryNames = (selectedIds) => {
     const battery = batteries.value.find(b => b.id === id)
     return battery ? battery.dungLuongPin : ''
   }).filter(name => name)
-}
-
-// Excel import functions
-const importFromExcel = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-  
-  if (!currentVariant.value?.id) {
-    alert('Vui lòng lưu biến thể trước khi import serial')
-    return
-  }
-  
-  try {
-    loading.value = true
-    const response = await importSerialsFromExcel(currentVariant.value.id, file)
-    const importedSerials = response.data || []
-    
-    // Update local serials list
-    currentVariant.value.serials = currentVariant.value.serials || []
-    importedSerials.forEach(serialResponse => {
-      currentVariant.value.serials.push({
-        id: serialResponse.id,
-        number: serialResponse.serialNo,
-        status: serialResponse.trangThaiText
-      })
-    })
-    
-    // Update stock count
-    currentVariant.value.soLuongTon = currentVariant.value.serials.length
-    
-    alert(`Import thành công ${importedSerials.length} serial numbers!`)
-    
-  } catch (error) {
-    console.error('Error importing serials:', error)
-    alert('Có lỗi xảy ra khi import file Excel')
-  } finally {
-    loading.value = false
-    // Reset file input
-    event.target.value = ''
-  }
-}
-
-const downloadExcelTemplate = () => {
-  // Create a simple CSV template
-  const csvContent = 'Serial Number\nSN001\nSN002\nSN003\n'
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'serial_template.csv')
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 </script>
 
