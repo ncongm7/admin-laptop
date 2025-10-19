@@ -42,6 +42,7 @@ export const useProductStore = defineStore('products', () => {
 
    // Normalize a ChiTietSanPhamResponse into structure used by component
   const normalizeCtsp = (item) => {
+ 
     return {
       ...item,
       // backend returns flat fields like tenCpu, tenRam, dungLuongOCung, ...
@@ -51,11 +52,14 @@ export const useProductStore = defineStore('products', () => {
       oCung: item.dungLuongOCung ? { dungLuong: item.dungLuongOCung, id: item.idOCung } : (item.oCung || null),
       loaiManHinh: item.kichThuocManHinh ? { kichThuoc: item.kichThuocManHinh, id: item.idLoaiManHinh } : (item.loaiManHinh || null),
       pin: item.dungLuongPin ? { dungLuongPin: item.dungLuongPin, id: item.idPin } : (item.pin || null),
-      mauSac: item.tenMauSac ? { tenMau: item.tenMauSac, id: item.idMauSac } : (item.mauSac || null),
+      mauSac: item.tenMauSac ? { tenMau: item.tenMauSac, id: item.idMauSac, hexCode: item.hexCodeMauSac } : (item.mauSac || null),
       tenSanPham: item.tenSanPham || item.productName || '',
       maCtsp: item.maCtsp || item.code || '',
       giaBan: item.giaBan,
       soLuongTon: item.soLuongTon,
+      trangThai: item.trangThai,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
     }
   } 
   
@@ -78,10 +82,20 @@ export const useProductStore = defineStore('products', () => {
 
       // Ensure we have an array of products
       if (Array.isArray(data)) {
-        products.value = data
+        // Sort by creation date (newest first)
+        products.value = data.sort((a, b) => {
+          const dateA = new Date(a.ngayTao || a.createdAt || 0)
+          const dateB = new Date(b.ngayTao || b.createdAt || 0)
+          return dateB - dateA
+        })
         console.log('Products loaded successfully:', products.value.length)
       } else if (data && Array.isArray(data.content)) {
-        products.value = data.content
+        // Sort by creation date (newest first)
+        products.value = data.content.sort((a, b) => {
+          const dateA = new Date(a.ngayTao || a.createdAt || 0)
+          const dateB = new Date(b.ngayTao || b.createdAt || 0)
+          return dateB - dateA
+        })
         console.log('Products loaded successfully:', products.value.length)
       } else {
         products.value = []
@@ -243,7 +257,8 @@ export const useProductStore = defineStore('products', () => {
     try {
       const response = await createSanPham(productData)
       const newProduct = response.data || response
-      products.value.push(newProduct)
+      // Add new product at the beginning of the list
+      products.value.unshift(newProduct)
       return newProduct
     } catch (err) {
       error.value = err.message || 'Không thể tạo sản phẩm mới'
@@ -275,6 +290,9 @@ export const useProductStore = defineStore('products', () => {
       loading.value = false
     }
   }
+
+  // Alias for editProduct to match ProductsView usage
+  const updateProduct = editProduct
 
   // Xóa sản phẩm
   const removeProduct = async (id) => {
@@ -396,6 +414,7 @@ export const useProductStore = defineStore('products', () => {
     fetchFilteredVariants,
     addProduct,
     editProduct,
+    updateProduct,
     removeProduct,
     removeVariant,
     getProductById,

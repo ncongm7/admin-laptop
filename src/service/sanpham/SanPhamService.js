@@ -22,10 +22,8 @@ export const deleteSanPham = (id) => {
   return client.delete(`${BASE_ROUTE}/${id}`)
 }
 
-export const createSanPham = (formData) => {
-  return client.post(`${BASE_ROUTE}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+export const createSanPham = (payload) => {
+  return client.post(`${BASE_ROUTE}`, payload)
 }
 
 // export const getComboboxData = () => {
@@ -250,4 +248,89 @@ export const updatePin = (id, payload) => {
 
 export const deletePin = (id) => {
   return client.delete(`/api/pin/${id}`)
+}
+
+// ===== TẠO BIẾN THỂ TỰ ĐỘNG =====
+export const taoBienTheSanPham = (payload) => {
+  return client.post(`${CTSP_ROUTE}/tao-bien-the`, payload)
+}
+
+// ===== SERIAL NUMBER MANAGEMENT =====
+const SERIAL_ROUTE = '/api/serial'
+
+export const createSerial = (payload) => {
+  return client.post(`${SERIAL_ROUTE}`, payload)
+}
+
+export const createSerialsBatch = (payloadList) => {
+  return client.post(`${SERIAL_ROUTE}/batch`, payloadList)
+}
+
+export const importSerialsFromExcel = (ctspId, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  return client.post(`${SERIAL_ROUTE}/import-excel/${ctspId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    withCredentials: true,
+  })
+}
+
+export const getSerialsByCtspId = (ctspId) => {
+  return client.get(`${SERIAL_ROUTE}/ctsp/${ctspId}`)
+}
+
+export const getSerialById = (id) => {
+  return client.get(`${SERIAL_ROUTE}/${id}`)
+}
+
+export const updateSerial = (id, payload) => {
+  return client.put(`${SERIAL_ROUTE}/${id}`, payload)
+}
+
+export const updateSerialStatus = (id, trangThai) => {
+  return client.put(`${SERIAL_ROUTE}/${id}/trang-thai`, null, {
+    params: { trangThai }
+  })
+}
+
+export const deleteSerial = (id) => {
+  return client.delete(`${SERIAL_ROUTE}/${id}`)
+}
+
+// ===== IMAGE MANAGEMENT =====
+const IMAGE_ROUTE = '/api/hinh-anh'
+
+export const createHinhAnh = (payload) => {
+  return client.post(`${IMAGE_ROUTE}`, payload)
+}
+
+export const createHinhAnhBatch = (payloadList) => {
+  return client.post(`${IMAGE_ROUTE}/batch`, payloadList)
+}
+
+export const getHinhAnhByCtspId = (ctspId) => {
+  return client.get(`${IMAGE_ROUTE}/ctsp/${ctspId}`)
+}
+
+export const getMainImageByCtspId = (ctspId) => {
+  return client.get(`${IMAGE_ROUTE}/ctsp/${ctspId}/main`)
+}
+
+export const getGalleryImagesByCtspId = (ctspId) => {
+  return client.get(`${IMAGE_ROUTE}/ctsp/${ctspId}/gallery`)
+}
+
+export const updateHinhAnh = (id, payload) => {
+  return client.put(`${IMAGE_ROUTE}/${id}`, payload)
+}
+
+export const deleteHinhAnh = (id) => {
+  return client.delete(`${IMAGE_ROUTE}/${id}`)
+}
+
+export const deleteAllImagesByCtspId = (ctspId) => {
+  return client.delete(`${IMAGE_ROUTE}/ctsp/${ctspId}`)
 }

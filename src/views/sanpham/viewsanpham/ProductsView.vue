@@ -195,12 +195,19 @@ const confirmDelete = (product) => {
 }
 
 const saveProduct = async (productData) => {
-  if (productData.id) {
-    await productStore.updateProduct(productData)
-  } else {
-    await productStore.addProduct(productData)
+  try {
+    if (productData.id) {
+      await productStore.editProduct(productData.id, productData)
+    } else {
+      await productStore.addProduct(productData)
+    }
+    // Refresh the product list to show the new/updated product
+    await fetchData()
+    closeModal()
+  } catch (error) {
+    console.error('Error saving product:', error)
+    alert('Có lỗi xảy ra khi lưu sản phẩm')
   }
-  closeModal()
 }
 
 const closeModal = () => {
