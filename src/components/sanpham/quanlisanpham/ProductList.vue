@@ -1,6 +1,33 @@
 
 <template>
   <div class="product-list">
+    <!-- Bulk Actions Bar -->
+    <div v-if="selectedIds.length > 0" class="bulk-actions-bar">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="selected-info">
+          <i class="bi bi-check-circle-fill text-success me-2"></i>
+          <span>Đã chọn {{ selectedIds.length }} sản phẩm</span>
+        </div>
+        <div class="bulk-actions">
+          <button 
+            class="btn btn-outline-danger btn-sm me-2" 
+            @click="handleBulkDelete"
+            :disabled="loading"
+          >
+            <i class="bi bi-trash"></i>
+            Xóa đã chọn
+          </button>
+          <button 
+            class="btn btn-outline-secondary btn-sm" 
+            @click="clearSelection"
+          >
+            <i class="bi bi-x"></i>
+            Bỏ chọn
+          </button>
+        </div>
+      </div>
+    </div>
+    
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
@@ -13,7 +40,7 @@
             <th>Tên sản phẩm</th>
             <th>Giá thấp nhất</th>
             <th>Giá cao nhất</th>
-            <th>Tồn kho</th>
+            <th>Số Lượng Biến Thể</th>
             <th>Trạng thái</th>
             <th>Ngày tạo</th>
             <th>Ngày cập nhật</th>
@@ -70,7 +97,7 @@
             <td>
               <div class="product-price">
                 <span
-                  class="text-success fw-bold"
+                  class="text-dark"
                   v-if="product.variants && product.variants.length > 0"
                 >
                   {{ formatCurrency(getMinPrice(product.variants)) }}
@@ -81,7 +108,7 @@
             <td>
               <div class="product-price">
                 <span
-                  class="text-danger fw-bold"
+                  class="text-dark"
                   v-if="product.variants && product.variants.length > 0"
                 >
                   {{ formatCurrency(getMaxPrice(product.variants)) }}
@@ -90,9 +117,9 @@
               </div>
             </td>
             <td>
-              <div class="stock-status">
-                <span :class="stockStatusClass(product.soLuong)">
-                  {{ product.soLuong }}
+              <div class="variant-count">
+                <span class="text-dark">
+                  {{ getVariantCount(product) }}
                 </span>
               </div>
             </td>
@@ -174,7 +201,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['edit', 'view', 'delete', 'selection-change'])
+const emit = defineEmits(['edit', 'view', 'delete', 'bulk-delete', 'selection-change'])
 
 // Pagination state
 const itemsPerPage = 5 // Fixed to 5 products per page
@@ -250,6 +277,13 @@ const hasPriceRange = (variants) => {
   return getMinPrice(variants) !== getMaxPrice(variants)
 }
 
+const getVariantCount = (product) => {
+  if (!product.variants || !Array.isArray(product.variants)) {
+    return 0
+  }
+  return product.variants.length
+}
+
 const stockStatusClass = (stock) => {
   if (stock > 10) return 'text-success'
   if (stock > 0) return 'text-warning'
@@ -269,11 +303,31 @@ const handleView = (product) => {
 }
 
 const handleEdit = (product) => {
-  emit('edit', product)
+  // Show confirmation dialog before editing
+  if (confirm(`Bạn có muốn chỉnh sửa sản phẩm "${product.tenSanPham}"?`)) {
+    emit('edit', product)
+  }
 }
 
 const handleDelete = (product) => {
-  emit('delete', product)
+  if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${product.tenSanPham}"?\n\nHành động này không thể hoàn tác!`)) {
+    emit('delete', product)
+  }
+}
+
+const handleBulkDelete = () => {
+  if (selectedIds.value.length === 0) return
+  
+  const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedIds.value.length} sản phẩm đã chọn?\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    emit('bulk-delete', selectedIds.value)
+  }
+}
+
+const clearSelection = () => {
+  selectedIds.value = []
+  emit('selection-change', selectedIds.value)
 }
 
 const formatDateSafe = (product) => {
@@ -351,5 +405,44 @@ input[type='checkbox'] {
 
 .table td {
   vertical-align: middle;
+}
+
+.bulk-actions-bar {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.selected-info {
+  font-weight: 500;
+  color: #059669;
+}
+
+.bulk-actions .btn {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.variant-count {
+  text-align: center;
+}
+
+.variant-count span {
+  font-size: 14px;
+  font-weight: normal;
 }
 </style>

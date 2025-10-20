@@ -18,24 +18,16 @@
         @edit="editProduct"
         @view="viewDetail"
         @delete="confirmDelete"
+        @bulk-delete="handleBulkDelete"
+        @selection-change="handleSelectionChange"
         class="product-list"
       />
+
 
       <!-- Product Form Modal -->
       <ProductFormModal
         v-if="showModal"
         :product="selectedProduct"
-        :brands="brands"
-        :cpus="cpus"
-        :rams="rams"
-        :gpus="gpus"
-        :storages="storages"
-        :colors="colors"
-        :screens="screens"
-        :displays="displays"
-        :oses="oses"
-        :batteries="batteries"
-        :cameras="cameras"
         @close="closeModal"
         @save="saveProduct"
       />
@@ -78,6 +70,14 @@ const showDetailModal = ref(false)
 const selectedProduct = ref(null)
 const filteredData = ref([])
 const isFilterApplied = ref(false)
+const selectedProductIds = ref([])
+const editForm = ref({
+  id: null,
+  tenSanPham: '',
+  maSanPham: '',
+  moTaChiTiet: '',
+  trangThai: 1
+})
 const filters = ref({
   ten: '',
   ma: '',
@@ -85,6 +85,8 @@ const filters = ref({
   minPrice: null,
   maxPrice: null,
 })
+
+const isEditMode = computed(() => !!editForm.value.id)
 
 const fetchData = async () => {
   try {
@@ -98,17 +100,7 @@ const fetchData = async () => {
   }
 }
 
-const brands = computed(() => productStore.brands)
-const cpus = computed(() => productStore.cpus)
-const rams = computed(() => productStore.rams)
-const gpus = computed(() => productStore.gpus)
-const storages = computed(() => productStore.storages)
-const colors = computed(() => productStore.colors)
-const screens = computed(() => productStore.screens)
-const displays = computed(() => productStore.displays)
-const oses = computed(() => productStore.oses)
-const batteries = computed(() => productStore.batteries)
-const cameras = computed(() => productStore.cameras)
+// ProductFormModal handles its own attributes loading
 
 // Handle filtered data from ProductFilter
 const displayedProducts = computed(() => {
@@ -121,7 +113,18 @@ const displayedProducts = computed(() => {
 })
 
 const handleFilteredData = (data) => {
-  filteredData.value = data || []
+  // Map variants to filtered products to ensure price calculation works
+  const productsWithVariants = (data || []).map(product => {
+    const productVariants = productStore.variants.filter(variant => 
+      variant.idSanPham === product.id || variant.sanPhamId === product.id
+    )
+    return {
+      ...product,
+      variants: productVariants
+    }
+  })
+  
+  filteredData.value = productsWithVariants
   isFilterApplied.value = true // Mark that a filter has been applied
 }
 
@@ -158,9 +161,32 @@ const filteredProducts = computed(() => {
   return filtered
 })
 
-const editProduct = (product) => {
-  selectedProduct.value = { ...product }
-  showModal.value = true
+const editProduct = async (product) => {
+  try {
+    console.log('Edit button clicked! Product:', product)
+    console.log('Current showModal state:', showModal.value)
+    
+    // Populate the edit form with product data
+    editForm.value = {
+      id: product.id,
+      tenSanPham: product.tenSanPham || '',
+      maSanPham: product.maSanPham || '',
+      moTaChiTiet: product.moTaChiTiet || '',
+      trangThai: product.trangThai || 1
+    }
+    
+    // Set the selected product and show modal immediately
+    selectedProduct.value = { ...product }
+    showModal.value = true
+    
+    console.log('Modal should be showing now. showModal:', showModal.value)
+    console.log('editForm:', editForm.value)
+    console.log('selectedProduct:', selectedProduct.value)
+    
+  } catch (error) {
+    console.error('Error in editProduct:', error)
+    alert('Không thể mở form chỉnh sửa sản phẩm')
+  }
 }
 
 const viewDetail = async (product) => {
@@ -190,23 +216,123 @@ const editFromDetail = () => {
   showModal.value = true
 }
 
-const confirmDelete = (product) => {
-  // Implement delete confirmation
+const confirmDelete = async (product) => {
+  const confirmMessage = `Bạn có chắc chắn muốn xóa sản phẩm "${product.tenSanPham}"?\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    try {
+      loading.value = true
+      await productStore.removeProduct(product.id)
+      alert('Xóa sản phẩm thành công!')
+      
+      // Refresh the product list
+      await fetchData()
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      alert(`Lỗi khi xóa sản phẩm: ${error.message}`)
+    } finally {
+      loading.value = false
+    }
+  }
 }
 
 const saveProduct = async (productData) => {
-  if (productData.id) {
-    await productStore.updateProduct(productData)
-  } else {
-    await productStore.addProduct(productData)
+  try {
+    console.log('Saving product data:', productData)
+    
+    // Validate required fields
+    if (!productData.tenSanPham?.trim()) {
+      alert('Vui lòng nhập tên sản phẩm')
+      return
+    }
+
+    // Show confirmation dialog
+    const action = productData.id ? 'cập nhật' : 'tạo mới'
+    const confirmMessage = `Bạn có chắc chắn muốn ${action} sản phẩm "${productData.tenSanPham}"?`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    loading.value = true
+
+    if (productData.id) {
+      console.log('Calling editProduct with ID:', productData.id)
+      const result = await productStore.editProduct(productData.id, productData)
+      console.log('Edit result:', result)
+      alert('Cập nhật sản phẩm thành công!')
+    } else {
+      console.log('Creating new product')
+      const result = await productStore.addProduct(productData)
+      console.log('Create result:', result)
+      alert('Tạo sản phẩm mới thành công!')
+    }
+    
+    // Refresh the product list
+    await fetchData()
+    closeModal()
+  } catch (error) {
+    console.error('Error saving product:', error)
+    alert(`Lỗi khi ${productData.id ? 'cập nhật' : 'tạo'} sản phẩm: ${error.message}`)
+  } finally {
+    loading.value = false
   }
-  closeModal()
 }
 
 const closeModal = () => {
   showModal.value = false
   selectedProduct.value = null
+  editForm.value = {
+    id: null,
+    tenSanPham: '',
+    maSanPham: '',
+    moTaChiTiet: '',
+    trangThai: 1
+  }
   emit('close-create-modal')
+}
+
+const handleSave = async () => {
+  try {
+    console.log('Saving form data:', editForm.value)
+    
+    // Validate required fields
+    if (!editForm.value.tenSanPham?.trim()) {
+      alert('Vui lòng nhập tên sản phẩm')
+      return
+    }
+
+    // Show confirmation dialog
+    const action = editForm.value.id ? 'cập nhật' : 'tạo mới'
+    const confirmMessage = `Bạn có chắc chắn muốn ${action} sản phẩm "${editForm.value.tenSanPham}"?`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    loading.value = true
+
+    if (editForm.value.id) {
+      console.log('Calling editProduct with ID:', editForm.value.id)
+      const result = await productStore.editProduct(editForm.value.id, editForm.value)
+      console.log('Edit result:', result)
+      alert('Cập nhật sản phẩm thành công!')
+    } else {
+      console.log('Creating new product')
+      const result = await productStore.addProduct(editForm.value)
+      console.log('Create result:', result)
+      alert('Tạo sản phẩm mới thành công!')
+    }
+    
+    // Refresh the product list
+    await fetchData()
+    closeModal()
+  } catch (error) {
+    console.error('Error saving product:', error)
+    alert(`Lỗi khi ${editForm.value.id ? 'cập nhật' : 'tạo'} sản phẩm: ${error.message}`)
+  } finally {
+    loading.value = false
+  }
 }
 
 const closeDetailModal = () => {
@@ -227,6 +353,30 @@ const resetFilter = () => {
   }
   filteredData.value = [] // Clear filtered data to show all products
   isFilterApplied.value = false // Mark that filter has been reset
+}
+
+const handleSelectionChange = (selectedIds) => {
+  selectedProductIds.value = selectedIds
+}
+
+const handleBulkDelete = async (productIds) => {
+  try {
+    loading.value = true
+    
+    // Use the bulk delete method from store
+    await productStore.bulkRemoveProducts(productIds)
+    
+    alert(`Đã xóa thành công ${productIds.length} sản phẩm!`)
+    
+    // Clear selection and refresh data
+    selectedProductIds.value = []
+    await fetchData()
+  } catch (error) {
+    console.error('Error bulk deleting products:', error)
+    alert(`Lỗi khi xóa sản phẩm: ${error.message}`)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

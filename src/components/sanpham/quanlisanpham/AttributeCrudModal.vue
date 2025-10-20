@@ -71,11 +71,11 @@
               </div>
             </div>
             <div class="mt-2 d-flex gap-2">
-              <button class="btn btn-primary btn-sm" type="submit" :disabled="loading">
+              <button class="btn btn-primary btn-sm" type="button" @click="showSaveConfirm" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
                 {{ editingIndex === -1 ? 'Thêm' : 'Cập nhật' }}
               </button>
-              <button class="btn btn-secondary btn-sm" type="button" @click="resetForm" :disabled="loading">
+              <button class="btn btn-secondary btn-sm" type="button" @click="showResetConfirm" :disabled="loading">
                 Làm mới
               </button>
             </div>
@@ -128,7 +128,7 @@
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm">
-                      <button class="btn btn-outline-secondary" @click="editItem(idx)" :disabled="loading">
+                      <button class="btn btn-outline-secondary" @click="showEditConfirm(it, idx)" :disabled="loading">
                         <i class="bi bi-pencil"></i>
                       </button>
                       <button class="btn btn-outline-danger" @click="showDeleteConfirm(it, idx)" :disabled="loading">
@@ -241,7 +241,7 @@ const mapApiFunction = {
     create: createPin, 
     update: updatePin, 
     delete: deletePin,
-    fields: { code: 'maPin', name: 'dungLuong', description: 'moTa', status: 'trangThai' }
+    fields: { code: 'maPin', name: 'dungLuongPin', description: 'moTa', status: 'trangThai' }
   },
 }
 
@@ -406,6 +406,16 @@ const validateForm = () => {
     newErrors.name = 'Tên không được để trống'
   }
   
+  // Check for duplicate code
+  const isDuplicate = items.value.some((item, index) => 
+    item.code.toLowerCase() === form.value.code.toLowerCase() && 
+    (editingIndex.value === -1 || index !== editingIndex.value)
+  )
+  
+  if (isDuplicate) {
+    newErrors.code = 'Mã này đã tồn tại, vui lòng chọn mã khác'
+  }
+  
   // Validate hex code for color type
   if (props.type === 'color' && form.value.colorHex) {
     const hexPattern = /^#[0-9A-Fa-f]{6}$/
@@ -414,22 +424,71 @@ const validateForm = () => {
     }
   }
   
+  
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
 }
 
-async function saveItem() {
-  if (!mapApiFunction[props.type]) return
+// Show validation error confirmation
+function showValidationError() {
+  const errorMessages = Object.values(errors.value).filter(msg => msg)
+  const message = errorMessages.length > 0 
+    ? errorMessages.join('\n') 
+    : 'Vui lòng kiểm tra lại thông tin nhập vào'
+    
+  confirmType.value = 'warning'
+  confirmTitle.value = 'Thông tin không hợp lệ'
+  confirmMessage.value = message
+  confirmButtonText.value = 'Đã hiểu'
+  pendingAction.value = { type: 'validation' }
+  confirmDialog.value?.show()
+}
 
+// Show save confirmation
+function showSaveConfirm() {
   // Clear previous errors
   errors.value = {}
   generalError.value = ''
   
   // Frontend validation
   if (!validateForm()) {
-    generalError.value = 'Vui lòng kiểm tra lại thông tin nhập vào'
+    showValidationError()
     return
   }
+  
+  const isCreating = editingIndex.value === -1
+  confirmType.value = 'info'
+  confirmTitle.value = isCreating ? 'Xác nhận thêm mới' : 'Xác nhận cập nhật'
+  confirmMessage.value = isCreating 
+    ? `Bạn có chắc chắn muốn thêm ${title.value.toLowerCase()} "${form.value.name}"?`
+    : `Bạn có chắc chắn muốn cập nhật ${title.value.toLowerCase()} "${form.value.name}"?`
+  confirmButtonText.value = isCreating ? 'Thêm' : 'Cập nhật'
+  pendingAction.value = { type: 'save' }
+  confirmDialog.value?.show()
+}
+
+// Show reset confirmation
+function showResetConfirm() {
+  confirmType.value = 'warning'
+  confirmTitle.value = 'Xác nhận làm mới'
+  confirmMessage.value = 'Bạn có chắc chắn muốn xóa tất cả thông tin đã nhập?'
+  confirmButtonText.value = 'Làm mới'
+  pendingAction.value = { type: 'reset' }
+  confirmDialog.value?.show()
+}
+
+// Show edit confirmation
+function showEditConfirm(item, index) {
+  confirmType.value = 'info'
+  confirmTitle.value = 'Xác nhận chỉnh sửa'
+  confirmMessage.value = `Bạn có muốn chỉnh sửa ${title.value.toLowerCase()} "${item.name}"?`
+  confirmButtonText.value = 'Chỉnh sửa'
+  pendingAction.value = { type: 'edit', item, index }
+  confirmDialog.value?.show()
+}
+
+async function saveItem() {
+  if (!mapApiFunction[props.type]) return
   
   loading.value = true
 
@@ -453,6 +512,7 @@ async function saveItem() {
       payload.hexCode = form.value.colorHex
       payload.mauHex = form.value.colorHex
     }
+    
 
     const isCreating = editingIndex.value === -1
     let response
@@ -468,8 +528,27 @@ async function saveItem() {
 
     console.log('Save successful, response:', response)
     
-    // Reload data after successful save
-    await loadData()
+    // Create new item object for immediate display
+    const newItem = {
+      id: response.data?.id || response.id || Date.now(),
+      code: form.value.code,
+      name: form.value.name,
+      description: form.value.description,
+      status: Number(form.value.status),
+      colorHex: form.value.colorHex || '#000000',
+      createdAt: new Date().toISOString(),
+      originalData: response.data || response
+    }
+    
+    if (isCreating) {
+      // Add new item to the beginning of the array
+      items.value.unshift(newItem)
+    } else {
+      // Update existing item and move to top
+      items.value.splice(editingIndex.value, 1)
+      items.value.unshift(newItem)
+    }
+    
     resetForm()
     
     console.log('Showing success toast:', {
@@ -569,6 +648,12 @@ function showDeleteConfirm(item, index) {
 function handleConfirmAction() {
   if (pendingAction.value?.type === 'delete') {
     return deleteItem(pendingAction.value.item, pendingAction.value.index)
+  } else if (pendingAction.value?.type === 'save') {
+    return saveItem()
+  } else if (pendingAction.value?.type === 'reset') {
+    resetForm()
+  } else if (pendingAction.value?.type === 'edit') {
+    editItem(pendingAction.value.index)
   }
 }
 

@@ -10,7 +10,12 @@ export const getAllSanPham = (params) => {
   return client.get(`${BASE_ROUTE}`, { params })
 }
 
+export const getSanPhamById = (id) => {
+  return client.get(`${BASE_ROUTE}/${id}`)
+}
+
 export const updateSanPham = (id, payload) => {
+  console.log('SanPhamService: Updating product with ID:', id, 'Payload:', payload)
   return client.put(`${BASE_ROUTE}/${id}`, payload)
 }
 
@@ -20,6 +25,10 @@ export const updateTrangThai = (id, payload) => {
 
 export const deleteSanPham = (id) => {
   return client.delete(`${BASE_ROUTE}/${id}`)
+}
+
+export const bulkDeleteSanPham = (ids) => {
+  return client.delete(`${BASE_ROUTE}/bulk`, { data: { ids } })
 }
 
 export const createSanPham = (formData) => {

@@ -36,6 +36,14 @@
                         <input type="text" class="form-control" v-model="form.maSanPham" />
                       </div>
 
+                      <div class="col-md-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select class="form-select" v-model="form.trangThai">
+                          <option :value="1">Hoạt động</option>
+                          <option :value="0">Ẩn</option>
+                        </select>
+                      </div>
+
                       <div class="col-md-12">
                         <label class="form-label">Mô tả chi tiết</label>
                         <textarea
@@ -534,7 +542,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAttributeStore } from '@/stores/attributeStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
 
@@ -579,7 +587,16 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-const isEditMode = computed(() => !!props.product)
+const isEditMode = computed(() => {
+  console.log('ProductFormModal: isEditMode check, product:', props.product)
+  return !!props.product
+})
+
+// Debug when component is mounted
+onMounted(() => {
+  console.log('ProductFormModal mounted with product:', props.product)
+  console.log('Edit mode:', isEditMode.value)
+})
 
 const form = ref({
   id: null,
@@ -617,9 +634,52 @@ const currentVariant = computed(() => {
 })
 
 // Initialize form with product data if in edit mode
-if (props.product) {
-  form.value = { ...props.product }
+const initializeForm = () => {
+  if (props.product) {
+    form.value = {
+      id: props.product.id,
+      tenSanPham: props.product.tenSanPham || '',
+      maSanPham: props.product.maSanPham || '',
+      moTaNgan: props.product.moTaNgan || '',
+      moTaChiTiet: props.product.moTaChiTiet || '',
+      cpu_id: props.product.cpu_id || '',
+      gpu_id: props.product.gpu_id || '',
+      loaiManHinh_id: props.product.loaiManHinh_id || '',
+      dungLuongPin_id: props.product.dungLuongPin_id || '',
+      trangThai: props.product.trangThai || 1,
+      anhDaiDien: props.product.anhDaiDien || null,
+      images: props.product.images || [],
+      serials: props.product.serials || [],
+      variants: props.product.variants || [],
+    }
+  } else {
+    // Reset form for create mode
+    form.value = {
+      id: null,
+      tenSanPham: '',
+      maSanPham: '',
+      moTaNgan: '',
+      moTaChiTiet: '',
+      cpu_id: '',
+      gpu_id: '',
+      loaiManHinh_id: '',
+      dungLuongPin_id: '',
+      trangThai: 1,
+      anhDaiDien: null,
+      images: [],
+      serials: [],
+      variants: [],
+    }
+  }
 }
+
+// Initialize form when component is created
+initializeForm()
+
+// Watch for product prop changes to reinitialize form
+watch(() => props.product, () => {
+  initializeForm()
+}, { deep: true })
 
 const createVariants = () => {
   const { mauSac, ram, oCung } = variantConfig.value
@@ -858,7 +918,35 @@ const downloadSerialTemplate = () => {
 }
 
 const save = () => {
-  emit('save', form.value)
+  // Validate required fields
+  if (!form.value.tenSanPham?.trim()) {
+    alert('Vui lòng nhập tên sản phẩm')
+    return
+  }
+
+  // Validate variants if any exist
+  if (form.value.variants && form.value.variants.length > 0) {
+    for (let i = 0; i < form.value.variants.length; i++) {
+      const variant = form.value.variants[i]
+      if (!variant.giaBan || variant.giaBan <= 0) {
+        alert(`Vui lòng nhập giá bán hợp lệ cho biến thể ${i + 1}`)
+        return
+      }
+      if (variant.soLuong < 0) {
+        alert(`Số lượng tồn kho không được âm cho biến thể ${i + 1}`)
+        return
+      }
+    }
+  }
+
+  // Prepare form data for submission
+  const formData = {
+    ...form.value,
+    trangThai: Number(form.value.trangThai), // Ensure status is a number
+  }
+
+  console.log('Saving product data:', formData)
+  emit('save', formData)
 }
 
 const close = () => {
