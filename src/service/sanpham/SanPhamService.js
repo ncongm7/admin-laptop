@@ -344,3 +344,145 @@ export const deleteHinhAnh = (id) => {
 export const deleteAllImagesByCtspId = (ctspId) => {
   return client.delete(`${IMAGE_ROUTE}/ctsp/${ctspId}`)
 }
+
+// ===== COMPREHENSIVE PRODUCT CREATION =====
+export const createProductWithVariantsAndSerials = async (productData, variantConfigs, previewVariants = []) => {
+  try {
+    // Step 1: Create product
+    const productResponse = await createSanPham(productData)
+    const product = productResponse.data
+    
+    if (!variantConfigs || variantConfigs.length === 0) {
+      return { product, variants: [], serials: [] }
+    }
+    
+    // Step 2: Create variants using the existing API
+    const variantPayload = {
+      idSanPham: product.id,
+      giaBan: variantConfigs[0].giaBan || 1000000, // Default price for creation
+      ghiChu: variantConfigs[0].ghiChu || '',
+      soLuongTon: 0, // Will be updated based on serials
+      soLuongTamGiu: variantConfigs[0].soLuongTamGiu || 0,
+      trangThai: variantConfigs[0].trangThai || 1,
+      selectedCpuIds: variantConfigs[0].selectedCpuIds || [],
+      selectedGpuIds: variantConfigs[0].selectedGpuIds || [],
+      selectedRamIds: variantConfigs[0].selectedRamIds || [],
+      selectedOCungIds: variantConfigs[0].selectedOCungIds || [],
+      selectedMauSacIds: variantConfigs[0].selectedMauSacIds || [],
+      selectedLoaiManHinhIds: variantConfigs[0].selectedLoaiManHinhIds || [],
+      selectedPinIds: variantConfigs[0].selectedPinIds || []
+    }
+    
+    const variantsResponse = await taoBienTheSanPham(variantPayload)
+    let variants = variantsResponse.data || []
+    
+    // Step 3: Update individual variant prices and properties based on preview data
+    if (previewVariants && previewVariants.length > 0) {
+      for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
+        const variant = variants[i]
+        const previewVariant = previewVariants[i]
+        
+        console.log(`Updating variant ${i}:`, {
+          variantId: variant.id,
+          previewPrice: previewVariant.giaBan,
+          previewSerials: previewVariant.serials?.length || 0
+        })
+        
+        // Always update price from preview (even if 0)
+        try {
+          const updatePayload = {
+            maCtsp: variant.maCtsp,
+            giaBan: previewVariant.giaBan || 0,
+            ghiChu: variant.ghiChu || '',
+            soLuongTon: 0, // Will be updated after serials
+            soLuongTamGiu: variant.soLuongTamGiu || 0,
+            trangThai: variant.trangThai,
+            idCpu: variant.idCpu,
+            idGpu: variant.idGpu,
+            idRam: variant.idRam,
+            idOCung: variant.idOCung,
+            idMauSac: variant.idMauSac,
+            idLoaiManHinh: variant.idLoaiManHinh,
+            idPin: variant.idPin
+          }
+          
+          console.log(`Updating variant ${variant.id} with payload:`, updatePayload)
+          const updatedVariant = await updateChiTietSanPham(variant.id, updatePayload)
+          variants[i] = updatedVariant.data
+          console.log(`Successfully updated variant ${variant.id}`)
+        } catch (updateError) {
+          console.error('Failed to update variant price:', variant.id, updateError)
+        }
+      }
+    }
+    
+    // Step 4: Create serials for each variant based on preview data
+    const allSerials = []
+    if (previewVariants && previewVariants.length > 0) {
+      for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
+        const variant = variants[i]
+        const previewVariant = previewVariants[i]
+        
+        if (previewVariant.serials && previewVariant.serials.length > 0) {
+          const serialRequests = previewVariant.serials.map(serial => ({
+            ctspId: variant.id,
+            serialNo: serial.soSerial || serial,
+            trangThai: serial.trangThai || 1
+          }))
+          
+          console.log(`Creating ${serialRequests.length} serials for variant ${variant.id}:`, serialRequests)
+          
+          try {
+            const serialsResponse = await createSerialsBatch(serialRequests)
+            const createdSerials = serialsResponse.data || []
+            allSerials.push(...createdSerials)
+            
+            console.log(`Successfully created ${createdSerials.length} serials for variant ${variant.id}`)
+            
+            // Update variant stock count
+            if (createdSerials.length > 0) {
+              const stockUpdatePayload = {
+                maCtsp: variant.maCtsp,
+                giaBan: variant.giaBan,
+                ghiChu: variant.ghiChu || '',
+                soLuongTon: createdSerials.length,
+                soLuongTamGiu: variant.soLuongTamGiu || 0,
+                trangThai: variant.trangThai,
+                idCpu: variant.idCpu,
+                idGpu: variant.idGpu,
+                idRam: variant.idRam,
+                idOCung: variant.idOCung,
+                idMauSac: variant.idMauSac,
+                idLoaiManHinh: variant.idLoaiManHinh,
+                idPin: variant.idPin
+              }
+              
+              console.log(`Updating stock for variant ${variant.id} to ${createdSerials.length}`)
+              
+              try {
+                const updatedVariant = await updateChiTietSanPham(variant.id, stockUpdatePayload)
+                variants[i] = updatedVariant.data
+                console.log(`Successfully updated stock for variant ${variant.id}`)
+              } catch (stockUpdateError) {
+                console.error('Failed to update variant stock:', variant.id, stockUpdateError)
+              }
+            }
+          } catch (serialError) {
+            console.error('Failed to create serials for variant:', variant.id, serialError)
+          }
+        } else {
+          console.log(`No serials to create for variant ${variant.id}`)
+        }
+      }
+    }
+    
+    return {
+      product,
+      variants,
+      serials: allSerials
+    }
+  } catch (error) {
+    console.error('Error in comprehensive product creation:', error)
+    throw error
+  }
+}

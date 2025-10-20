@@ -388,21 +388,16 @@
                           </div>
                         </div>
 
-                        <!-- Tạo biến thể button -->
+                        <!-- Auto preview info -->
                         <div class="d-flex justify-content-start mb-4">
-                          <button 
-                            type="button" 
-                            class="btn btn-success" 
-                            @click="generateVariantPreview" 
-                            :disabled="loading"
-                          >
-                            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                            <i v-else class="bi bi-grid-3x3-gap me-1"></i>
-                            {{ loading ? 'Đang tạo...' : 'Tạo biến thể' }}
-                          </button>
-                          <small v-if="calculateTotalCombinations > 0" class="text-muted ms-3 align-self-center">
-                            Tạo biến thể từ {{ calculateTotalCombinations }} tổ hợp đã chọn
-                          </small>
+                          <div class="alert alert-info d-flex align-items-center" v-if="calculateTotalCombinations > 0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span>Sẽ tạo {{ calculateTotalCombinations }} biến thể từ các thuộc tính đã chọn</span>
+                          </div>
+                          <div class="alert alert-secondary d-flex align-items-center" v-else>
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <span>Chọn các thuộc tính để xem trước biến thể sẽ được tạo</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -411,8 +406,8 @@
                     <div v-if="displayVariants.length > 0" class="created-variants">
                       <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center gap-2">
-                          <h6 class="mb-0">Biến thể đã tạo:</h6>
-                          <i class="bi bi-info-circle text-info" title="Danh sách biến thể"></i>
+                          <h6 class="mb-0">{{ displayVariants.some(v => v.id) ? 'Biến thể đã tạo:' : 'Xem trước biến thể:' }}</h6>
+                          <i class="bi bi-info-circle text-info" :title="displayVariants.some(v => v.id) ? 'Danh sách biến thể đã lưu' : 'Xem trước biến thể sẽ được tạo'"></i>
                         </div>
                       </div>
 
@@ -558,7 +553,7 @@
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
             <i v-else class="bi bi-check-lg me-1"></i>
-            Tạo mới
+            {{ isEditMode ? 'Cập nhật' : (form.variants && form.variants.length > 0 ? 'Tạo sản phẩm & biến thể' : 'Tạo sản phẩm') }}
           </button>
         </div>
       </div>
@@ -775,7 +770,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
-import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP } from '@/service/sanpham/SanPhamService'
+import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
 
 const productStore = useProductStore()
@@ -884,26 +879,26 @@ const calculateTotalCombinations = computed(() => {
 })
 
 const displayVariants = computed(() => {
-  // Only show actual created variants, no preview
+  // Show preview variants or actual created variants
   return form.value.variants || []
 })
 
-// Generate preview variants when selections change - DISABLED for manual variant creation
-// watch(
-//   () => [
-//     variantConfig.value.selectedCpuIds,
-//     variantConfig.value.selectedGpuIds,
-//     variantConfig.value.selectedRamIds,
-//     variantConfig.value.selectedOCungIds,
-//     variantConfig.value.selectedMauSacIds,
-//     variantConfig.value.selectedLoaiManHinhIds,
-//     variantConfig.value.selectedPinIds
-//     ],
-//     () => {
-//       generatePreviewVariants()
-//     },
-//     { deep: true }
-//   )
+// Generate preview variants when selections change - AUTO PREVIEW ENABLED
+watch(
+  () => [
+    variantConfig.value.selectedCpuIds,
+    variantConfig.value.selectedGpuIds,
+    variantConfig.value.selectedRamIds,
+    variantConfig.value.selectedOCungIds,
+    variantConfig.value.selectedMauSacIds,
+    variantConfig.value.selectedLoaiManHinhIds,
+    variantConfig.value.selectedPinIds
+    ],
+    () => {
+      generatePreviewVariants()
+    },
+    { deep: true }
+  )
 
 const generatePreviewVariants = () => {
   const config = variantConfig.value
@@ -920,7 +915,7 @@ const generatePreviewVariants = () => {
     config.selectedPinIds.length > 0
 
   if (!hasSelectedAttributes) {
-    previewVariants.value = []
+    form.value.variants = []
     return
   }
 
@@ -973,10 +968,10 @@ const generatePreviewVariants = () => {
     })
   })
 
-  previewVariants.value = combinations
+  form.value.variants = combinations
 }
 
-// Save product only function
+// Comprehensive save function - creates product, variants, and serials simultaneously
 const saveProduct = async () => {
   try {
     loading.value = true
@@ -1002,7 +997,7 @@ const saveProduct = async () => {
       }
     }
 
-    const payload = {
+    const productPayload = {
       tenSanPham: form.value.tenSanPham,
       maSanPham: form.value.maSanPham || '',
       moTaChiTiet: form.value.moTaChiTiet || '',
@@ -1013,18 +1008,91 @@ const saveProduct = async () => {
       giaCaoNhat: giaCaoNhat
     }
 
-    console.log('Creating product with payload:', payload)
+    console.log('Creating product with payload:', productPayload)
 
     if (isEditMode.value) {
       // Update existing product
-      const response = await updateSanPham(form.value.id, payload)
+      const response = await updateSanPham(form.value.id, productPayload)
       form.value.id = response.data.id
       alert('Cập nhật sản phẩm thành công!')
+      emit('save', form.value)
+      return
+    }
+
+    // For new products, check if we have variants to create
+    const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 && 
+      (variantConfig.value.selectedCpuIds.length > 0 ||
+       variantConfig.value.selectedGpuIds.length > 0 ||
+       variantConfig.value.selectedRamIds.length > 0 ||
+       variantConfig.value.selectedOCungIds.length > 0 ||
+       variantConfig.value.selectedMauSacIds.length > 0 ||
+       variantConfig.value.selectedLoaiManHinhIds.length > 0 ||
+       variantConfig.value.selectedPinIds.length > 0)
+
+    if (hasVariantsToCreate) {
+      // Calculate average price from variants or use default
+      const variantPrices = form.value.variants
+        .map(v => parseFloat(v.giaBan) || 0)
+        .filter(price => price > 0)
+      const defaultPrice = variantPrices.length > 0 ? variantPrices[0] : 1000000 // Use first variant price or default 1M VND
+
+      // Use comprehensive creation function
+      const variantConfigs = [{
+        giaBan: defaultPrice, // Use calculated price
+        ghiChu: '',
+        soLuongTon: 0,
+        soLuongTamGiu: 0,
+        trangThai: variantConfig.value.trangThai,
+        selectedCpuIds: variantConfig.value.selectedCpuIds,
+        selectedGpuIds: variantConfig.value.selectedGpuIds,
+        selectedRamIds: variantConfig.value.selectedRamIds,
+        selectedOCungIds: variantConfig.value.selectedOCungIds,
+        selectedMauSacIds: variantConfig.value.selectedMauSacIds,
+        selectedLoaiManHinhIds: variantConfig.value.selectedLoaiManHinhIds,
+        selectedPinIds: variantConfig.value.selectedPinIds,
+        serials: [] // Collect serials from variants
+      }]
+
+      // Collect all serials from variants
+      const allSerials = []
+      form.value.variants.forEach(variant => {
+        if (variant.serials && variant.serials.length > 0) {
+          allSerials.push(...variant.serials)
+        }
+      })
+      variantConfigs[0].serials = allSerials
+
+      console.log('Creating product with variants and serials:', variantConfigs)
+      console.log('Preview variants data:', form.value.variants)
+
+      const result = await createProductWithVariantsAndSerials(productPayload, variantConfigs, form.value.variants)
+      
+      // Update form with created data
+      form.value.id = result.product.id
+      
+      // Map created variants with attribute names for display
+      form.value.variants = result.variants.map(variant => ({
+        ...variant,
+        tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
+        tenGpu: variant.idGpu ? gpus.value.find(g => g.id === variant.idGpu)?.tenGpu : null,
+        tenRam: variant.idRam ? rams.value.find(r => r.id === variant.idRam)?.tenRam : null,
+        dungLuongOCung: variant.idOCung ? storages.value.find(s => s.id === variant.idOCung)?.dungLuong : null,
+        tenMauSac: variant.idMauSac ? colors.value.find(c => c.id === variant.idMauSac)?.tenMau : null,
+        kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
+        dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null,
+        serials: result.serials.filter(serial => serial.ctspId === variant.id).map(serial => ({
+          id: serial.id,
+          soSerial: serial.serialNo,
+          trangThai: serial.trangThai
+        }))
+      }))
+
+      alert(`Tạo thành công sản phẩm với ${result.variants.length} biến thể và ${result.serials.length} serial!`)
     } else {
-      // Create new product
-      const response = await createSanPham(payload)
+      // Create product only
+      const response = await createSanPham(productPayload)
       form.value.id = response.data.id
-      alert('Tạo sản phẩm thành công! Bây giờ bạn có thể tạo biến thể.')
+      alert('Tạo sản phẩm thành công!')
     }
 
     emit('save', form.value)
@@ -1037,87 +1105,7 @@ const saveProduct = async () => {
   }
 }
 
-// Generate variant preview (no API call, just display)
-const generateVariantPreview = () => {
-  console.log('generateVariantPreview function called')
-  
-  const config = variantConfig.value
-  console.log('variantConfig:', config)
-  
-  const hasSelectedAttributes = 
-    config.selectedCpuIds.length > 0 ||
-    config.selectedGpuIds.length > 0 ||
-    config.selectedRamIds.length > 0 ||
-    config.selectedOCungIds.length > 0 ||
-    config.selectedMauSacIds.length > 0 ||
-    config.selectedLoaiManHinhIds.length > 0 ||
-    config.selectedPinIds.length > 0
-
-  console.log('hasSelectedAttributes:', hasSelectedAttributes)
-
-  if (!hasSelectedAttributes) {
-    alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
-    return
-  }
-
-  // Generate all combinations for preview
-  const combinations = []
-  const selectedCpus = config.selectedCpuIds.length > 0 ? config.selectedCpuIds : [null]
-  const selectedGpus = config.selectedGpuIds.length > 0 ? config.selectedGpuIds : [null]
-  const selectedRams = config.selectedRamIds.length > 0 ? config.selectedRamIds : [null]
-  const selectedStorages = config.selectedOCungIds.length > 0 ? config.selectedOCungIds : [null]
-  const selectedColors = config.selectedMauSacIds.length > 0 ? config.selectedMauSacIds : [null]
-  const selectedDisplays = config.selectedLoaiManHinhIds.length > 0 ? config.selectedLoaiManHinhIds : [null]
-  const selectedBatteries = config.selectedPinIds.length > 0 ? config.selectedPinIds : [null]
-
-  selectedCpus.forEach(cpuId => {
-    selectedGpus.forEach(gpuId => {
-      selectedRams.forEach(ramId => {
-        selectedStorages.forEach(storageId => {
-          selectedColors.forEach(colorId => {
-            selectedDisplays.forEach(displayId => {
-              selectedBatteries.forEach(batteryId => {
-                const variant = {
-                  id: null, // Preview variant, no ID yet
-                  giaBan: 0,
-                  soLuongTon: 0,
-                  serials: [],
-                  anhDaiDien: null,
-                  // Attribute IDs
-                  idCpu: cpuId,
-                  idGpu: gpuId,
-                  idRam: ramId,
-                  idOCung: storageId,
-                  idMauSac: colorId,
-                  idLoaiManHinh: displayId,
-                  idPin: batteryId,
-                  // Attribute names for display
-                  tenCpu: cpuId ? cpus.value.find(c => c.id === cpuId)?.tenCpu : null,
-                  tenGpu: gpuId ? gpus.value.find(g => g.id === gpuId)?.tenGpu : null,
-                  tenRam: ramId ? rams.value.find(r => r.id === ramId)?.tenRam : null,
-                  dungLuongOCung: storageId ? storages.value.find(s => s.id === storageId)?.dungLuong : null,
-                  tenMauSac: colorId ? colors.value.find(c => c.id === colorId)?.tenMau : null,
-                  kichThuocManHinh: displayId ? displays.value.find(d => d.id === displayId)?.kichThuoc : null,
-                  dungLuongPin: batteryId ? batteries.value.find(b => b.id === batteryId)?.dungLuongPin : null
-                }
-                combinations.push(variant)
-              })
-            })
-          })
-        })
-      })
-    })
-  })
-
-  // Set variants to display (no API call)
-  form.value.variants = combinations
-  console.log('Generated variants:', combinations)
-  
-  // Update product price range
-  updateProductPriceRange()
-  
-  alert(`Đã tạo ${combinations.length} biến thể để xem trước!`)
-}
+// Note: generateVariantPreview function removed - now using automatic preview via watch
 
 // Generate variants function
 const generateVariants = async () => {
