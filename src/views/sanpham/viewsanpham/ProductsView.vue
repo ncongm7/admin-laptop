@@ -24,12 +24,20 @@
       />
 
 
-      <!-- Product Form Modal -->
+      <!-- Product Form Modal (for creating new products) -->
       <ProductFormModal
         v-if="showModal"
         :product="selectedProduct"
         @close="closeModal"
         @save="saveProduct"
+      />
+
+      <!-- Product Edit Modal (for editing existing products) -->
+      <ProductEditModal
+        v-if="showEditModal"
+        :product="selectedProduct"
+        @close="closeEditModal"
+        @save="saveEditedProduct"
       />
 
       <!-- Product Detail Modal -->
@@ -50,6 +58,7 @@ import { useProductStore } from '@/stores/productStore'
 import ProductFilter from '@/components/sanpham/quanlisanpham/ProductFilter.vue'
 import ProductList from '@/components/sanpham/quanlisanpham/ProductList.vue'
 import ProductFormModal from '@/components/sanpham/quanlisanpham/ProductFormModal.vue'
+import ProductEditModal from '@/components/sanpham/quanlisanpham/ProductEditModal.vue'
 import ProductDetailModal from '@/components/sanpham/quanlisanpham/ProductDetailModal.vue'
 import { useProductDetailStore } from '@/stores/productDetailStore'
 
@@ -66,6 +75,7 @@ const useProductDetailStore1 = useProductDetailStore()
 const loading = ref(true)
 const filterLoading = ref(false)
 const showModal = ref(false)
+const showEditModal = ref(false)
 const showDetailModal = ref(false)
 const selectedProduct = ref(null)
 const filteredData = ref([])
@@ -164,23 +174,12 @@ const filteredProducts = computed(() => {
 const editProduct = async (product) => {
   try {
     console.log('Edit button clicked! Product:', product)
-    console.log('Current showModal state:', showModal.value)
     
-    // Populate the edit form with product data
-    editForm.value = {
-      id: product.id,
-      tenSanPham: product.tenSanPham || '',
-      maSanPham: product.maSanPham || '',
-      moTaChiTiet: product.moTaChiTiet || '',
-      trangThai: product.trangThai || 1
-    }
-    
-    // Set the selected product and show modal immediately
+    // Set the selected product and show edit modal
     selectedProduct.value = { ...product }
-    showModal.value = true
+    showEditModal.value = true
     
-    console.log('Modal should be showing now. showModal:', showModal.value)
-    console.log('editForm:', editForm.value)
+    console.log('Edit modal should be showing now. showEditModal:', showEditModal.value)
     console.log('selectedProduct:', selectedProduct.value)
     
   } catch (error) {
@@ -213,7 +212,7 @@ const viewDetail = async (product) => {
 
 const editFromDetail = () => {
   showDetailModal.value = false
-  showModal.value = true
+  showEditModal.value = true
 }
 
 const confirmDelete = async (product) => {
@@ -292,6 +291,11 @@ const closeModal = () => {
   emit('close-create-modal')
 }
 
+const closeEditModal = () => {
+  showEditModal.value = false
+  selectedProduct.value = null
+}
+
 const handleSave = async () => {
   try {
     console.log('Saving form data:', editForm.value)
@@ -337,6 +341,61 @@ const handleSave = async () => {
 
 const closeDetailModal = () => {
   showDetailModal.value = false
+}
+
+const saveEditedProduct = async (productData) => {
+  try {
+    console.log('Saving edited product data:', productData)
+    
+    // Validate required fields
+    if (!productData.tenSanPham?.trim()) {
+      alert('Vui lòng nhập tên sản phẩm')
+      return
+    }
+
+    // Show confirmation dialog
+    const confirmMessage = `Bạn có chắc chắn muốn cập nhật sản phẩm "${productData.tenSanPham}"?`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    loading.value = true
+
+    // Prepare data for API - ensure field names match backend expectations
+    const updateData = {
+      tenSanPham: productData.tenSanPham.trim(),
+      maSanPham: productData.maSanPham || '',
+      trangThai: productData.trangThai !== undefined ? productData.trangThai : 1,
+      // Add moTa field if needed based on backend schema
+      moTa: productData.moTa || productData.moTaChiTiet || ''
+    }
+
+    console.log('Calling editProduct with ID:', productData.id, 'Update data:', updateData)
+    const result = await productStore.editProduct(productData.id, updateData)
+    console.log('Edit result:', result)
+    
+    // Show success message
+    alert('Cập nhật sản phẩm thành công!')
+    
+    // Refresh the product list
+    await fetchData()
+    closeEditModal()
+  } catch (error) {
+    console.error('Error saving edited product:', error)
+    
+    // Show more detailed error message
+    let errorMessage = 'Lỗi khi cập nhật sản phẩm'
+    if (error.response?.data?.message) {
+      errorMessage += `: ${error.response.data.message}`
+    } else if (error.message) {
+      errorMessage += `: ${error.message}`
+    }
+    
+    alert(errorMessage)
+  } finally {
+    loading.value = false
+  }
 }
 
 const applyFilter = (newFilters) => {
