@@ -348,42 +348,105 @@ export const useProductStore = defineStore('products', () => {
   // Alias for editProduct to match ProductsView usage
   const updateProduct = editProduct
 
-  // Xóa sản phẩm
+  // Xóa sản phẩm (với cascade delete cho variants)
   const removeProduct = async (id) => {
     loading.value = true
     error.value = null
     try {
-      await deleteSanPham(id)
+      console.log('ProductStore: Deleting product with ID:', id)
+      
+      // First, get all variants for this product
+      const productVariants = variants.value.filter(variant => 
+        variant.idSanPham === id || variant.sanPhamId === id
+      )
+      
+      console.log(`ProductStore: Found ${productVariants.length} variants to delete first`)
+      
+      // Delete all variants first (cascade delete)
+      if (productVariants.length > 0) {
+        console.log('ProductStore: Deleting variants first...')
+        const deleteVariantPromises = productVariants.map(variant => 
+          deleteCTSP(variant.id).catch(err => {
+            console.warn(`Failed to delete variant ${variant.id}:`, err)
+            // Continue even if some variants fail to delete
+            return null
+          })
+        )
+        
+        await Promise.allSettled(deleteVariantPromises)
+        console.log('ProductStore: Variants deletion completed')
+        
+        // Update local variants state
+        variants.value = variants.value.filter(variant => 
+          variant.idSanPham !== id && variant.sanPhamId !== id
+        )
+      }
+      
+      // Now delete the main product
+      console.log('ProductStore: Deleting main product...')
+      const response = await deleteSanPham(id)
+      console.log('ProductStore: Delete response:', response)
+      
+      // Remove from local state
       products.value = products.value.filter((p) => p.id !== id)
+      console.log('ProductStore: Product removed from local state')
+      
+      return response
     } catch (err) {
       error.value = err.message || 'Không thể xóa sản phẩm'
-      console.error('Error deleting product:', err)
-      throw err
+      console.error('ProductStore: Error deleting product:', err)
+      console.error('ProductStore: Full error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        code: err.code
+      })
+      
+      // Provide more specific error messages
+      if (err.response?.status === 404) {
+        throw new Error('Sản phẩm không tồn tại hoặc đã được xóa')
+      } else if (err.response?.status === 400) {
+        const errorMsg = err.response?.data?.message || 'Dữ liệu không hợp lệ'
+        throw new Error(`Không thể xóa sản phẩm: ${errorMsg}`)
+      } else if (err.response?.status === 500) {
+        const serverError = err.response?.data?.message || err.response?.data?.error || 'Lỗi server không xác định'
+        console.error('Server error details:', err.response?.data)
+        
+        // Check for foreign key constraint errors
+        if (serverError.includes('REFERENCE constraint') || serverError.includes('FK_')) {
+          throw new Error('Không thể xóa sản phẩm này vì vẫn còn dữ liệu liên quan (biến thể, đơn hàng, v.v.). Vui lòng xóa các dữ liệu liên quan trước.')
+        }
+        
+        throw new Error(`Lỗi server: ${serverError}`)
+      } else if (err.code === 'NETWORK_ERROR') {
+        throw new Error('Lỗi kết nối mạng - Kiểm tra kết nối internet hoặc server')
+      }
+      
+      // Default error with more details
+      const errorMsg = err.response?.data?.message || err.message || 'Lỗi không xác định'
+      throw new Error(`Không thể xóa sản phẩm: ${errorMsg}`)
     } finally {
       loading.value = false
     }
   }
 
-  // Xóa nhiều sản phẩm
+  // Xóa nhiều sản phẩm (với cascade delete)
   const bulkRemoveProducts = async (ids) => {
     loading.value = true
     error.value = null
     try {
-      // Try bulk delete first, fallback to individual deletes if not supported
-      try {
-        await bulkDeleteSanPham(ids)
-      } catch (bulkError) {
-        // If bulk delete fails, delete individually
-        console.warn('Bulk delete not supported, falling back to individual deletes')
-        const deletePromises = ids.map(id => deleteSanPham(id))
-        await Promise.all(deletePromises)
+      console.log('ProductStore: Bulk deleting products with IDs:', ids)
+      
+      // Delete each product individually with cascade delete
+      for (const id of ids) {
+        await removeProduct(id)
       }
       
-      // Remove deleted products from local state
-      products.value = products.value.filter((p) => !ids.includes(p.id))
+      console.log('ProductStore: Bulk delete completed successfully')
     } catch (err) {
       error.value = err.message || 'Không thể xóa sản phẩm'
-      console.error('Error bulk deleting products:', err)
+      console.error('ProductStore: Error bulk deleting products:', err)
       throw err
     } finally {
       loading.value = false

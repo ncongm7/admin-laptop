@@ -216,19 +216,60 @@ const editFromDetail = () => {
 }
 
 const confirmDelete = async (product) => {
+  if (!product || !product.id) {
+    alert('Không thể xóa sản phẩm: Thông tin sản phẩm không hợp lệ')
+    return
+  }
+
   const confirmMessage = `Bạn có chắc chắn muốn xóa sản phẩm "${product.tenSanPham}"?\n\nHành động này không thể hoàn tác!`
   
   if (confirm(confirmMessage)) {
     try {
       loading.value = true
+      console.log('Deleting product with ID:', product.id)
+      
       await productStore.removeProduct(product.id)
+      
+      console.log('Product deleted successfully')
       alert('Xóa sản phẩm thành công!')
       
       // Refresh the product list
       await fetchData()
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert(`Lỗi khi xóa sản phẩm: ${error.message}`)
+      console.error('Full error object:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      })
+      
+      // Show more detailed error message
+      let errorMessage = 'Lỗi khi xóa sản phẩm'
+      
+      if (error.message) {
+        errorMessage = error.message
+        // Show user-friendly message for constraint errors
+        if (errorMessage.includes('REFERENCE constraint') || errorMessage.includes('FK_')) {
+          errorMessage = 'Sản phẩm có dữ liệu liên quan (biến thể). Hệ thống đang tự động xóa các dữ liệu liên quan trước...'
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = `Lỗi server: ${error.response.data.message}`
+      } else if (error.response?.data?.error) {
+        errorMessage = `Lỗi server: ${error.response.data.error}`
+      } else if (error.response?.status) {
+        errorMessage = `Lỗi HTTP ${error.response.status}: ${error.response.statusText || 'Không xác định'}`
+      }
+      
+      alert(errorMessage)
+      
+      // Log additional debugging info
+      if (error.response?.status === 500) {
+        console.error('Server 500 error - possible causes:')
+        console.error('1. Product has related data (variants, orders, etc.)')
+        console.error('2. Database constraint violation')
+        console.error('3. Server internal error')
+        console.error('4. Backend API endpoint issue')
+      }
     } finally {
       loading.value = false
     }
@@ -414,28 +455,56 @@ const resetFilter = () => {
   isFilterApplied.value = false // Mark that filter has been reset
 }
 
-const handleSelectionChange = (selectedIds) => {
-  selectedProductIds.value = selectedIds
+const handleBulkDelete = async (selectedIds) => {
+  if (!selectedIds || selectedIds.length === 0) {
+    alert('Vui lòng chọn ít nhất một sản phẩm để xóa')
+    return
+  }
+
+  const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedIds.length} sản phẩm đã chọn?\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    try {
+      loading.value = true
+      console.log('Bulk deleting products with IDs:', selectedIds)
+      
+      await productStore.bulkRemoveProducts(selectedIds)
+      
+      console.log('Products deleted successfully')
+      alert(`Xóa ${selectedIds.length} sản phẩm thành công!`)
+      
+      // Refresh the product list
+      await fetchData()
+    } catch (error) {
+      console.error('Error bulk deleting products:', error)
+      console.error('Full error object:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      })
+      
+      // Show more detailed error message
+      let errorMessage = 'Lỗi khi xóa sản phẩm'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.response?.data?.message) {
+        errorMessage = `Lỗi server: ${error.response.data.message}`
+      } else if (error.response?.data?.error) {
+        errorMessage = `Lỗi server: ${error.response.data.error}`
+      } else if (error.response?.status) {
+        errorMessage = `Lỗi HTTP ${error.response.status}: ${error.response.statusText || 'Không xác định'}`
+      }
+      
+      alert(errorMessage)
+    } finally {
+      loading.value = false
+    }
+  }
 }
 
-const handleBulkDelete = async (productIds) => {
-  try {
-    loading.value = true
-    
-    // Use the bulk delete method from store
-    await productStore.bulkRemoveProducts(productIds)
-    
-    alert(`Đã xóa thành công ${productIds.length} sản phẩm!`)
-    
-    // Clear selection and refresh data
-    selectedProductIds.value = []
-    await fetchData()
-  } catch (error) {
-    console.error('Error bulk deleting products:', error)
-    alert(`Lỗi khi xóa sản phẩm: ${error.message}`)
-  } finally {
-    loading.value = false
-  }
+const handleSelectionChange = (selectedIds) => {
+  selectedProductIds.value = selectedIds
 }
 
 onMounted(() => {

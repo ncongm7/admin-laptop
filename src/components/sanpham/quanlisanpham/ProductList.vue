@@ -310,9 +310,8 @@ const handleEdit = (product) => {
 }
 
 const handleDelete = (product) => {
-  if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${product.tenSanPham}"?\n\nHành động này không thể hoàn tác!`)) {
-    emit('delete', product)
-  }
+  // Just emit the delete event, let parent handle confirmation
+  emit('delete', product)
 }
 
 const handleBulkDelete = () => {

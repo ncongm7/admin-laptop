@@ -24,6 +24,7 @@ export const updateTrangThai = (id, payload) => {
 }
 
 export const deleteSanPham = (id) => {
+  console.log('SanPhamService: Deleting product with ID:', id)
   return client.delete(`${BASE_ROUTE}/${id}`)
 }
 

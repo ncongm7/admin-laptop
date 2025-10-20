@@ -134,14 +134,6 @@
                   </div>
                 </div>
 
-                <!-- Combined Add Product & Create Variants Button after Images -->
-                <div class="d-flex justify-content-end mb-4">
-                  <button type="button" class="btn btn-success" @click="saveAndCreateVariants" :disabled="loading">
-                    <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                    <i v-else class="bi bi-plus-circle"></i> 
-                    {{ loading ? 'Đang xử lý...' : (isEditMode ? 'Cập nhật & Tạo biến thể' : 'Thêm sản phẩm & Tạo biến thể') }}
-                  </button>
-                </div>
 
                 <!-- Variants Section with Specifications Merged -->
                 <div class="card mb-4">
@@ -172,15 +164,6 @@
                     <!-- Variant creation form -->
                     <div v-else class="variant-creation-section">
                       <h6 class="variant-subtitle mb-3">Tạo biến thể tự động</h6>
-                      <div class="alert alert-info mb-4">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Hướng dẫn:</strong> Chọn nhiều giá trị cho mỗi thuộc tính (giữ Ctrl + click). 
-                        Hệ thống sẽ tự động tạo tất cả tổ hợp có thể từ các lựa chọn của bạn.
-                        <br>
-                        <small class="text-muted">
-                          Ví dụ: 2 màu × 2 RAM = 4 biến thể
-                        </small>
-                      </div>
 
                       <div class="variant-selectors">
                         <!-- First row: Color, CPU, RAM, GPU -->
@@ -394,48 +377,32 @@
                           </div>
                         </div>
 
-                        <!-- Pricing and Configuration -->
+                        <!-- Configuration -->
                         <div class="row g-3 mb-4">
-                          <div class="col-md-6">
-                            <label class="form-label">Giá bán mặc định <span class="text-danger">*</span></label>
-                            <input
-                              type="number"
-                              class="form-control"
-                              v-model.number="variantConfig.giaBan"
-                              placeholder="0"
-                              min="0"
-                              required
-                            />
-                            <small class="text-muted">Giá này sẽ áp dụng cho tất cả biến thể được tạo</small>
-                          </div>
                           <div class="col-md-6">
                             <label class="form-label">Trạng thái</label>
                             <select class="form-select" v-model="variantConfig.trangThai">
                               <option value="1">Hoạt động</option>
                               <option value="0">Ẩn</option>
                             </select>
-                            <small class="text-muted">Số lượng tồn sẽ được quản lý qua Serial Numbers</small>
                           </div>
                         </div>
 
-                        <!-- Preview info only -->
-                        <div class="variant-actions d-flex align-items-center justify-content-between mb-4">
-                          <div class="variant-count-info">
-                            <div class="variant-count-badge">
-                              <i class="bi bi-grid-3x3-gap me-1"></i>
-                              <strong>{{ calculateTotalCombinations }}</strong> biến thể
-                            </div>
-                            <small class="text-muted">
-                              {{ previewVariants.length > 0 ? 'đang xem trước - sẽ được tạo khi lưu sản phẩm' : 
-                                  form.variants.length > 0 ? 'đã tạo - có thể quản lý Serial Numbers' : 
-                                  'sẽ được tạo từ các thuộc tính đã chọn' }}
-                            </small>
-                          </div>
-                          <div v-if="form.variants.length > 0" class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-success btn-sm" @click="close">
-                              <i class="bi bi-check"></i> Hoàn thành
-                            </button>
-                          </div>
+                        <!-- Tạo biến thể button -->
+                        <div class="d-flex justify-content-start mb-4">
+                          <button 
+                            type="button" 
+                            class="btn btn-success" 
+                            @click="generateVariantPreview" 
+                            :disabled="loading"
+                          >
+                            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+                            <i v-else class="bi bi-grid-3x3-gap me-1"></i>
+                            {{ loading ? 'Đang tạo...' : 'Tạo biến thể' }}
+                          </button>
+                          <small v-if="calculateTotalCombinations > 0" class="text-muted ms-3 align-self-center">
+                            Tạo biến thể từ {{ calculateTotalCombinations }} tổ hợp đã chọn
+                          </small>
                         </div>
                       </div>
                     </div>
@@ -443,31 +410,27 @@
                     <!-- Display preview or created variants -->
                     <div v-if="displayVariants.length > 0" class="created-variants">
                       <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h6 class="mb-0">{{ form.variants.length > 0 ? 'Biến thể đã tạo:' : 'Xem trước biến thể:' }}</h6>
-                        <div v-if="form.variants.length > 0" class="alert alert-success mt-2 mb-0">
-                          <i class="bi bi-check-circle me-2"></i>
-                          <strong>Bước tiếp theo:</strong> Click vào nút <strong>"Quản lý Serial"</strong> ở cột "Thao tác" để thêm serial numbers cho từng biến thể.
+                        <div class="d-flex align-items-center gap-2">
+                          <h6 class="mb-0">Biến thể đã tạo:</h6>
+                          <i class="bi bi-info-circle text-info" title="Danh sách biến thể"></i>
                         </div>
-                        <small v-else class="text-muted">
-                          Bấm "Thêm sản phẩm & Tạo biến thể" để lưu vào cơ sở dữ liệu
-                        </small>
                       </div>
 
                       <div class="variants-table-container">
-                        <table class="table variants-table">
-                          <thead>
+                        <table class="table table-bordered variants-table">
+                          <thead class="table-light">
                             <tr>
-                              <th style="width: 50px">STT</th>
-                              <th style="width: 200px">Cấu hình</th>
-                              <th style="width: 120px">Ảnh biến thể</th>
-                              <th style="width: 150px">Giá bán</th>
-                              <th style="width: 120px">Tồn kho</th>
-                              <th style="width: 100px">Thao tác</th>
+                              <th style="width: 60px" class="text-center">STT</th>
+                              <th style="width: 250px">Cấu hình</th>
+                              <th style="width: 120px" class="text-center">Ảnh biến thể</th>
+                              <th style="width: 150px" class="text-center">Giá bán</th>
+                              <th style="width: 120px" class="text-center">Tồn kho</th>
+                              <th style="width: 100px" class="text-center">Thao tác</th>
                             </tr>
                           </thead>
                           <tbody>
                             <tr v-for="(variant, index) in displayVariants" :key="index">
-                              <td>{{ index + 1 }}</td>
+                              <td class="text-center align-middle">{{ index + 1 }}</td>
                               <td>
                                 <div class="variant-config-vertical">
                                   <div class="spec-item" v-if="variant.tenMauSac">
@@ -500,7 +463,7 @@
                                   </div>
                                 </div>
                               </td>
-                              <td>
+                              <td class="text-center align-middle">
                                 <div class="variant-image-cell">
                                   <div
                                     class="variant-image-upload"
@@ -531,46 +494,42 @@
                                   </div>
                                 </div>
                               </td>
-                              <td>
+                              <td class="text-center align-middle">
                                 <input
-                                  type="text"
-                                  class="form-control form-control-sm"
+                                  type="number"
+                                  class="form-control form-control-sm text-center"
                                   v-model="variant.giaBan"
-                                  placeholder="0 đ"
+                                  placeholder="0"
+                                  @blur="updateVariantPrice(index, variant.giaBan)"
+                                  min="0"
                                 />
-                                <!-- <small class="text-muted d-block mt-1">0 cô sản</small> -->
                               </td>
-                              <td>
-                                <div class="stock-info">
+                              <td class="text-center align-middle">
+                                <div class="stock-info text-center">
                                   <span class="stock-number">{{ variant.soLuongTon || 0 }}</span>
                                   <small class="text-muted d-block">
                                     từ {{ (variant.serials || []).length }} serial
                                   </small>
                                 </div>
                               </td>
-                              <td>
-                                <div class="action-buttons">
+                              <td class="text-center align-middle">
+                                <div class="action-buttons d-flex justify-content-center gap-2">
                                   <button
                                     type="button"
                                     class="btn btn-sm btn-outline-secondary"
                                     @click="openSerialModal(index)"
-                                    title="Quản lý Serial"
+                                    title="Quản lý serial"
                                   >
                                     <i class="bi bi-list-ul"></i>
                                   </button>
                                   <button
-                                    v-if="variant.id"
                                     type="button"
                                     class="btn btn-sm btn-outline-danger"
-                                    @click="removeVariant(index)"
-                                    title="Xóa"
+                                    @click="removeVariantFromPreview(index)"
+                                    title="Xóa biến thể"
                                   >
                                     <i class="bi bi-trash"></i>
                                   </button>
-                                  <span v-if="!variant.id" class="badge bg-light text-dark">Preview</span>
-                                  <span v-else-if="variant.id && (!variant.serials || variant.serials.length === 0)" class="badge bg-warning text-dark">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>Chưa có Serial
-                                  </span>
                                 </div>
                               </td>
                             </tr>
@@ -586,11 +545,20 @@
           </form>
         </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="close" :disabled="loading">Hủy bỏ</button>
-          <button type="button" class="btn btn-primary" @click="goBackToProductList" :disabled="loading">
-            <i class="bi bi-arrow-left"></i> 
-            Quay lại Quản lý sản phẩm
+        <div class="modal-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="close" :disabled="loading">
+            <i class="bi bi-x-lg me-1"></i>
+            Hủy bỏ
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            @click="saveProduct" 
+            :disabled="loading"
+          >
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+            <i v-else class="bi bi-check-lg me-1"></i>
+            Tạo mới
           </button>
         </div>
       </div>
@@ -606,7 +574,7 @@
               <div class="serial-modal-header">
                 <h5 class="serial-modal-title">
                   Quản lý Serial Numbers
-                  <span v-if="!currentVariant?.id" class="badge bg-warning ms-2">Preview</span>
+                  
                 </h5>
                 <button type="button" class="btn-close" @click="closeSerialModal"></button>
               </div>
@@ -641,15 +609,21 @@
                     <input
                       type="text"
                       class="form-control"
+                      :class="{ 'is-invalid': serialValidationError, 'is-valid': serialValidationSuccess }"
                       v-model="serialInput"
-                      placeholder="Nhập serial (VD: 123456, 789012)"
+                      @input="validateSerialInput"
+                      placeholder="Nhập serial (VD: ABC1234, 9B2KX13)"
+                      maxlength="50"
                     />
                     <button type="button" class="btn btn-success" @click="addSerialNumbers">
                       <i class="bi bi-plus-lg"></i> Thêm
                     </button>
                   </div>
+                  <div v-if="serialValidationError" class="text-warning small mt-1">
+                    <i class="bi bi-exclamation-triangle"></i> {{ serialValidationError }}
+                  </div>
                   <small class="text-muted"
-                    >Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;)</small
+                    >Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;). Mỗi serial phải có đúng 7 ký tự gồm cả chữ và số.</small
                   >
                 </div>
 
@@ -702,28 +676,56 @@
                       <thead>
                         <tr>
                           <th style="width: 15%">STT</th>
-                          <th style="width: 50%">Serial Number</th>
+                          <th style="width: 40%">Serial Number</th>
                           <th style="width: 20%">Trạng thái</th>
-                          <th style="width: 15%">Xóa</th>
+                          <th style="width: 25%">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-for="(serial, idx) in currentVariant.serials" :key="idx">
                           <td>{{ idx + 1 }}</td>
-                          <td class="fw-medium">{{ serial.number }}</td>
-                          <td>
-                            <span class="badge bg-secondary">{{
-                              serial.status || 'Chưa bán'
-                            }}</span>
+                          <td class="fw-medium">
+                            {{ serial.soSerial }}
+                            <i 
+                              v-if="!serial.id" 
+                              class="bi bi-circle-fill text-warning ms-1" 
+                              title="Chưa lưu vào database"
+                              style="font-size: 6px;"
+                            ></i>
+                            <i 
+                              v-else 
+                              class="bi bi-check-circle-fill text-success ms-1" 
+                              title="Đã lưu vào database"
+                              style="font-size: 10px;"
+                            ></i>
                           </td>
                           <td>
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-outline-danger"
-                              @click="removeVariantSerial(idx)"
+                            <span 
+                              class="badge" 
+                              :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'"
                             >
-                              <i class="bi bi-trash"></i>
-                            </button>
+                              {{ serial.trangThai === 1 ? 'Có sẵn' : 'Ẩn' }}
+                            </span>
+                          </td>
+                          <td>
+                            <div class="d-flex gap-1">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                @click="toggleSerialStatus(idx)"
+                                :title="serial.trangThai === 1 ? 'Chuyển sang Ẩn' : 'Chuyển sang Có sẵn'"
+                              >
+                                <i class="bi bi-pencil"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                @click="removeSerial(idx)"
+                                title="Xóa serial"
+                              >
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -736,12 +738,30 @@
                 </div>
               </div>
               <div class="serial-modal-footer">
-                <button type="button" class="btn btn-secondary" @click="closeSerialModal">
-                  <i class="bi bi-x-lg"></i> Hủy
-                </button>
-                <button type="button" class="btn btn-success" @click="saveSerials">
-                  <i class="bi bi-check-lg"></i> Lưu
-                </button>
+                <div class="d-flex align-items-center me-auto" v-if="currentVariant?.serials?.length > 0">
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Tổng: {{ currentVariant.serials.length }} serial
+                    <span v-if="getUnsavedSerialsCount() > 0" class="text-warning ms-2">
+                      ({{ getUnsavedSerialsCount() }} chưa lưu)
+                    </span>
+                  </small>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-secondary" @click="closeSerialModal">
+                    <i class="bi bi-x-lg"></i> Hủy
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-success" 
+                    @click="saveSerials"
+                    :disabled="loading"
+                  >
+                    <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="bi bi-check-lg"></i> 
+                    {{ loading ? 'Lưu...' : 'Lưu' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -752,10 +772,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
-import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
+import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
 
 const productStore = useProductStore()
@@ -822,13 +842,14 @@ const variantConfig = ref({
   selectedMauSacIds: [],
   selectedLoaiManHinhIds: [],
   selectedPinIds: [],
-  giaBan: 0,
   trangThai: 1
 })
 
 const showSerialModal = ref(false)
 const currentVariantIndex = ref(-1)
 const serialInput = ref('')
+const serialValidationError = ref('')
+const serialValidationSuccess = ref('')
 
 const currentVariant = computed(() => {
   if (currentVariantIndex.value >= 0 && displayVariants.value[currentVariantIndex.value]) {
@@ -863,35 +884,31 @@ const calculateTotalCombinations = computed(() => {
 })
 
 const displayVariants = computed(() => {
-  return form.value.variants.length > 0 ? form.value.variants : previewVariants.value
+  // Only show actual created variants, no preview
+  return form.value.variants || []
 })
 
-// Generate preview variants when selections or price change
-watch(
-  () => [
-    variantConfig.value.selectedCpuIds,
-    variantConfig.value.selectedGpuIds,
-    variantConfig.value.selectedRamIds,
-    variantConfig.value.selectedOCungIds,
-    variantConfig.value.selectedMauSacIds,
-    variantConfig.value.selectedLoaiManHinhIds,
-    variantConfig.value.selectedPinIds,
-    variantConfig.value.giaBan
-    ],
-    () => {
-      generatePreviewVariants()
-    },
-    { deep: true }
-  )
+// Generate preview variants when selections change - DISABLED for manual variant creation
+// watch(
+//   () => [
+//     variantConfig.value.selectedCpuIds,
+//     variantConfig.value.selectedGpuIds,
+//     variantConfig.value.selectedRamIds,
+//     variantConfig.value.selectedOCungIds,
+//     variantConfig.value.selectedMauSacIds,
+//     variantConfig.value.selectedLoaiManHinhIds,
+//     variantConfig.value.selectedPinIds
+//     ],
+//     () => {
+//       generatePreviewVariants()
+//     },
+//     { deep: true }
+//   )
 
 const generatePreviewVariants = () => {
   const config = variantConfig.value
   
-  // Only generate preview if we have price and at least one selection
-  if (config.giaBan <= 0) {
-    previewVariants.value = []
-    return
-  }
+  // Generate preview if we have at least one selection (no price requirement)
   
   const hasSelectedAttributes = 
     config.selectedCpuIds.length > 0 ||
@@ -926,7 +943,7 @@ const generatePreviewVariants = () => {
               selectedBatteries.forEach(batteryId => {
                 const variant = {
                   id: null, // Preview variant, no ID
-                  giaBan: config.giaBan,
+                  giaBan: 0, // Price will be set individually for each variant
                   soLuongTon: 0,
                   serials: [],
                   anhDaiDien: null,
@@ -959,7 +976,245 @@ const generatePreviewVariants = () => {
   previewVariants.value = combinations
 }
 
-// Combined save product and create variants function
+// Save product only function
+const saveProduct = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    if (!form.value.tenSanPham.trim()) {
+      alert('Vui lòng nhập tên sản phẩm')
+      return
+    }
+
+    // Calculate price range from variants
+    let giaThapNhat = 0
+    let giaCaoNhat = 0
+    
+    if (form.value.variants && form.value.variants.length > 0) {
+      const variantPrices = form.value.variants
+        .map(v => parseFloat(v.giaBan) || 0)
+        .filter(price => price > 0)
+      
+      if (variantPrices.length > 0) {
+        giaThapNhat = Math.min(...variantPrices)
+        giaCaoNhat = Math.max(...variantPrices)
+      }
+    }
+
+    const payload = {
+      tenSanPham: form.value.tenSanPham,
+      maSanPham: form.value.maSanPham || '',
+      moTaChiTiet: form.value.moTaChiTiet || '',
+      trangThai: parseInt(form.value.trangThai) || 1,
+      anhDaiDien: form.value.anhDaiDien || null,
+      images: form.value.images || [],
+      giaThapNhat: giaThapNhat,
+      giaCaoNhat: giaCaoNhat
+    }
+
+    console.log('Creating product with payload:', payload)
+
+    if (isEditMode.value) {
+      // Update existing product
+      const response = await updateSanPham(form.value.id, payload)
+      form.value.id = response.data.id
+      alert('Cập nhật sản phẩm thành công!')
+    } else {
+      // Create new product
+      const response = await createSanPham(payload)
+      form.value.id = response.data.id
+      alert('Tạo sản phẩm thành công! Bây giờ bạn có thể tạo biến thể.')
+    }
+
+    emit('save', form.value)
+  } catch (err) {
+    console.error('Error saving product:', err)
+    error.value = err.response?.data?.message || err.message || 'Lỗi khi lưu sản phẩm'
+    alert('Lỗi: ' + error.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Generate variant preview (no API call, just display)
+const generateVariantPreview = () => {
+  console.log('generateVariantPreview function called')
+  
+  const config = variantConfig.value
+  console.log('variantConfig:', config)
+  
+  const hasSelectedAttributes = 
+    config.selectedCpuIds.length > 0 ||
+    config.selectedGpuIds.length > 0 ||
+    config.selectedRamIds.length > 0 ||
+    config.selectedOCungIds.length > 0 ||
+    config.selectedMauSacIds.length > 0 ||
+    config.selectedLoaiManHinhIds.length > 0 ||
+    config.selectedPinIds.length > 0
+
+  console.log('hasSelectedAttributes:', hasSelectedAttributes)
+
+  if (!hasSelectedAttributes) {
+    alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
+    return
+  }
+
+  // Generate all combinations for preview
+  const combinations = []
+  const selectedCpus = config.selectedCpuIds.length > 0 ? config.selectedCpuIds : [null]
+  const selectedGpus = config.selectedGpuIds.length > 0 ? config.selectedGpuIds : [null]
+  const selectedRams = config.selectedRamIds.length > 0 ? config.selectedRamIds : [null]
+  const selectedStorages = config.selectedOCungIds.length > 0 ? config.selectedOCungIds : [null]
+  const selectedColors = config.selectedMauSacIds.length > 0 ? config.selectedMauSacIds : [null]
+  const selectedDisplays = config.selectedLoaiManHinhIds.length > 0 ? config.selectedLoaiManHinhIds : [null]
+  const selectedBatteries = config.selectedPinIds.length > 0 ? config.selectedPinIds : [null]
+
+  selectedCpus.forEach(cpuId => {
+    selectedGpus.forEach(gpuId => {
+      selectedRams.forEach(ramId => {
+        selectedStorages.forEach(storageId => {
+          selectedColors.forEach(colorId => {
+            selectedDisplays.forEach(displayId => {
+              selectedBatteries.forEach(batteryId => {
+                const variant = {
+                  id: null, // Preview variant, no ID yet
+                  giaBan: 0,
+                  soLuongTon: 0,
+                  serials: [],
+                  anhDaiDien: null,
+                  // Attribute IDs
+                  idCpu: cpuId,
+                  idGpu: gpuId,
+                  idRam: ramId,
+                  idOCung: storageId,
+                  idMauSac: colorId,
+                  idLoaiManHinh: displayId,
+                  idPin: batteryId,
+                  // Attribute names for display
+                  tenCpu: cpuId ? cpus.value.find(c => c.id === cpuId)?.tenCpu : null,
+                  tenGpu: gpuId ? gpus.value.find(g => g.id === gpuId)?.tenGpu : null,
+                  tenRam: ramId ? rams.value.find(r => r.id === ramId)?.tenRam : null,
+                  dungLuongOCung: storageId ? storages.value.find(s => s.id === storageId)?.dungLuong : null,
+                  tenMauSac: colorId ? colors.value.find(c => c.id === colorId)?.tenMau : null,
+                  kichThuocManHinh: displayId ? displays.value.find(d => d.id === displayId)?.kichThuoc : null,
+                  dungLuongPin: batteryId ? batteries.value.find(b => b.id === batteryId)?.dungLuongPin : null
+                }
+                combinations.push(variant)
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+
+  // Set variants to display (no API call)
+  form.value.variants = combinations
+  console.log('Generated variants:', combinations)
+  
+  // Update product price range
+  updateProductPriceRange()
+  
+  alert(`Đã tạo ${combinations.length} biến thể để xem trước!`)
+}
+
+// Generate variants function
+const generateVariants = async () => {
+  console.log('generateVariants function called')
+  console.log('form.value.id:', form.value.id)
+  
+  if (!form.value.id) {
+    alert('Vui lòng lưu sản phẩm trước khi tạo biến thể')
+    return
+  }
+
+  const config = variantConfig.value
+  console.log('variantConfig:', config)
+  
+  const hasSelectedAttributes = 
+    config.selectedCpuIds.length > 0 ||
+    config.selectedGpuIds.length > 0 ||
+    config.selectedRamIds.length > 0 ||
+    config.selectedOCungIds.length > 0 ||
+    config.selectedMauSacIds.length > 0 ||
+    config.selectedLoaiManHinhIds.length > 0 ||
+    config.selectedPinIds.length > 0
+
+  console.log('hasSelectedAttributes:', hasSelectedAttributes)
+
+  if (!hasSelectedAttributes) {
+    alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
+    return
+  }
+
+  try {
+    loading.value = true
+    error.value = null
+
+    const variantPayload = {
+      idSanPham: form.value.id,
+      ghiChu: '',
+      soLuongTon: 0,
+      soLuongTamGiu: 0,
+      trangThai: config.trangThai,
+      selectedCpuIds: config.selectedCpuIds,
+      selectedGpuIds: config.selectedGpuIds,
+      selectedRamIds: config.selectedRamIds,
+      selectedOCungIds: config.selectedOCungIds,
+      selectedMauSacIds: config.selectedMauSacIds,
+      selectedLoaiManHinhIds: config.selectedLoaiManHinhIds,
+      selectedPinIds: config.selectedPinIds
+    }
+
+    console.log('Creating variants with payload:', variantPayload)
+
+    const response = await taoBienTheSanPham(variantPayload)
+    console.log('Variants created successfully:', response)
+
+    // Refresh variants display and add attribute names for display
+    if (response.data && Array.isArray(response.data)) {
+      form.value.variants = response.data.map(variant => ({
+        ...variant,
+        // Add attribute names for display
+        tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
+        tenGpu: variant.idGpu ? gpus.value.find(g => g.id === variant.idGpu)?.tenGpu : null,
+        tenRam: variant.idRam ? rams.value.find(r => r.id === variant.idRam)?.tenRam : null,
+        dungLuongOCung: variant.idOCung ? storages.value.find(s => s.id === variant.idOCung)?.dungLuong : null,
+        tenMauSac: variant.idMauSac ? colors.value.find(c => c.id === variant.idMauSac)?.tenMau : null,
+        kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
+        dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null,
+        // Initialize empty values for editing
+        giaBan: variant.giaBan || 0,
+        soLuongTon: variant.soLuongTon || 0,
+        serials: variant.serials || []
+      }))
+    }
+
+    alert(`Tạo thành công ${calculateTotalCombinations.value} biến thể!`)
+    
+    // Clear selections after successful creation
+    variantConfig.value = {
+      selectedCpuIds: [],
+      selectedGpuIds: [],
+      selectedRamIds: [],
+      selectedOCungIds: [],
+      selectedMauSacIds: [],
+      selectedLoaiManHinhIds: [],
+      selectedPinIds: [],
+      trangThai: 1
+    }
+    
+  } catch (err) {
+    console.error('Error creating variants:', err)
+    error.value = err.response?.data?.message || err.message || 'Lỗi khi tạo biến thể'
+    alert('Lỗi: ' + error.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Combined save product and create variants function (kept for compatibility)
 const saveAndCreateVariants = async () => {
   try {
     loading.value = true
@@ -1115,98 +1370,46 @@ const goBackToProductList = () => {
   emit('close')
 }
 
-const createVariants = async () => {
-  if (!form.value.id) {
-    alert('Vui lòng lưu sản phẩm trước khi tạo biến thể')
-    return
-  }
-
-  if (previewVariants.value.length === 0) {
-    alert('Không có biến thể nào để tạo')
-    return
-  }
-
-  const config = variantConfig.value
-
-  try {
-    loading.value = true
-    
-    const payload = {
-      idSanPham: form.value.id,
-      giaBan: config.giaBan,
-      ghiChu: '',
-      soLuongTon: 0,
-      soLuongTamGiu: 0,
-      trangThai: config.trangThai,
-      selectedCpuIds: config.selectedCpuIds,
-      selectedGpuIds: config.selectedGpuIds,
-      selectedRamIds: config.selectedRamIds,
-      selectedOCungIds: config.selectedOCungIds,
-      selectedMauSacIds: config.selectedMauSacIds,
-      selectedLoaiManHinhIds: config.selectedLoaiManHinhIds,
-      selectedPinIds: config.selectedPinIds
-    }
-
-    const response = await taoBienTheSanPham(payload)
-    const createdVariants = response.data || []
-    
-    // Map the response to include necessary fields and attribute names
-    form.value.variants = createdVariants.map(variant => ({
-      ...variant,
-      serials: [],
-      soLuongTon: 0,
-      anhDaiDien: null,
-      // Add attribute names for display
-      tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
-      tenGpu: variant.idGpu ? gpus.value.find(g => g.id === variant.idGpu)?.tenGpu : null,
-      tenRam: variant.idRam ? rams.value.find(r => r.id === variant.idRam)?.tenRam : null,
-      dungLuongOCung: variant.idOCung ? storages.value.find(s => s.id === variant.idOCung)?.dungLuong : null,
-      tenMauSac: variant.idMauSac ? colors.value.find(c => c.id === variant.idMauSac)?.tenMau : null,
-      kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
-      dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null
-    }))
-    
-    // Clear preview variants since we now have real variants
-    previewVariants.value = []
-    
-    alert(`Đã tạo thành công ${form.value.variants.length} biến thể!`)
-    
-  } catch (err) {
-    console.error('Error creating variants:', err)
-    error.value = err.response?.data?.message || 'Có lỗi xảy ra khi tạo biến thể'
-    alert(error.value)
-  } finally {
-    loading.value = false
-  }
-}
+// Note: createVariants functionality is handled by generateVariants function above
 
 const openSerialModal = async (index) => {
+  console.log('=== OPENING SERIAL MODAL ===')
+  console.log('Variant index:', index)
+  console.log('Current showSerialModal value:', showSerialModal.value)
+  
   currentVariantIndex.value = index
   
   // Get the variant from displayVariants (could be preview or real)
   const variant = displayVariants.value[index]
   
   if (!variant) {
+    console.error('Variant not found at index:', index)
     alert('Không tìm thấy biến thể')
     return
   }
   
+  console.log('Variant data:', variant)
+  console.log('Variant has ID:', !!variant.id)
+  
   // Initialize serials array if it doesn't exist
   if (!variant.serials) {
     variant.serials = []
+    console.log('Initialized empty serials array')
   }
   
   // Load existing serials and images from backend if variant has ID (real variant)
   if (variant.id) {
     try {
+      console.log('Loading data for real variant with ID:', variant.id)
       // Load serials
       const serialResponse = await getSerialsByCtspId(variant.id)
       const backendSerials = serialResponse.data || []
+      console.log('Loaded serials from backend:', backendSerials)
       
       variant.serials = backendSerials.map(serial => ({
         id: serial.id,
-        number: serial.serialNo,
-        status: serial.trangThaiText
+        soSerial: serial.serialNo,
+        trangThai: serial.trangThai || 1
       }))
       
       // Update stock count
@@ -1224,13 +1427,21 @@ const openSerialModal = async (index) => {
       
     } catch (error) {
       console.error('Error loading variant data:', error)
+      // Continue to show modal even if loading fails
     }
   } else {
     // For preview variants, show info that they need to save first
     console.log('Opening serial modal for preview variant')
   }
   
+  console.log('Setting showSerialModal to true...')
   showSerialModal.value = true
+  
+  // Force Vue to update the DOM
+  await nextTick()
+  console.log('After nextTick - showSerialModal:', showSerialModal.value)
+  console.log('currentVariant:', currentVariant.value)
+  console.log('=== MODAL SHOULD BE VISIBLE NOW ===')
 }
 
 const updateStockFromSerials = () => {
@@ -1333,90 +1544,188 @@ const removeVariantImage = (index) => {
 
 // Serial modal functions
 const closeSerialModal = () => {
+  console.log('Closing serial modal')
+  
+  // Ask for confirmation if there are unsaved changes
+  const variant = currentVariant.value
+  if (variant?.serials?.length > 0) {
+    const hasUnsavedSerials = variant.serials.some(serial => !serial.id)
+    if (hasUnsavedSerials && variant.id) {
+      if (!confirm('Bạn có serial chưa lưu. Bạn có chắc chắn muốn đóng mà không lưu?')) {
+        return // Don't close if user wants to save
+      }
+    }
+  }
+  
   showSerialModal.value = false
   currentVariantIndex.value = -1
   serialInput.value = ''
+  serialValidationError.value = ''
+  serialValidationSuccess.value = ''
 }
 
-const addSerialNumbers = async () => {
-  if (!serialInput.value.trim()) {
-    alert('Vui lòng nhập serial number')
+// Real-time validation for serial input
+const validateSerialInput = () => {
+  const input = serialInput.value.trim()
+  
+  if (!input) {
+    serialValidationError.value = ''
+    serialValidationSuccess.value = ''
     return
   }
+  
+  // Split by comma or semicolon
+  const serials = input
+    .split(/[,;]/)
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s.length > 0)
+  
+  if (serials.length === 0) {
+    serialValidationError.value = ''
+    serialValidationSuccess.value = ''
+    return
+  }
+  
+  // Validate each serial
+  const invalidSerials = []
+  for (const serial of serials) {
+    const validation = validateSerial(serial)
+    if (!validation.valid) {
+      invalidSerials.push(validation.message)
+    }
+  }
+  
+  if (invalidSerials.length > 0) {
+    serialValidationError.value = invalidSerials[0] // Show first error
+    serialValidationSuccess.value = ''
+    return
+  }
+  
+  // Check for duplicates in current input
+  const duplicates = serials.filter((serial, index) => serials.indexOf(serial) !== index)
+  if (duplicates.length > 0) {
+    serialValidationError.value = `Có serial trùng lặp: ${duplicates[0]}`
+    serialValidationSuccess.value = ''
+    return
+  }
+  
+  // Check for duplicates with existing serials
+  if (currentVariant.value?.serials) {
+    const existingSerials = currentVariant.value.serials.map(s => s.soSerial)
+    const existingDuplicates = serials.filter(serial => existingSerials.includes(serial))
+    if (existingDuplicates.length > 0) {
+      serialValidationError.value = `Serial đã tồn tại: ${existingDuplicates[0]}`
+      serialValidationSuccess.value = ''
+      return
+    }
+  }
+  
+  // All validations passed
+  serialValidationError.value = ''
+  if (serials.length === 1) {
+    serialValidationSuccess.value = `Serial hợp lệ: ${serials[0]}`
+  } else {
+    serialValidationSuccess.value = `${serials.length} serial hợp lệ`
+  }
+}
 
-  if (!currentVariant.value?.id) {
-    alert('Vui lòng lưu biến thể trước khi thêm serial')
+// Validate serial number format
+const validateSerial = (serial) => {
+  // Check if exactly 7 characters
+  if (serial.length !== 7) {
+    return { valid: false, message: `Serial "${serial}" phải có đúng 7 ký tự` }
+  }
+  
+  // Check if contains both letters and numbers
+  const hasLetter = /[a-zA-Z]/.test(serial)
+  const hasNumber = /[0-9]/.test(serial)
+  
+  if (!hasLetter || !hasNumber) {
+    return { valid: false, message: `Serial "${serial}" phải chứa cả chữ và số` }
+  }
+  
+  // Check if contains only alphanumeric characters
+  const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(serial)
+  if (!isAlphanumeric) {
+    return { valid: false, message: `Serial "${serial}" chỉ được chứa chữ và số` }
+  }
+  
+  return { valid: true }
+}
+
+const addSerialNumbers = () => {
+  if (!serialInput.value.trim()) {
+    alert('Vui lòng nhập serial number')
     return
   }
 
   // Split by comma or semicolon
   const serials = serialInput.value
     .split(/[,;]/)
-    .map((s) => s.trim())
+    .map((s) => s.trim().toUpperCase()) // Convert to uppercase for consistency
     .filter((s) => s.length > 0)
 
   if (serials.length === 0) {
     alert('Không có serial number hợp lệ')
     return
   }
-
-  try {
-    loading.value = true
-    
-    // Create serial requests for backend
-    const serialRequests = serials.map(serialNo => ({
-      ctspId: currentVariant.value.id,
-      serialNo: serialNo,
-      trangThai: 1 // Chưa bán
-    }))
-    
-    // Call backend API
-    const response = await createSerialsBatch(serialRequests)
-    const createdSerials = response.data || []
-    
-    if (createdSerials.length === 0) {
-      alert('Không có serial number nào được tạo')
-      return
+  
+  // Initialize serials array if it doesn't exist
+  if (!currentVariant.value) {
+    alert('Không tìm thấy biến thể')
+    return
+  }
+  
+  if (!currentVariant.value.serials) {
+    currentVariant.value.serials = []
+  }
+  
+  // Check for duplicates with existing serials
+  const existingSerials = currentVariant.value.serials.map(s => s.soSerial)
+  const validSerials = []
+  const duplicateSerials = []
+  
+  serials.forEach(serial => {
+    if (existingSerials.includes(serial)) {
+      duplicateSerials.push(serial)
+    } else {
+      validSerials.push(serial)
     }
-    
-    // Update local serials list
-    currentVariant.value.serials = currentVariant.value.serials || []
-    createdSerials.forEach(serialResponse => {
-      currentVariant.value.serials.push({
-        id: serialResponse.id,
-        number: serialResponse.serialNo,
-        status: serialResponse.trangThaiText
-      })
+  })
+  
+  if (duplicateSerials.length > 0) {
+    alert(`Các serial sau đã tồn tại và sẽ bị bỏ qua: ${duplicateSerials.join(', ')}`)
+  }
+  
+  if (validSerials.length === 0) {
+    return
+  }
+  
+  // Add serials to local list
+  validSerials.forEach(serial => {
+    currentVariant.value.serials.push({
+      id: null, // Local serial, no ID yet
+      soSerial: serial,
+      trangThai: 1 // Mặc định là 'Có sẵn'
     })
-    
-    // Update stock count
-    currentVariant.value.soLuongTon = currentVariant.value.serials.length
-    
-    alert(`Đã thêm thành công ${createdSerials.length} serial number!`)
-    serialInput.value = ''
-    
-  } catch (error) {
-    console.error('Error adding serials:', error)
-    const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi thêm serial'
-    alert(errorMessage)
-  } finally {
-    loading.value = false
-  }
+  })
+  
+  // Update stock count
+  currentVariant.value.soLuongTon = currentVariant.value.serials.length
+  
+  // Clear input
+  serialInput.value = ''
+  
+  // Clear validation messages
+  serialValidationError.value = ''
+  serialValidationSuccess.value = ''
+  
+  console.log(`Đã thêm ${validSerials.length} serial vào danh sách local`)
 }
 
-const removeVariantSerial = (index) => {
-  if (confirm('Bạn có chắc muốn xóa serial number này?')) {
-    currentVariant.value.serials.splice(index, 1)
-    // Update stock count
-    currentVariant.value.soLuongTon = currentVariant.value.serials.length
-  }
-}
+// Note: removeVariantSerial functionality is handled by removeSerial function above
 
-const removeVariant = (index) => {
-  if (confirm('Bạn có chắc muốn xóa biến thể này?')) {
-    form.value.variants.splice(index, 1)
-  }
-}
+// Note: removeVariant functionality is handled by the async removeVariant function above
 
 // Trigger functions for file inputs
 const triggerMainImageUpload = () => {
@@ -1484,6 +1793,355 @@ const getSelectedBatteryNames = (selectedIds) => {
     const battery = batteries.value.find(b => b.id === id)
     return battery ? battery.dungLuongPin : ''
   }).filter(name => name)
+}
+
+// Update product price range based on variants
+const updateProductPriceRange = () => {
+  if (!form.value.variants || form.value.variants.length === 0) {
+    form.value.giaThapNhat = 0
+    form.value.giaCaoNhat = 0
+    return
+  }
+
+  const variantPrices = form.value.variants
+    .map(v => parseFloat(v.giaBan) || 0)
+    .filter(price => price > 0)
+  
+  if (variantPrices.length > 0) {
+    form.value.giaThapNhat = Math.min(...variantPrices)
+    form.value.giaCaoNhat = Math.max(...variantPrices)
+  } else {
+    form.value.giaThapNhat = 0
+    form.value.giaCaoNhat = 0
+  }
+  
+  console.log(`Updated product price range: ${form.value.giaThapNhat} - ${form.value.giaCaoNhat}`)
+}
+
+// Update variant price function
+const updateVariantPrice = async (index, newPrice) => {
+  const variant = form.value.variants[index]
+  if (!variant) {
+    return
+  }
+
+  try {
+    // Update local data
+    variant.giaBan = newPrice
+    
+    // Update product price range
+    updateProductPriceRange()
+    
+    // Only call API if variant has ID (saved variant)
+    if (variant.id) {
+      const updatePayload = {
+        giaBan: newPrice
+      }
+      
+      await updateSanPham(variant.id, updatePayload)
+      console.log(`Updated variant ${variant.id} price to ${newPrice}`)
+    } else {
+      console.log(`Updated preview variant price to ${newPrice}`)
+    }
+    
+  } catch (error) {
+    console.error('Error updating variant price:', error)
+    alert('Lỗi khi cập nhật giá: ' + (error.message || 'Unknown error'))
+  }
+}
+
+// Remove variant from preview or delete real variant
+const removeVariantFromPreview = async (index) => {
+  const variant = displayVariants.value[index]
+  
+  if (!variant) {
+    alert('Không tìm thấy biến thể')
+    return
+  }
+  
+  const confirmMessage = variant.id 
+    ? 'Bạn có chắc chắn muốn xóa biến thể này khỏi cơ sở dữ liệu?\n\nHành động này không thể hoàn tác!'
+    : 'Bạn có chắc chắn muốn xóa biến thể này khỏi danh sách xem trước?'
+  
+  if (confirm(confirmMessage)) {
+    try {
+      if (variant.id) {
+        // Real variant - delete from database
+        loading.value = true
+        await deleteCTSP(variant.id)
+        alert('Xóa biến thể thành công!')
+      }
+      
+      // Remove from local state (both preview and real variants)
+      form.value.variants.splice(index, 1)
+      console.log(`Removed variant at index ${index}`, variant.id ? '(real variant)' : '(preview variant)')
+      
+      // Update product price range
+      updateProductPriceRange()
+      
+    } catch (err) {
+      console.error('Error deleting variant:', err)
+      const errorMessage = err.response?.data?.message || err.message || 'Lỗi khi xóa biến thể'
+      alert('Lỗi: ' + errorMessage)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+// Note: openSerialModal is already defined above with more complete functionality
+
+// Remove variant function
+const removeVariant = async (index) => {
+  const variant = displayVariants.value[index]
+  
+  if (!variant || !variant.id) {
+    alert('Không thể xóa biến thể này')
+    return
+  }
+
+  const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể này?\n\nHành động này không thể hoàn tác!`
+  
+  if (confirm(confirmMessage)) {
+    try {
+      loading.value = true
+      
+      // Call API to delete variant
+      await deleteCTSP(variant.id)
+      
+      // Remove from local state
+      if (form.value.variants && form.value.variants.length > 0) {
+        form.value.variants = form.value.variants.filter(v => v.id !== variant.id)
+      }
+      
+      alert('Xóa biến thể thành công!')
+      
+    } catch (err) {
+      console.error('Error deleting variant:', err)
+      const errorMessage = err.response?.data?.message || err.message || 'Lỗi khi xóa biến thể'
+      alert('Lỗi: ' + errorMessage)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+// Note: addSerial functionality is handled by addSerialNumbers function above
+
+// Toggle serial status between 'Có sẵn' (1) and 'Ẩn' (0)
+const toggleSerialStatus = (serialIndex) => {
+  const variant = currentVariant.value
+  if (!variant || !variant.serials || !variant.serials[serialIndex]) return
+  
+  const serial = variant.serials[serialIndex]
+  const newStatus = serial.trangThai === 1 ? 0 : 1
+  const statusText = newStatus === 1 ? 'Có sẵn' : 'Ẩn'
+  
+  if (confirm(`Bạn có chắc chắn muốn chuyển trạng thái serial "${serial.soSerial}" thành "${statusText}"?`)) {
+    serial.trangThai = newStatus
+    console.log(`Đã chuyển trạng thái serial ${serial.soSerial} thành ${statusText}`)
+  }
+}
+
+// Remove serial from variant
+const removeSerial = (serialIndex) => {
+  const variant = currentVariant.value
+  if (!variant || !variant.serials) return
+  
+  const serial = variant.serials[serialIndex]
+  if (confirm(`Bạn có chắc chắn muốn xóa serial "${serial.soSerial}"?`)) {
+    variant.serials.splice(serialIndex, 1)
+    variant.soLuongTon = variant.serials.length
+    console.log(`Đã xóa serial ${serial.soSerial}`)
+  }
+}
+
+// Note: closeSerialModal is already defined above
+
+// Note: updateStockFromSerials is already defined above with proper logic
+
+// Note: removeVariantSerial functionality is handled by removeSerial function above
+
+// Save serials (for serial modal)
+const saveSerials = async () => {
+  const variant = currentVariant.value
+  if (!variant) {
+    alert('Không tìm thấy biến thể')
+    return
+  }
+
+  try {
+    loading.value = true
+    
+    // Update stock based on serial count
+    variant.soLuongTon = (variant.serials || []).length
+    
+    if (variant.id) {
+      // Real variant - save to database
+      console.log('Saving serials to database for variant:', variant.id)
+      
+      // Filter serials that need to be saved (no ID = new serials)
+      const newSerials = (variant.serials || []).filter(serial => !serial.id)
+      
+      if (newSerials.length > 0) {
+        // Create serial requests for backend
+        const serialRequests = newSerials.map(serial => ({
+          ctspId: variant.id,
+          serialNo: serial.soSerial,
+          trangThai: serial.trangThai || 1
+        }))
+        
+        try {
+          // Call backend API to create serials
+          const response = await createSerialsBatch(serialRequests)
+          const createdSerials = response.data || []
+          
+          // Update local serials with IDs from backend
+          createdSerials.forEach((createdSerial, index) => {
+            const localSerial = newSerials[index]
+            if (localSerial) {
+              localSerial.id = createdSerial.id
+            }
+          })
+          
+          console.log(`Đã lưu ${createdSerials.length} serial mới vào database`)
+        } catch (apiError) {
+          console.error('Error saving serials to database:', apiError)
+          // Continue with local save even if API fails
+        }
+      }
+      
+      alert('Lưu serial thành công!')
+    } else {
+      // Preview variant - just save locally
+      console.log('Saving serials locally for preview variant')
+      alert('Serial đã được lưu tạm thời. Vui lòng lưu biến thể để lưu vào database.')
+    }
+    
+    // Update stock for all variants
+    updateStockFromSerials()
+    
+    closeSerialModal()
+    
+  } catch (err) {
+    console.error('Error saving serials:', err)
+    alert('Lỗi khi lưu serial: ' + (err.message || 'Unknown error'))
+  } finally {
+    loading.value = false
+  }
+}
+
+// Helper function to get variant configuration string
+const getVariantConfig = (index) => {
+  const variant = displayVariants.value[index]
+  if (!variant) return ''
+  
+  const specs = []
+  if (variant.tenMauSac) specs.push(variant.tenMauSac)
+  if (variant.tenCpu) specs.push(variant.tenCpu)
+  if (variant.tenRam) specs.push(variant.tenRam)
+  if (variant.tenGpu) specs.push(variant.tenGpu)
+  if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
+  if (variant.kichThuocManHinh) specs.push(variant.kichThuocManHinh)
+  if (variant.dungLuongPin) specs.push(variant.dungLuongPin)
+  
+  return specs.join(' - ')
+}
+
+// Helper function to format price
+const formatPrice = (price) => {
+  if (!price || price === 0) return '0 ₫'
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+// Import from Excel function
+const importFromExcel = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  if (!currentVariant.value?.id) {
+    alert('Vui lòng lưu biến thể trước khi import serial')
+    return
+  }
+  
+  try {
+    loading.value = true
+    
+    // Call API to import serials from Excel
+    const response = await importSerialsFromExcel(currentVariant.value.id, file)
+    const importedSerials = response.data || []
+    
+    if (importedSerials.length === 0) {
+      alert('Không có serial number nào được import')
+      return
+    }
+    
+    // Update local serials list
+    currentVariant.value.serials = currentVariant.value.serials || []
+    importedSerials.forEach(serialResponse => {
+      currentVariant.value.serials.push({
+        id: serialResponse.id,
+        soSerial: serialResponse.serialNo,
+        trangThai: serialResponse.trangThai || 1
+      })
+    })
+    
+    // Update stock count
+    currentVariant.value.soLuongTon = currentVariant.value.serials.length
+    
+    alert(`Đã import thành công ${importedSerials.length} serial number!`)
+    
+    // Clear file input
+    event.target.value = ''
+    
+  } catch (error) {
+    console.error('Error importing serials:', error)
+    const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi import serial'
+    alert(errorMessage)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Download Excel template function
+const downloadExcelTemplate = () => {
+  // Create a simple CSV template
+  const csvContent = 'Serial Number\n123456\n789012\n'
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'serial_template.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+// Test function to manually show modal (for debugging)
+const testShowModal = () => {
+  console.log('=== TEST SHOW MODAL ===')
+  showSerialModal.value = true
+  currentVariantIndex.value = 0
+  console.log('showSerialModal set to:', showSerialModal.value)
+}
+
+// Make test function available globally for debugging
+if (typeof window !== 'undefined') {
+  window.testShowModal = testShowModal
+}
+
+// Helper function to count unsaved serials
+const getUnsavedSerialsCount = () => {
+  const variant = currentVariant.value
+  if (!variant?.serials) return 0
+  return variant.serials.filter(serial => !serial.id).length
 }
 </script>
 
@@ -1787,6 +2445,17 @@ textarea.form-control {
   color: #6b7280;
 }
 
+.variant-image-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.variant-image-upload.disabled:hover {
+  border-color: #e5e7eb;
+  background: transparent;
+}
+
 .variant-image-preview {
   width: 80px;
   height: 80px;
@@ -1828,8 +2497,14 @@ textarea.form-control {
 
 .action-buttons {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
+}
+
+.action-buttons .btn-sm {
+  font-size: 11px;
+  padding: 4px 8px;
+  min-width: 60px;
 }
 
 .action-buttons .btn {
@@ -1850,44 +2525,59 @@ textarea.form-control {
 
 /* Serial modal styling - Floating on top */
 .serial-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  backdrop-filter: blur(2px);
 }
 
 .serial-modal-wrapper {
-  width: 100%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: 100% !important;
+  max-width: 700px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .serial-modal-dialog {
-  position: relative;
+  position: relative !important;
 }
 
 .serial-modal-content {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb;
 }
 
 .serial-modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: #fff !important;
+  position: relative;
 }
 
 .serial-modal-title {
@@ -1898,17 +2588,22 @@ textarea.form-control {
 }
 
 .serial-modal-body {
-  padding: 24px;
-  background: #f9fafb;
+  padding: 24px !important;
+  background: #f9fafb !important;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .serial-modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: sticky;
+  bottom: 0;
+  min-height: 60px;
 }
 
 .section-title {
@@ -2163,6 +2858,36 @@ textarea.form-control {
 .empty-state p {
   margin: 0;
   font-size: 14px;
+}
+
+/* Serial input validation styling */
+.form-control.is-invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.valid-feedback {
+  color: #28a745;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .form-control:focus,
