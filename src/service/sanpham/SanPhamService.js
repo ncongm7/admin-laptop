@@ -138,7 +138,47 @@ export const advancedSearchPage = (keyword, trangThai, minPrice, maxPrice, page 
 }
 
 export const deleteCTSP = (id) => {
+  console.log('SanPhamService: Deleting CTSP with ID:', id)
+  console.log('SanPhamService: Delete URL:', `${CTSP_ROUTE}/${id}`)
   return client.delete(`${CTSP_ROUTE}/${id}`)
+}
+
+// Cascade delete CTSP - deletes all related serials first, then the variant
+export const deleteCTSPWithCascade = async (id) => {
+  console.log('SanPhamService: Starting cascade delete for CTSP ID:', id)
+  
+  try {
+    // Step 1: Get all serials for this variant
+    console.log('SanPhamService: Fetching serials for CTSP ID:', id)
+    const serialsResponse = await getSerialsByCtspId(id)
+    const serials = serialsResponse.data || []
+    
+    console.log(`SanPhamService: Found ${serials.length} serials to delete`)
+    
+    // Step 2: Delete all serials first
+    if (serials.length > 0) {
+      console.log('SanPhamService: Deleting serials...')
+      const deleteSerialPromises = serials.map(serial => 
+        deleteSerial(serial.id).catch(err => {
+          console.warn(`Failed to delete serial ${serial.id}:`, err)
+          return null // Continue even if some serials fail to delete
+        })
+      )
+      
+      await Promise.allSettled(deleteSerialPromises)
+      console.log('SanPhamService: Serial deletion completed')
+    }
+    
+    // Step 3: Now delete the variant
+    console.log('SanPhamService: Deleting variant...')
+    const result = await deleteCTSP(id)
+    console.log('SanPhamService: Variant deleted successfully')
+    
+    return result
+  } catch (error) {
+    console.error('SanPhamService: Error in cascade delete:', error)
+    throw error
+  }
 }
 
 // ===== CPU CRUD =====

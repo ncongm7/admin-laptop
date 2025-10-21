@@ -31,6 +31,16 @@ client.interceptors.response.use(
           responseData: error.response.data,
           timestamp: new Date().toISOString()
         })
+        
+        // Provide user-friendly error message for 500 errors
+        const userMessage = error.response.data?.message || 
+                           'Có lỗi xảy ra trên server. Vui lòng thử lại sau hoặc liên hệ quản trị viên.'
+        
+        // Create a new error with user-friendly message
+        const userError = new Error(userMessage)
+        userError.originalError = error
+        userError.status = 500
+        return Promise.reject(userError)
       }
     } else if (error.request) {
       // Request was made but no response received

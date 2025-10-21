@@ -142,9 +142,7 @@
                 <button class="btn btn-outline-warning" @click="handleEdit(product)" title="Sửa">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger" @click="handleDelete(product)" title="Xóa">
-                  <i class="bi bi-trash"></i>
-                </button>
+                <!-- Delete button removed as per requirement -->
               </div>
             </td>
           </tr>
@@ -201,7 +199,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['edit', 'view', 'delete', 'bulk-delete', 'selection-change'])
+const emit = defineEmits(['edit', 'view', 'bulk-delete', 'selection-change'])
 
 // Pagination state
 const itemsPerPage = 5 // Fixed to 5 products per page
@@ -303,23 +301,24 @@ const handleView = (product) => {
 }
 
 const handleEdit = (product) => {
-  // Show confirmation dialog before editing
-  if (confirm(`Bạn có muốn chỉnh sửa sản phẩm "${product.tenSanPham}"?`)) {
-    emit('edit', product)
-  }
+  // Directly emit edit without confirmation dialog
+  emit('edit', product)
 }
 
-const handleDelete = (product) => {
-  // Just emit the delete event, let parent handle confirmation
-  emit('delete', product)
-}
+// handleDelete function removed as delete functionality is no longer needed
 
 const handleBulkDelete = () => {
-  if (selectedIds.value.length === 0) return
+  console.log('ProductList handleBulkDelete called with selectedIds:', selectedIds.value)
+  
+  if (selectedIds.value.length === 0) {
+    alert('Vui lòng chọn ít nhất một sản phẩm để xóa')
+    return
+  }
   
   const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedIds.value.length} sản phẩm đã chọn?\n\nHành động này không thể hoàn tác!`
   
   if (confirm(confirmMessage)) {
+    console.log('ProductList emitting bulk-delete event with:', selectedIds.value)
     emit('bulk-delete', selectedIds.value)
   }
 }

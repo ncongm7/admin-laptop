@@ -972,9 +972,18 @@ const editVariant = async (variant) => {
   }
 }
 
-const confirmDelete = (variantId) => {
+const confirmDelete = async (variantId) => {
+  console.log('ProductDetailManagement confirmDelete called with variantId:', variantId)
+  
   if (confirm('Bạn có chắc muốn xóa biến thể này?')) {
-    productDetailStore.deleteVariant(variantId)
+    try {
+      console.log('Calling productDetailStore.deleteVariant with ID:', variantId)
+      await productDetailStore.deleteVariant(variantId)
+      console.log('Variant deletion completed successfully')
+    } catch (error) {
+      console.error('Error in confirmDelete:', error)
+      alert('Lỗi khi xóa biến thể: ' + (error.message || 'Lỗi không xác định'))
+    }
   }
 }
 
@@ -1073,23 +1082,52 @@ const stockStatusClass = (stock) => {
   return 'text-danger'
 }
 
-const bulkDelete = () => {
+const bulkDelete = async () => {
   if (selectedVariants.value.length === 0) {
     alert('Vui lòng chọn ít nhất một biến thể để xóa')
     return
   }
   
   if (confirm(`Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?`)) {
-    console.log('Bulk delete variants:', selectedVariants.value)
-    // TODO: Implement bulk delete API call
-    
-    // After successful deletion, clear selection and reload the variants list
-    selectedVariants.value = []
-    selectAll.value = false
-    fetchProductVariants(productId.value)
-    
-    // Show success message
-    alert('Xóa các biến thể thành công!')
+    try {
+      loading.value = true
+      console.log('Bulk delete variants:', selectedVariants.value)
+      
+      // Delete each variant individually
+      const deletePromises = selectedVariants.value.map(async (variantId) => {
+        try {
+          await productDetailStore.deleteVariant(variantId)
+          return { success: true, variantId }
+        } catch (err) {
+          console.warn(`Failed to delete variant ${variantId}:`, err)
+          return { success: false, variantId, error: err }
+        }
+      })
+      
+      const results = await Promise.allSettled(deletePromises)
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+      const failCount = selectedVariants.value.length - successCount
+      
+      console.log(`Bulk delete completed: ${successCount} success, ${failCount} failed`)
+      
+      if (failCount === 0) {
+        alert('Xóa tất cả biến thể thành công!')
+      } else if (successCount > 0) {
+        alert(`Xóa thành công ${successCount} biến thể, ${failCount} biến thể không thể xóa.`)
+      } else {
+        alert('Không thể xóa biến thể nào!')
+      }
+      
+      // Clear selection and reload the variants list
+      selectedVariants.value = []
+      selectAll.value = false
+      await fetchProductVariants(productId.value)
+    } catch (error) {
+      console.error('Error in bulk delete:', error)
+      alert('Lỗi khi xóa biến thể: ' + (error.message || 'Lỗi không xác định'))
+    } finally {
+      loading.value = false
+    }
   }
 }
 

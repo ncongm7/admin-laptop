@@ -553,7 +553,7 @@
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
             <i v-else class="bi bi-check-lg me-1"></i>
-            {{ isEditMode ? 'Cập nhật' : (form.variants && form.variants.length > 0 ? 'Tạo sản phẩm & biến thể' : 'Tạo sản phẩm') }}
+            {{ form.variants && form.variants.length > 0 ? 'Tạo sản phẩm & biến thể' : 'Tạo sản phẩm' }}
           </button>
         </div>
       </div>
@@ -1010,15 +1010,6 @@ const saveProduct = async () => {
 
     console.log('Creating product with payload:', productPayload)
 
-    if (isEditMode.value) {
-      // Update existing product
-      const response = await updateSanPham(form.value.id, productPayload)
-      form.value.id = response.data.id
-      alert('Cập nhật sản phẩm thành công!')
-      emit('save', form.value)
-      return
-    }
-
     // For new products, check if we have variants to create
     const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 && 
       (variantConfig.value.selectedCpuIds.length > 0 ||
@@ -1086,6 +1077,36 @@ const saveProduct = async () => {
           trangThai: serial.trangThai
         }))
       }))
+
+      // Update product with correct price range after variants are created
+      if (result.variants && result.variants.length > 0) {
+        const variantPrices = result.variants
+          .map(v => parseFloat(v.giaBan) || 0)
+          .filter(price => price > 0)
+        
+        if (variantPrices.length > 0) {
+          const actualGiaThapNhat = Math.min(...variantPrices)
+          const actualGiaCaoNhat = Math.max(...variantPrices)
+          
+          console.log('Updating product price range:', { 
+            originalMin: giaThapNhat, 
+            originalMax: giaCaoNhat,
+            actualMin: actualGiaThapNhat, 
+            actualMax: actualGiaCaoNhat,
+            variantPrices 
+          })
+          
+          // Update the product with correct price range
+          const priceUpdatePayload = {
+            ...productPayload,
+            giaThapNhat: actualGiaThapNhat,
+            giaCaoNhat: actualGiaCaoNhat
+          }
+          
+          await updateSanPham(form.value.id, priceUpdatePayload)
+          console.log('Product price range updated successfully')
+        }
+      }
 
       alert(`Tạo thành công sản phẩm với ${result.variants.length} biến thể và ${result.serials.length} serial!`)
     } else {
@@ -1838,8 +1859,8 @@ const updateVariantPrice = async (index, newPrice) => {
   }
 }
 
-// Remove variant from preview or delete real variant
-const removeVariantFromPreview = async (index) => {
+// Remove variant from preview
+const removeVariantFromPreview = (index) => {
   const variant = displayVariants.value[index]
   
   if (!variant) {
@@ -1847,34 +1868,12 @@ const removeVariantFromPreview = async (index) => {
     return
   }
   
-  const confirmMessage = variant.id 
-    ? 'Bạn có chắc chắn muốn xóa biến thể này khỏi cơ sở dữ liệu?\n\nHành động này không thể hoàn tác!'
-    : 'Bạn có chắc chắn muốn xóa biến thể này khỏi danh sách xem trước?'
+  // Remove from local state
+  form.value.variants.splice(index, 1)
+  console.log(`Removed variant at index ${index}`)
   
-  if (confirm(confirmMessage)) {
-    try {
-      if (variant.id) {
-        // Real variant - delete from database
-        loading.value = true
-        await deleteCTSP(variant.id)
-        alert('Xóa biến thể thành công!')
-      }
-      
-      // Remove from local state (both preview and real variants)
-      form.value.variants.splice(index, 1)
-      console.log(`Removed variant at index ${index}`, variant.id ? '(real variant)' : '(preview variant)')
-      
-      // Update product price range
-      updateProductPriceRange()
-      
-    } catch (err) {
-      console.error('Error deleting variant:', err)
-      const errorMessage = err.response?.data?.message || err.message || 'Lỗi khi xóa biến thể'
-      alert('Lỗi: ' + errorMessage)
-    } finally {
-      loading.value = false
-    }
-  }
+  // Update product price range
+  updateProductPriceRange()
 }
 
 // Note: openSerialModal is already defined above with more complete functionality

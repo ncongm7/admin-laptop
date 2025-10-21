@@ -19,6 +19,7 @@ import {
   advancedSearchPage,
   getAllSanPhamChiTiet,
   deleteCTSP,
+  deleteCTSPWithCascade,
   searchSanPhamChiTiet,
   updateChiTietSanPham
 } from '@/service/sanpham/SanPhamService'
@@ -159,10 +160,21 @@ export const useProductStore = defineStore('products', () => {
   const removeVariant = async (id) => {
     variantsLoading.value = true
     try {
-      await deleteCTSP(id)
+      console.log('ProductStore: Removing variant with ID:', id)
+      // Use cascade delete to handle foreign key constraints
+      await deleteCTSPWithCascade(id)
+      console.log('ProductStore: Variant removed successfully')
       variants.value = variants.value.filter((v) => v.id !== id)
     } catch (err) {
-      error.value = err.message || 'Không thể xóa biến thể'
+      console.error('ProductStore: Error removing variant:', err)
+      
+      // Handle foreign key constraint errors with user-friendly messages
+      let errorMessage = err.message || 'Không thể xóa biến thể'
+      if (errorMessage.includes('REFERENCE constraint') || errorMessage.includes('FK_')) {
+        errorMessage = 'Biến thể có dữ liệu liên quan (serial). Hệ thống đang tự động xóa các dữ liệu liên quan trước...'
+      }
+      
+      error.value = errorMessage
       throw err
     } finally {
       variantsLoading.value = false
@@ -366,7 +378,7 @@ export const useProductStore = defineStore('products', () => {
       if (productVariants.length > 0) {
         console.log('ProductStore: Deleting variants first...')
         const deleteVariantPromises = productVariants.map(variant => 
-          deleteCTSP(variant.id).catch(err => {
+          deleteCTSPWithCascade(variant.id).catch(err => {
             console.warn(`Failed to delete variant ${variant.id}:`, err)
             // Continue even if some variants fail to delete
             return null
