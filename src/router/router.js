@@ -121,12 +121,12 @@ const routes = [
   {
     path: '/nhan-vien',
     name: 'NhanVien',
-    component: () => import('@/components/taikhoan/NhanVien.vue'),
+    component: () => import('@/components/taikhoan/nhanvien/NhanVien.vue'),
   },
   {
     path: '/nhan-vien/them',
     name: 'NhanVienForm',
-    component: () => import('@/components/taikhoan/NhanVienForm.vue'),
+    component: () => import('@/components/taikhoan/nhanvien/NhanVienForm.vue'),
   },
   {
     path: '/login',
@@ -136,7 +136,7 @@ const routes = [
   {
     path: '/nhan-vien/sua/:id',
     name: 'NhanVienUpdateForm',
-    component: () => import('@/components/taikhoan/NhanVienUpdateForm.vue'),
+    component: () => import('@/components/taikhoan/nhanvien/NhanVienUpdateForm.vue'),
     props: true,
   },
 
