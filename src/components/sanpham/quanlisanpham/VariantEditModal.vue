@@ -40,61 +40,50 @@
 
               <!-- CPU -->
               <div class="col-md-6">
-                <label class="form-label">CPU <span class="text-danger">*</span></label>
+                <label class="form-label">CPU</label>
                 <select 
                   class="form-select" 
                   v-model="form.idCpu"
-                  :class="{ 'is-invalid': errors.idCpu }"
                 >
-                  <option value="">Chọn CPU</option>
                   <option v-for="cpu in productStore.cpus" :key="cpu.id" :value="cpu.id">
                     {{ cpu.tenCpu }}
                   </option>
                 </select>
-                <div v-if="errors.idCpu" class="invalid-feedback">{{ errors.idCpu }}</div>
               </div>
 
               <!-- RAM -->
               <div class="col-md-6">
-                <label class="form-label">RAM <span class="text-danger">*</span></label>
+                <label class="form-label">RAM</label>
                 <select 
                   class="form-select" 
                   v-model="form.idRam"
-                  :class="{ 'is-invalid': errors.idRam }"
                 >
-                  <option value="">Chọn RAM</option>
                   <option v-for="ram in productStore.rams" :key="ram.id" :value="ram.id">
                     {{ ram.tenRam }}
                   </option>
                 </select>
-                <div v-if="errors.idRam" class="invalid-feedback">{{ errors.idRam }}</div>
               </div>
 
               <!-- GPU -->
               <div class="col-md-6">
-                <label class="form-label">GPU <span class="text-danger">*</span></label>
+                <label class="form-label">GPU</label>
                 <select 
                   class="form-select" 
                   v-model="form.idGpu"
-                  :class="{ 'is-invalid': errors.idGpu }"
                 >
-                  <option value="">Chọn GPU</option>
                   <option v-for="gpu in productStore.gpus" :key="gpu.id" :value="gpu.id">
                     {{ gpu.tenGpu }}
                   </option>
                 </select>
-                <div v-if="errors.idGpu" class="invalid-feedback">{{ errors.idGpu }}</div>
               </div>
 
               <!-- Màu sắc -->
               <div class="col-md-6">
-                <label class="form-label">Màu sắc <span class="text-danger">*</span></label>
+                <label class="form-label">Màu sắc</label>
                 <select 
                   class="form-select" 
                   v-model="form.idMauSac"
-                  :class="{ 'is-invalid': errors.idMauSac }"
                 >
-                  <option value="">Chọn màu sắc</option>
                   <option v-for="color in productStore.colors" :key="color.id" :value="color.id">
                     <span class="d-flex align-items-center">
                       <span 
@@ -105,55 +94,45 @@
                     </span>
                   </option>
                 </select>
-                <div v-if="errors.idMauSac" class="invalid-feedback">{{ errors.idMauSac }}</div>
               </div>
 
               <!-- Ổ cứng -->
               <div class="col-md-6">
-                <label class="form-label">Ổ cứng <span class="text-danger">*</span></label>
+                <label class="form-label">Ổ cứng</label>
                 <select 
                   class="form-select" 
                   v-model="form.idOCung"
-                  :class="{ 'is-invalid': errors.idOCung }"
                 >
-                  <option value="">Chọn ổ cứng</option>
                   <option v-for="storage in productStore.storages" :key="storage.id" :value="storage.id">
                     {{ storage.dungLuong }}
                   </option>
                 </select>
-                <div v-if="errors.idOCung" class="invalid-feedback">{{ errors.idOCung }}</div>
               </div>
 
               <!-- Màn hình -->
               <div class="col-md-6">
-                <label class="form-label">Màn hình <span class="text-danger">*</span></label>
+                <label class="form-label">Màn hình</label>
                 <select 
                   class="form-select" 
                   v-model="form.idLoaiManHinh"
-                  :class="{ 'is-invalid': errors.idLoaiManHinh }"
                 >
-                  <option value="">Chọn màn hình</option>
                   <option v-for="screen in productStore.screens" :key="screen.id" :value="screen.id">
                     {{ screen.kichThuoc }}
                   </option>
                 </select>
-                <div v-if="errors.idLoaiManHinh" class="invalid-feedback">{{ errors.idLoaiManHinh }}</div>
               </div>
 
               <!-- Pin -->
               <div class="col-md-6">
-                <label class="form-label">Pin <span class="text-danger">*</span></label>
+                <label class="form-label">Pin</label>
                 <select 
                   class="form-select" 
                   v-model="form.idPin"
-                  :class="{ 'is-invalid': errors.idPin }"
                 >
-                  <option value="">Chọn pin</option>
                   <option v-for="battery in productStore.batteries" :key="battery.id" :value="battery.id">
                     {{ battery.dungLuongPin }}
                   </option>
                 </select>
-                <div v-if="errors.idPin" class="invalid-feedback">{{ errors.idPin }}</div>
               </div>
 
               <!-- Giá bán -->
@@ -284,23 +263,49 @@ const resetForm = () => {
 }
 
 const loadVariantData = (variant) => {
-  if (!variant || !variant.id) return
+  console.log('VariantEditModal: Loading variant data:', variant)
   
-  Object.assign(form, {
+  if (!variant || !variant.id) {
+    console.error('VariantEditModal: Invalid variant data')
+    return
+  }
+  
+  // Clear previous errors
+  errors.value = {}
+  generalError.value = ''
+  
+  // Map variant data to form with comprehensive field mapping
+  // Use the first available CPU if variant doesn't have one
+  const defaultCpu = productStore.cpus.length > 0 ? productStore.cpus[0].id : ''
+  const defaultRam = productStore.rams.length > 0 ? productStore.rams[0].id : ''
+  const defaultGpu = productStore.gpus.length > 0 ? productStore.gpus[0].id : ''
+  const defaultColor = productStore.colors.length > 0 ? productStore.colors[0].id : ''
+  const defaultStorage = productStore.storages.length > 0 ? productStore.storages[0].id : ''
+  const defaultScreen = productStore.screens.length > 0 ? productStore.screens[0].id : ''
+  const defaultBattery = productStore.batteries.length > 0 ? productStore.batteries[0].id : ''
+  
+  const formData = {
     id: variant.id,
     maCtsp: variant.maCtsp || '',
-    tenSanPham: variant.tenSanPham || '',
-    idCpu: variant.idCpu || variant.cpu?.id || '',
-    idRam: variant.idRam || variant.ram?.id || '',
-    idGpu: variant.idGpu || variant.gpu?.id || '',
-    idMauSac: variant.idMauSac || variant.mauSac?.id || '',
-    idOCung: variant.idOCung || variant.oCung?.id || '',
-    idLoaiManHinh: variant.idLoaiManHinh || variant.loaiManHinh?.id || '',
-    idPin: variant.idPin || variant.pin?.id || '',
-    giaBan: variant.giaBan || 0,
-    soLuongTon: variant.soLuongTon || 0,
+    tenSanPham: variant.tenSanPham || variant.sanPham?.tenSanPham || '',
+    // Use existing values or default to first available option
+    idCpu: variant.idCpu || variant.cpu?.id || variant.cpuId || defaultCpu,
+    idRam: variant.idRam || variant.ram?.id || variant.ramId || defaultRam,
+    idGpu: variant.idGpu || variant.gpu?.id || variant.gpuId || defaultGpu,
+    idMauSac: variant.idMauSac || variant.mauSac?.id || variant.colorId || defaultColor,
+    idOCung: variant.idOCung || variant.oCung?.id || variant.storageId || defaultStorage,
+    idLoaiManHinh: variant.idLoaiManHinh || variant.loaiManHinh?.id || variant.screenId || defaultScreen,
+    idPin: variant.idPin || variant.pin?.id || variant.batteryId || defaultBattery,
+    giaBan: Number(variant.giaBan) || 0,
+    soLuongTon: Number(variant.soLuongTon) || 0,
     trangThai: variant.trangThai ?? 1
-  })
+  }
+  
+  console.log('VariantEditModal: Mapped form data:', formData)
+  
+  Object.assign(form, formData)
+  
+  console.log('VariantEditModal: Form after assignment:', { ...form })
 }
 
 const validateForm = () => {
@@ -315,14 +320,7 @@ const validateForm = () => {
     newErrors.tenSanPham = 'Tên sản phẩm không được vượt quá 255 ký tự'
   }
   
-  // Validate required dropdowns
-  if (!form.idCpu) newErrors.idCpu = 'Vui lòng chọn CPU'
-  if (!form.idRam) newErrors.idRam = 'Vui lòng chọn RAM'
-  if (!form.idGpu) newErrors.idGpu = 'Vui lòng chọn GPU'
-  if (!form.idMauSac) newErrors.idMauSac = 'Vui lòng chọn màu sắc'
-  if (!form.idOCung) newErrors.idOCung = 'Vui lòng chọn ổ cứng'
-  if (!form.idLoaiManHinh) newErrors.idLoaiManHinh = 'Vui lòng chọn màn hình'
-  if (!form.idPin) newErrors.idPin = 'Vui lòng chọn pin'
+  // Only validate price and quantity - attributes are optional
   
   // Validate price
   if (!form.giaBan || form.giaBan <= 0) {
@@ -396,66 +394,80 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
-  if (!validateForm()) return
+  console.log('VariantEditModal: Starting form submission')
+  console.log('VariantEditModal: Current form data:', { ...form })
+  
+  if (!validateForm()) {
+    console.log('VariantEditModal: Form validation failed:', errors.value)
+    return
+  }
   
   loading.value = true
   generalError.value = ''
   
   try {
-    await productStore.updateVariant(form.id, {
-      tenSanPham: form.tenSanPham,
-      idCpu: form.idCpu,
-      idRam: form.idRam,
-      idGpu: form.idGpu,
-      idMauSac: form.idMauSac,
-      idOCung: form.idOCung,
-      idLoaiManHinh: form.idLoaiManHinh,
-      idPin: form.idPin,
-      giaBan: form.giaBan,
-      soLuongTon: form.soLuongTon,
-      trangThai: form.trangThai
-    })
-    
-    emit('updated')
-    
-    // Close modal after successful update using the same cleanup method
-    const modal = document.getElementById('variantEditModal')
-    if (modal) {
-      // Try Bootstrap 5 first
-      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        let bsModal = bootstrap.Modal.getInstance(modal)
-        if (bsModal) {
-          bsModal.hide()
-          // Dispose to ensure clean state for next time
-          bsModal.dispose()
-        }
-      }
-      
-      // Always do manual cleanup to ensure everything is clean
-      modal.classList.remove('show', 'd-block')
-      modal.style.display = 'none'
-      modal.setAttribute('aria-hidden', 'true')
-      modal.removeAttribute('aria-modal')
-      modal.removeAttribute('role')
-      
-      // Clean up body and backdrop
-      document.body.classList.remove('modal-open')
-      
-      // Remove all modal backdrops
-      const backdrops = document.querySelectorAll('.modal-backdrop')
-      backdrops.forEach(backdrop => backdrop.remove())
-      
-      // Reset body styles that might be left over
-      document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
+    // Prepare payload with proper data types - only send valid values
+    const payload = {
+      tenSanPham: form.tenSanPham?.trim(),
+      giaBan: Number(form.giaBan) || 0,
+      soLuongTon: Number(form.soLuongTon) || 0,
+      trangThai: Number(form.trangThai) ?? 1
     }
     
-    // Reset form after successful update
-    resetForm()
+    // Only include attribute IDs if they have valid values
+    if (form.idCpu) payload.idCpu = Number(form.idCpu)
+    if (form.idRam) payload.idRam = Number(form.idRam)
+    if (form.idGpu) payload.idGpu = Number(form.idGpu)
+    if (form.idMauSac) payload.idMauSac = Number(form.idMauSac)
+    if (form.idOCung) payload.idOCung = Number(form.idOCung)
+    if (form.idLoaiManHinh) payload.idLoaiManHinh = Number(form.idLoaiManHinh)
+    if (form.idPin) payload.idPin = Number(form.idPin)
+    
+    console.log('VariantEditModal: Prepared payload:', payload)
+    
+    // Only validate required fields (name, price, quantity)
+    if (!payload.tenSanPham) {
+      throw new Error('Tên sản phẩm không được để trống')
+    }
+    
+    if (!payload.giaBan || payload.giaBan <= 0) {
+      throw new Error('Giá bán phải lớn hơn 0')
+    }
+    
+    if (payload.soLuongTon < 0) {
+      throw new Error('Số lượng tồn không được âm')
+    }
+    
+    console.log('VariantEditModal: Calling productStore.updateVariant')
+    await productStore.updateVariant(form.id, payload)
+    
+    console.log('VariantEditModal: Update successful, emitting updated event')
+    emit('updated')
+    
+    // Show success message
+    alert('Cập nhật biến thể thành công!')
+    
+    // Close modal after successful update
+    closeModal()
     
   } catch (error) {
-    console.error('Error updating variant:', error)
-    generalError.value = error.message || 'Có lỗi xảy ra khi cập nhật biến thể'
+    console.error('VariantEditModal: Error updating variant:', error)
+    
+    let errorMessage = 'Có lỗi xảy ra khi cập nhật biến thể'
+    
+    if (error.response?.status === 400) {
+      errorMessage = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập.'
+    } else if (error.response?.status === 404) {
+      errorMessage = 'Biến thể không tồn tại hoặc đã bị xóa.'
+    } else if (error.response?.status === 403) {
+      errorMessage = 'Bạn không có quyền cập nhật biến thể này.'
+    } else if (error.response?.status === 500) {
+      errorMessage = 'Lỗi server. Vui lòng thử lại sau.'
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    generalError.value = errorMessage
   } finally {
     loading.value = false
   }

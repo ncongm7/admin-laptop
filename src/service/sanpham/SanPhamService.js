@@ -148,6 +148,67 @@ export const deleteCTSP = (id) => {
   return client.delete(`${CTSP_ROUTE}/${id}`)
 }
 
+// Cascade delete CTSP with all related data (serials, images, etc.)
+export const deleteCTSPWithCascade = async (id) => {
+  console.log('SanPhamService: Starting cascade delete for CTSP ID:', id)
+  
+  try {
+    // Step 1: Delete all serials for this variant
+    try {
+      console.log('SanPhamService: Deleting serials for CTSP ID:', id)
+      const serialsResponse = await client.get(`/api/serial/ctsp/${id}`)
+      const serials = serialsResponse.data || []
+      
+      if (serials.length > 0) {
+        console.log(`SanPhamService: Found ${serials.length} serials to delete`)
+        const deleteSerialPromises = serials.map(serial => 
+          client.delete(`/api/serial/${serial.id}`).catch(err => {
+            console.warn('Failed to delete serial:', serial.id, err.message)
+            return null
+          })
+        )
+        await Promise.allSettled(deleteSerialPromises)
+        console.log('SanPhamService: Finished deleting serials')
+      }
+    } catch (serialError) {
+      console.warn('SanPhamService: Error deleting serials:', serialError.message)
+      // Continue even if serial deletion fails
+    }
+    
+    // Step 2: Delete all images for this variant
+    try {
+      console.log('SanPhamService: Deleting images for CTSP ID:', id)
+      const imagesResponse = await getHinhAnhByCtspId(id)
+      const images = imagesResponse.data || []
+      
+      if (images.length > 0) {
+        console.log(`SanPhamService: Found ${images.length} images to delete`)
+        const deleteImagePromises = images.map(image => 
+          client.delete(`/api/hinh-anh/${image.id}`).catch(err => {
+            console.warn('Failed to delete image:', image.id, err.message)
+            return null
+          })
+        )
+        await Promise.allSettled(deleteImagePromises)
+        console.log('SanPhamService: Finished deleting images')
+      }
+    } catch (imageError) {
+      console.warn('SanPhamService: Error deleting images:', imageError.message)
+      // Continue even if image deletion fails
+    }
+    
+    // Step 3: Now delete the variant
+    console.log('SanPhamService: Deleting CTSP ID:', id)
+    const result = await client.delete(`${CTSP_ROUTE}/${id}`)
+    console.log('SanPhamService: Successfully deleted CTSP')
+    
+    return result
+  } catch (error) {
+    console.error('SanPhamService: Error in cascade delete:', error)
+    throw error
+  }
+}
+
 // ===== CPU CRUD =====
 export const getCPUList = () => {
   return client.get('/api/cpu')

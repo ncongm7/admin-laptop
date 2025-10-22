@@ -287,14 +287,13 @@
                       <div class="color-display" v-if="variant.mauSac">
                         <div class="d-flex align-items-center">
                           <span 
-                            v-if="variant.mauSac.hexCode" 
                             class="color-preview me-2" 
-                            :style="{ backgroundColor: variant.mauSac.hexCode }"
-                            :title="variant.mauSac.hexCode"
+                            :style="{ backgroundColor: getColorForVariant(variant.mauSac) }"
+                            :title="variant.mauSac?.tenMau + ' (' + getColorForVariant(variant.mauSac) + ')'"
                           ></span>
                           <div class="color-info">
                             <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
-                            <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
+                            <div class="color-hex">{{ getColorForVariant(variant.mauSac) }}</div>
                           </div>
                         </div>
                       </div>
@@ -1006,6 +1005,266 @@ const handleSave = async (variantData) => {
 const goBack = () => {
   router.push('/quan-li-san-pham')
 }
+
+// Color mapping function
+const getColorByName = (colorName) => {
+  console.log('=== getColorByName called ===')
+  console.log('Input colorName:', colorName, 'type:', typeof colorName)
+  
+  if (!colorName) {
+    console.log('No color name provided, returning default gray')
+    return '#808080' // Default gray
+  }
+  
+  // Convert to lowercase and trim for comparison
+  const name = colorName.toString().toLowerCase().trim()
+  console.log('Normalized name:', name)
+  
+  // Comprehensive color mapping with multiple variations
+  const colorMap = {
+    // Black variations
+    'đen': '#000000',
+    'den': '#000000', 
+    'black': '#000000',
+    'màu đen': '#000000',
+    
+    // White variations  
+    'trắng': '#FFFFFF',
+    'trang': '#FFFFFF',
+    'white': '#FFFFFF',
+    'màu trắng': '#FFFFFF',
+    
+    // Red variations
+    'đỏ': '#FF0000',
+    'do': '#FF0000',
+    'red': '#FF0000',
+    'màu đỏ': '#FF0000',
+    'đỏ tươi': '#FF0000',
+    'đỏ đậm': '#CC0000',
+    
+    // Blue variations
+    'xanh dương': '#0066CC',
+    'xanh duong': '#0066CC',
+    'xanh': '#0066CC',
+    'blue': '#0066CC',
+    'màu xanh': '#0066CC',
+    'xanh da trời': '#87CEEB',
+    'xanh navy': '#000080',
+    
+    // Green variations
+    'xanh lá': '#00AA00',
+    'xanh la': '#00AA00',
+    'green': '#00AA00',
+    'màu xanh lá': '#00AA00',
+    'xanh lá cây': '#228B22',
+    
+    // Yellow variations
+    'vàng': '#FFD700',
+    'vang': '#FFD700',
+    'yellow': '#FFD700',
+    'màu vàng': '#FFD700',
+    'vàng gold': '#FFD700',
+    
+    // Purple variations
+    'tím': '#800080',
+    'tim': '#800080',
+    'purple': '#800080',
+    'màu tím': '#800080',
+    'tím than': '#663399',
+    
+    // Pink variations
+    'hồng': '#FF69B4',
+    'hong': '#FF69B4',
+    'pink': '#FF69B4',
+    'màu hồng': '#FF69B4',
+    'hồng nhạt': '#FFB6C1',
+    
+    // Orange variations
+    'cam': '#FF8C00',
+    'orange': '#FF8C00',
+    'màu cam': '#FF8C00',
+    'cam đậm': '#FF6600',
+    
+    // Brown variations
+    'nâu': '#8B4513',
+    'nau': '#8B4513',
+    'brown': '#8B4513',
+    'màu nâu': '#8B4513',
+    'nâu đậm': '#654321',
+    
+    // Gray variations
+    'xám': '#808080',
+    'xam': '#808080',
+    'gray': '#808080',
+    'grey': '#808080',
+    'màu xám': '#808080',
+    'xám nhạt': '#D3D3D3',
+    'xám đậm': '#696969',
+    
+    // Silver variations
+    'bạc': '#C0C0C0',
+    'bac': '#C0C0C0',
+    'silver': '#C0C0C0',
+    'màu bạc': '#C0C0C0',
+    
+    // Gold variations
+    'vàng gold': '#FFD700',
+    'gold': '#FFD700',
+    'màu vàng kim': '#FFD700'
+  }
+  
+  // Direct match first
+  if (colorMap[name]) {
+    console.log('✅ Direct match found:', name, '→', colorMap[name])
+    return colorMap[name]
+  }
+  
+  // Partial match - check if any key contains the name or vice versa
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (name.includes(key) || key.includes(name)) {
+      console.log('✅ Partial match found:', name, '→', key, '→', value)
+      return value
+    }
+  }
+  
+  // Fallback for common color keywords
+  if (name.includes('đỏ') || name.includes('do') || name.includes('red')) {
+    console.log('✅ Fallback red match:', name, '→ #FF0000')
+    return '#FF0000'
+  }
+  
+  if (name.includes('đen') || name.includes('den') || name.includes('black')) {
+    console.log('✅ Fallback black match:', name, '→ #000000')
+    return '#000000'
+  }
+  
+  if (name.includes('trắng') || name.includes('trang') || name.includes('white')) {
+    console.log('✅ Fallback white match:', name, '→ #FFFFFF')
+    return '#FFFFFF'
+  }
+  
+  if (name.includes('xanh') || name.includes('blue')) {
+    console.log('✅ Fallback blue match:', name, '→ #0066CC')
+    return '#0066CC'
+  }
+  
+  // Generate color from string if no match found
+  console.log('❌ No match found, generating fallback color for:', name)
+  return generateColorFromString(name)
+}
+
+// Generate color from string hash
+const generateColorFromString = (str) => {
+  // For unknown colors, return a neutral color instead of random
+  console.log('Generating fallback color for unknown color name:', str)
+  return '#6B7280' // Nice neutral gray
+}
+
+// Simple and direct color function
+const getColorForVariant = (colorObj) => {
+  if (!colorObj) return '#808080'
+  
+  // Direct color mapping based on name
+  const colorName = colorObj.tenMau || colorObj.name || ''
+  
+  switch (colorName.toLowerCase().trim()) {
+    case 'đen':
+    case 'den':
+    case 'black':
+    case 'màu đen':
+      return '#000000'
+      
+    case 'đỏ':
+    case 'do':
+    case 'red':
+    case 'màu đỏ':
+      return '#FF0000'
+      
+    case 'trắng':
+    case 'trang':
+    case 'white':
+    case 'màu trắng':
+      return '#FFFFFF'
+      
+    case 'xanh':
+    case 'xanh dương':
+    case 'xanh duong':
+    case 'blue':
+    case 'màu xanh':
+      return '#0066CC'
+      
+    case 'xanh lá':
+    case 'xanh la':
+    case 'green':
+    case 'màu xanh lá':
+      return '#00AA00'
+      
+    case 'vàng':
+    case 'vang':
+    case 'yellow':
+    case 'màu vàng':
+      return '#FFD700'
+      
+    case 'tím':
+    case 'tim':
+    case 'purple':
+    case 'màu tím':
+      return '#800080'
+      
+    case 'hồng':
+    case 'hong':
+    case 'pink':
+    case 'màu hồng':
+      return '#FF69B4'
+      
+    case 'cam':
+    case 'orange':
+    case 'màu cam':
+      return '#FF8C00'
+      
+    case 'nâu':
+    case 'nau':
+    case 'brown':
+    case 'màu nâu':
+      return '#8B4513'
+      
+    case 'xám':
+    case 'xam':
+    case 'gray':
+    case 'grey':
+    case 'màu xám':
+      return '#808080'
+      
+    case 'bạc':
+    case 'bac':
+    case 'silver':
+    case 'màu bạc':
+      return '#C0C0C0'
+      
+    default:
+      // If no match, try to use hexCode from object
+      if (colorObj.hexCode) {
+        const hex = colorObj.hexCode.trim()
+        if (hex.match(/^#?[0-9A-Fa-f]{6}$/)) {
+          return hex.startsWith('#') ? hex : '#' + hex
+        }
+      }
+      
+      // Final fallback - generate based on name
+      if (colorName) {
+        // Simple hash-based color generation
+        let hash = 0
+        for (let i = 0; i < colorName.length; i++) {
+          hash = colorName.charCodeAt(i) + ((hash << 5) - hash)
+        }
+        const color = Math.abs(hash).toString(16).substring(0, 6).padEnd(6, '0')
+        return '#' + color
+      }
+      
+      return '#808080' // Default gray
+  }
+}
+
 
 const refreshData = async () => {
   try {

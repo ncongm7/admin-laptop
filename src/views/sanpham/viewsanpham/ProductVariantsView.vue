@@ -608,23 +608,47 @@ const editVariant = async (variant) => {
 
 const deleteVariant = async (variant) => {
   // Enhanced confirmation dialog
-  const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể "${variant.maCtsp}"?\n\nThông tin biến thể:\n- CPU: ${variant.tenCpu || 'N/A'}\n- RAM: ${variant.tenRam || 'N/A'}\n- Màu sắc: ${variant.mauSac?.tenMau || 'N/A'}\n- Giá bán: ${formatCurrency(variant.giaBan)}\n\nHành động này không thể hoàn tác!`
+  const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể "${variant.maCtsp}"?\n\nThông tin biến thể:\n- CPU: ${variant.tenCpu || 'N/A'}\n- RAM: ${variant.tenRam || 'N/A'}\n- Màu sắc: ${variant.mauSac?.tenMau || 'N/A'}\n- Giá bán: ${formatCurrency(variant.giaBan)}\n\nLưu ý: Hệ thống sẽ tự động xóa tất cả dữ liệu liên quan (serial, hình ảnh) trước khi xóa biến thể.\nHành động này không thể hoàn tác!`
   
   if (confirm(confirmMessage)) {
     try {
       console.log('Deleting variant:', variant)
+      console.log('Variant ID:', variant.id)
       
       // Call API to delete variant
       await productStore.removeVariant(variant.id)
+      
+      // Clear selection if this variant was selected
+      selectedVariants.value = selectedVariants.value.filter(id => id !== variant.id)
       
       // Reload the variants list
       await triggerFetch()
       
       // Show success message
       alert('Xóa biến thể thành công!')
+      console.log('Variant deleted successfully')
     } catch (error) {
       console.error('Error deleting variant:', error)
-      alert('Có lỗi khi xóa biến thể: ' + (error.message || 'Vui lòng thử lại'))
+      
+      // Handle specific error types
+      let errorMessage = 'Có lỗi khi xóa biến thể: '
+      
+      if (error.message && error.message.includes('REFERENCE constraint')) {
+        errorMessage = 'Không thể xóa biến thể mặc dù hệ thống đã thử xóa dữ liệu liên quan.\n\nCó thể do:\n1. Biến thể đang được sử dụng trong đơn hàng\n2. Có dữ liệu liên quan khác chưa được xóa\n3. Lỗi quyền truy cập\n\nVui lòng liên hệ quản trị viên.'
+      } else if (error.response?.status === 404) {
+        errorMessage += 'Biến thể không tồn tại hoặc đã bị xóa'
+      } else if (error.response?.status === 403) {
+        errorMessage += 'Không có quyền xóa biến thể này'
+      } else if (error.response?.status === 500) {
+        errorMessage += 'Lỗi server. Có thể do dữ liệu liên quan (serial, đơn hàng)'
+      } else {
+        errorMessage += error.message || 'Vui lòng thử lại'
+      }
+      
+      alert(errorMessage)
+      
+      // Reload to refresh state
+      await triggerFetch()
     }
   }
 }
@@ -642,39 +666,66 @@ const bulkDelete = async () => {
     .slice(0, 5) // Show only first 5 for readability
   
   const moreCount = selectedVariants.value.length - selectedVariantDetails.length
-  const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?\n\nDanh sách biến thể sẽ bị xóa:\n${selectedVariantDetails.join('\n')}${moreCount > 0 ? `\n... và ${moreCount} biến thể khác` : ''}\n\nHành động này không thể hoàn tác!`
+  const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?\n\nDanh sách biến thể sẽ bị xóa:\n${selectedVariantDetails.join('\n')}${moreCount > 0 ? `\n... và ${moreCount} biến thể khác` : ''}\n\nLưu ý: Các biến thể có serial liên quan sẽ không thể xóa được.\nHành động này không thể hoàn tác!`
   
   if (confirm(confirmMessage)) {
     try {
       console.log('Bulk deleting variants:', selectedVariants.value)
       
-      // Call API to delete multiple variants
-      const deletePromises = selectedVariants.value.map(id => productStore.removeVariant(id))
-      await Promise.all(deletePromises)
+      // Track success and failures
+      const results = []
+      let successCount = 0
+      let failureCount = 0
       
-      // After successful deletion, clear selection and reload the variants list
+      // Delete variants one by one to handle individual errors
+      for (const id of selectedVariants.value) {
+        try {
+          await productStore.removeVariant(id)
+          results.push({ id, success: true })
+          successCount++
+        } catch (error) {
+          console.warn(`Failed to delete variant ${id}:`, error)
+          results.push({ id, success: false, error: error.message })
+          failureCount++
+        }
+      }
+      
+      // Clear selection and reload
       selectedVariants.value = []
       selectAll.value = false
       await triggerFetch()
       
-      // Show success message
-      alert('Xóa các biến thể thành công!')
-    } catch (error) {
-      console.error('Error bulk deleting variants:', error)
-      alert('Có lỗi khi xóa các biến thể: ' + (error.message || 'Vui lòng thử lại'))
+      // Show detailed results
+      if (failureCount === 0) {
+        alert(`Xóa thành công tất cả ${successCount} biến thể!`)
+      } else if (successCount === 0) {
+        alert(`Không thể xóa được biến thể nào. Có thể do dữ liệu serial liên quan.\n\nVui lòng xóa serial trước khi xóa biến thể.`)
+      } else {
+        alert(`Kết quả xóa:\n- Thành công: ${successCount} biến thể\n- Thất bại: ${failureCount} biến thể\n\nCác biến thể thất bại có thể do có serial liên quan.`)
+      }
       
-      // Reload to refresh the state
+    } catch (error) {
+      console.error('Error in bulk delete process:', error)
+      alert('Có lỗi trong quá trình xóa hàng loạt: ' + (error.message || 'Vui lòng thử lại'))
+      
+      // Clear selection and reload
+      selectedVariants.value = []
+      selectAll.value = false
       await triggerFetch()
     }
   }
 }
 
-const handleVariantUpdated = () => {
-  // Reload variants list after successful update
-  triggerFetch()
+const handleVariantUpdated = async () => {
+  console.log('ProductVariantsView: Handling variant updated event')
   
-  // Show success message
-  alert('Cập nhật biến thể thành công!')
+  try {
+    // Reload variants list after successful update
+    await triggerFetch()
+    console.log('ProductVariantsView: Variants list refreshed successfully')
+  } catch (error) {
+    console.error('ProductVariantsView: Error refreshing variants list:', error)
+  }
 }
 
 const getColorHex = (tenMau) => {
