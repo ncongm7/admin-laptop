@@ -1,5 +1,5 @@
 // Gọi API backend
-const API = 'http://localhost:8080/api/phieu-giam-gia-quan-ly';
+const API = 'http://localhost:8080/api/dot-giam-gia-quan-ly';
 
 // === Helper: xử lý response NGẮN GỌN ===
 // - OK 2xx  -> trả JSON (hoặc {} nếu body rỗng)
@@ -25,24 +25,21 @@ async function handleResponse(res) {
   alert(msg);
   throw new Error(msg);
 }
+
 // Lấy danh sách
-export const getVouchers = async () => {
+export const getDotGiamGias = async () => {
   const res = await fetch(`${API}/danh-sach`);
   return handleResponse(res);
 };
-// Lấy danh sách theo trang (backend dùng pageNo1 là 0-based)
-export const getVouchersPage = async (pageNo1 = 0) => {
-  const res = await fetch(`${API}/paging?pageNo1=${pageNo1}`);
-  return handleResponse(res);
-};
-// Lấy chi tiết 1 phiếu theo id
-export const getVoucherById = async (id) => {
+
+// Lấy chi tiết 1 đợt theo id
+export const getDotGiamGiaById = async (id) => {
   const res = await fetch(`${API}/detail/${id}`);
   return handleResponse(res);
 };
 
 // Thêm mới
-export const addVoucher = async (data) => {
+export const addDotGiamGia = async (data) => {
   const res = await fetch(`${API}/add`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -52,7 +49,7 @@ export const addVoucher = async (data) => {
 };
 
 // Cập nhật
-export const updateVoucher = async (data, id) => {
+export const updateDotGiamGia = async (data, id) => {
   const res = await fetch(`${API}/update/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -62,7 +59,7 @@ export const updateVoucher = async (data, id) => {
 };
 
 // Xóa
-export const deleteVoucher = async (id) => {
+export const deleteDotGiamGia = async (id) => {
   const res = await fetch(`${API}/delete/${id}`, { method: 'DELETE' });
   return handleResponse(res);
 };

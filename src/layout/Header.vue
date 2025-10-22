@@ -1,206 +1,235 @@
 <template>
-    <header class="header shadow-sm d-flex align-items-center justify-content-between px-3 py-2 bg-gradient">
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-light d-md-none me-2" @click="$emit('toggle-sidebar')">
-                <i class="bi bi-list fs-4"></i>
+    <header class="app-header">
+        <!-- Left Section: Logo and Sidebar Toggle -->
+        <div class="header-left">
+            <button class="sidebar-toggle-btn" @click="toggleSidebar">
+                <i class="bi bi-list"></i>
             </button>
-            <router-link to="/" class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2">
-                <i class="bi bi-laptop fs-3 text-primary"></i>
-                <span class="brand-gradient">LaptopShop</span>
-            </router-link>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <!-- Theme switch -->
-            <button class="btn btn-light rounded-circle theme-btn" @click="toggleTheme">
-                <i :class="isDark ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill'"></i>
-            </button>
-            <!-- Notification -->
-            <div class="position-relative me-2">
-                <button class="btn btn-light position-relative shadow-sm rounded-circle p-2 notif-btn">
-                    <i class="bi bi-bell fs-5"></i>
-                    <span class="badge bg-danger rounded-circle notif-badge">3</span>
-                </button>
+            <div class="logo">
+                <i class="bi bi-laptop logo-icon"></i>
+                <span class="logo-text">Viet<span class="logo-highlight">LapTop</span></span>
             </div>
-            <!-- User dropdown -->
-            <div v-if="user" class="dropdown">
-                <button
-                    class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 shadow-sm rounded-pill px-3 py-2"
-                    type="button" data-bs-toggle="dropdown">
-                    <span class="avatar-wrapper">
-                        <img :src="user.avatar || 'https://randomuser.me/api/portraits/men/32.jpg'"
-                            class="avatar-img me-2" alt="avatar" />
-                        <span class="badge-online"></span>
-                    </span>
-                    <span class="d-none d-md-inline fw-semibold">{{ user.ten || user.username || 'Admin' }}</span>
-                    <span class="user-role ms-2">{{ user.role || 'Admin' }}</span>
+        </div>
+
+        <!-- Center Section: Global Search -->
+        <div class="header-center">
+            <div class="global-search">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" placeholder="Tìm kiếm sản phẩm, đơn hàng, khách hàng..." />
+            </div>
+        </div>
+
+        <!-- Right Section: Actions and User Menu -->
+        <div class="header-right">
+            <button class="header-action-btn">
+                <i class="bi bi-bell"></i>
+                <span class="badge-dot"></span>
+            </button>
+            <button class="header-action-btn">
+                <i class="bi bi-grid-3x3-gap"></i>
+            </button>
+            <div class="user-menu dropdown">
+                <button class="user-avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img :src="authStore.user?.avatar || 'https://i.pravatar.cc/40'" alt="User Avatar"
+                        class="user-avatar" />
+                    <div class="user-info">
+                        <span class="user-name">{{ authStore.user?.hoTen || 'Nhân viên' }}</span>
+                        <span class="user-role">{{ authStore.user?.role || 'Staff' }}</span>
+                    </div>
+                    <i class="bi bi-chevron-down dropdown-icon"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><router-link class="dropdown-item" to="/profile">Thông tin cá nhân</router-link></li>
-                    <li><router-link class="dropdown-item" to="/change-password">Đổi mật khẩu</router-link></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Cài đặt</a></li>
                     <li>
-                        <hr class="dropdown-divider" />
+                        <hr class="dropdown-divider">
                     </li>
-                    <li><a class="dropdown-item text-danger" href="#" @click.prevent="handleLogout">Đăng xuất</a></li>
+                    <li><a class="dropdown-item text-danger" @click="logout"><i
+                                class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
                 </ul>
-            </div>
-            <div v-else>
-                <router-link to="/login" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold">
-                    <i class="bi bi-box-arrow-in-right me-2"></i> Đăng nhập
-                </router-link>
             </div>
         </div>
     </header>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { useAuthStore } from '@/stores/authStore';
 
-const userStore = useUserStore()
-const router = useRouter()
-const user = computed(() => userStore.user)
+const emit = defineEmits(['toggle-sidebar']);
 
-const isDark = ref(false)
-const toggleTheme = () => {
-    isDark.value = !isDark.value
-    document.body.classList.toggle('dark-theme', isDark.value)
-}
+const authStore = useAuthStore();
 
-const handleLogout = () => {
-    userStore.logout()
-    router.push('/login')
-}
+const toggleSidebar = () => {
+    emit('toggle-sidebar');
+};
+
+const logout = () => {
+    authStore.logout();
+    // Có thể cần chuyển hướng về trang đăng nhập ở đây
+    // router.push('/login');
+};
 </script>
 
 <style scoped>
-.header {
-    min-height: 56px;
+.app-header {
+    height: 64px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
     position: sticky;
     top: 0;
-    z-index: 300;
-    background: #22c55e;
-    box-shadow: 0 2px 8px #22c55e22;
-    color: #fff;
-    font-size: 0.97rem;
-    backdrop-filter: blur(6px);
+    z-index: 1020;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.navbar-brand,
-.brand-gradient {
-    color: #fff !important;
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    background: none !important;
-    -webkit-background-clip: unset;
-    -webkit-text-fill-color: unset;
+/* Left */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
-.theme-btn {
-    font-size: 1.1rem;
-    background: #fff;
-    color: #22c55e;
+.sidebar-toggle-btn {
+    background: none;
     border: none;
-    box-shadow: 0 1px 4px #22c55e11;
-    transition: background 0.18s, color 0.18s;
+    font-size: 1.5rem;
+    color: #495057;
+    cursor: pointer;
 }
 
-.theme-btn:hover {
-    background: #e8fbe9;
-    color: #22c55e;
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #212529;
 }
 
-.avatar-wrapper {
+.logo-icon {
+    color: #0d6efd;
+    font-size: 1.7rem;
+}
+
+.logo-highlight {
+    color: #0d6efd;
+}
+
+/* Center */
+.header-center {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 2rem;
+}
+
+.global-search {
     position: relative;
-    display: inline-block;
+    width: 100%;
+    max-width: 450px;
 }
 
-.badge-online {
+.global-search .search-icon {
     position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 10px;
-    height: 10px;
-    background: #22c55e;
-    border: 2px solid #fff;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.global-search input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.75rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.global-search input:focus {
+    background-color: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Right */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-action-btn {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: #495057;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    box-shadow: 0 0 4px #22c55e99;
+    transition: background-color 0.2s;
+}
+
+.header-action-btn:hover {
+    background-color: #f1f3f5;
+}
+
+.badge-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.user-menu .user-avatar-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.user-menu .user-avatar-btn:hover {
+    background-color: #f1f3f5;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #212529;
 }
 
 .user-role {
-    font-size: 0.82rem;
-    color: #22c55e;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+    color: #6c757d;
 }
 
-.avatar-img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 8px #22c55e13;
-    transition: box-shadow 0.18s, border 0.18s;
-}
-
-.avatar-img:hover {
-    box-shadow: 0 4px 16px #22c55e18;
-    border: 2px solid #22c55e;
-}
-
-.notif-btn {
-    background: #fff;
-    color: #22c55e;
-    transition: box-shadow 0.18s, background 0.18s;
-}
-
-.notif-btn:hover {
-    background: #e8fbe9;
-    color: #22c55e;
-    box-shadow: 0 2px 8px #22c55e13;
-}
-
-.notif-badge {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 0.7em;
-    padding: 3px 6px;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 4px #22c55e13;
-}
-
-.dropdown-toggle {
-    background: #fff;
-    color: #22c55e;
-    font-weight: 500;
-    transition: background 0.18s, box-shadow 0.18s, color 0.18s;
-}
-
-.dropdown-toggle:hover {
-    background: #e8fbe9;
-    color: #22c55e;
-}
-
-.dropdown-menu {
-    min-width: 180px;
-    border-radius: 10px;
-    box-shadow: 0 4px 16px #22c55e10;
-    padding: 8px 0;
-    font-size: 0.97rem;
-}
-
-.dropdown-item {
-    padding: 9px 18px;
-    transition: background 0.15s, color 0.15s;
-    color: #222;
-}
-
-.dropdown-item:hover {
-    background: #e8fbe9;
-    color: #22c55e;
+.dropdown-icon {
+    font-size: 0.8rem;
+    color: #6c757d;
 }
 </style>
