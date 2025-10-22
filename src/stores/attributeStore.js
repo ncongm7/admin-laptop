@@ -1,18 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-    getAllHang,
-    getAllCpu,
-    getAllRam,
-    getAllGpu,
-    getAllOCung,
-    getAllMauSac,
-    getAllKichThuocManHinh,
-    getAllLoaiManHinh,
-    getAllHeDieuHanh,
-    getAllDungLuongPin,
-    getAllCamera
-} from '@/service/apiAttributeOfProduct'
 
 export const useAttributeStore = defineStore('attribute', () => {
     // State
@@ -51,43 +38,20 @@ export const useAttributeStore = defineStore('attribute', () => {
         loading.value = true
         error.value = null
         try {
-            const [
-                brands,
-                cpus,
-                rams,
-                gpus,
-                storages,
-                colors,
-                screens,
-                displays,
-                oses,
-                batteries,
-                cameras
-            ] = await Promise.all([
-                getAllHang(),
-                getAllCpu(),
-                getAllRam(),
-                getAllGpu(),
-                getAllOCung(),
-                getAllMauSac(),
-                getAllKichThuocManHinh(),
-                getAllLoaiManHinh(),
-                getAllHeDieuHanh(),
-                getAllDungLuongPin(),
-                getAllCamera()
-            ])
+            // Note: Attributes are now loaded from productStore instead
+            // This store is kept for backward compatibility
             attributes.value = {
-                brands: brands || [],
-                cpus: cpus || [],
-                rams: rams || [],
-                gpus: gpus || [],
-                storages: storages || [],
-                colors: colors || [],
-                screens: screens || [],
-                displays: displays || [],
-                oses: oses || [],
-                batteries: batteries || [],
-                cameras: cameras || []
+                brands: [],
+                cpus: [],
+                rams: [],
+                gpus: [],
+                storages: [],
+                colors: [],
+                screens: [],
+                displays: [],
+                oses: [],
+                batteries: [],
+                cameras: []
             }
         } catch (err) {
             error.value = err.message || 'Có lỗi xảy ra khi tải thuộc tính'

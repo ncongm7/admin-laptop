@@ -218,44 +218,14 @@ const editFromDetail = () => {
 
 const saveProduct = async (productData) => {
   try {
-    console.log('Saving product data:', productData)
+    console.log('Product saved from modal:', productData)
     
-    // Validate required fields
-    if (!productData.tenSanPham?.trim()) {
-      alert('Vui lòng nhập tên sản phẩm')
-      return
-    }
-
-    // Show confirmation dialog
-    const action = productData.id ? 'cập nhật' : 'tạo mới'
-    const confirmMessage = `Bạn có chắc chắn muốn ${action} sản phẩm "${productData.tenSanPham}"?`
-    
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    loading.value = true
-
-    if (productData.id) {
-      console.log('Calling editProduct with ID:', productData.id)
-      const result = await productStore.editProduct(productData.id, productData)
-      console.log('Edit result:', result)
-      alert('Cập nhật sản phẩm thành công!')
-    } else {
-      console.log('Creating new product')
-      const result = await productStore.addProduct(productData)
-      console.log('Create result:', result)
-      alert('Tạo sản phẩm mới thành công!')
-    }
-    
-    // Refresh the product list
+    // Product is already created/updated by ProductFormModal
+    // Just refresh the list and close modal
     await fetchData()
     closeModal()
   } catch (error) {
-    console.error('Error saving product:', error)
-    alert(`Lỗi khi ${productData.id ? 'cập nhật' : 'tạo'} sản phẩm: ${error.message}`)
-  } finally {
-    loading.value = false
+    console.error('Error refreshing product list:', error)
   }
 }
 
@@ -287,13 +257,7 @@ const handleSave = async () => {
       return
     }
 
-    // Show confirmation dialog
-    const action = editForm.value.id ? 'cập nhật' : 'tạo mới'
-    const confirmMessage = `Bạn có chắc chắn muốn ${action} sản phẩm "${editForm.value.tenSanPham}"?`
-    
-    if (!confirm(confirmMessage)) {
-      return
-    }
+    // No confirmation needed for product creation/update
 
     loading.value = true
 
@@ -326,56 +290,14 @@ const closeDetailModal = () => {
 
 const saveEditedProduct = async (productData) => {
   try {
-    console.log('Saving edited product data:', productData)
+    console.log('Product edited from modal:', productData)
     
-    // Validate required fields
-    if (!productData.tenSanPham?.trim()) {
-      alert('Vui lòng nhập tên sản phẩm')
-      return
-    }
-
-    // Show confirmation dialog
-    const confirmMessage = `Bạn có chắc chắn muốn cập nhật sản phẩm "${productData.tenSanPham}"?`
-    
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    loading.value = true
-
-    // Prepare data for API - ensure field names match backend expectations
-    const updateData = {
-      tenSanPham: productData.tenSanPham.trim(),
-      maSanPham: productData.maSanPham || '',
-      trangThai: productData.trangThai !== undefined ? productData.trangThai : 1,
-      // Add moTa field if needed based on backend schema
-      moTa: productData.moTa || productData.moTaChiTiet || ''
-    }
-
-    console.log('Calling editProduct with ID:', productData.id, 'Update data:', updateData)
-    const result = await productStore.editProduct(productData.id, updateData)
-    console.log('Edit result:', result)
-    
-    // Show success message
-    alert('Cập nhật sản phẩm thành công!')
-    
-    // Refresh the product list
+    // Product is already updated by ProductFormModal
+    // Just refresh the list and close modal
     await fetchData()
     closeEditModal()
   } catch (error) {
-    console.error('Error saving edited product:', error)
-    
-    // Show more detailed error message
-    let errorMessage = 'Lỗi khi cập nhật sản phẩm'
-    if (error.response?.data?.message) {
-      errorMessage += `: ${error.response.data.message}`
-    } else if (error.message) {
-      errorMessage += `: ${error.message}`
-    }
-    
-    alert(errorMessage)
-  } finally {
-    loading.value = false
+    console.error('Error refreshing product list:', error)
   }
 }
 

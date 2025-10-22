@@ -87,7 +87,7 @@
               <div class="d-flex align-items-center">
                 <div class="product-thumbnail me-3">
                   <img
-                    :src="product.anhDaiDien || '/placeholder-product.jpg'"
+                    :src="getProductThumbnail(product)"
                     :alt="product.tenSanPham"
                   />
                 </div>
@@ -290,6 +290,36 @@ const stockStatusClass = (stock) => {
 
 const statusClass = (status) => {
   return status === 1 ? 'bg-success' : 'bg-secondary'
+}
+
+const getProductThumbnail = (product) => {
+  // Return product thumbnail if exists
+  if (product.anhDaiDien) {
+    return product.anhDaiDien
+  }
+  
+  // Otherwise try to get from first variant with images
+  if (product.variants && product.variants.length > 0) {
+    for (const variant of product.variants) {
+      if (variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
+        const firstImage = variant.images[0]
+        // Handle both object with url property and direct string url
+        if (typeof firstImage === 'string') {
+          return firstImage
+        }
+        if (firstImage && firstImage.url) {
+          return firstImage.url
+        }
+        // Try other possible properties
+        if (firstImage && firstImage.uri) {
+          return firstImage.uri
+        }
+      }
+    }
+  }
+  
+  // Fallback to placeholder
+  return '/placeholder-product.jpg'
 }
 
 const viewProduct = (product) => {

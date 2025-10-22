@@ -101,23 +101,12 @@ const allPrices = computed(() => {
   const prices = []
   const statusFilter = localFilters.value.trangThai
   
-  console.log('Calculating prices with status filter:', statusFilter)
-  console.log('Available products:', productStore.products)
-  
   for (const p of productStore.products || []) {
-    console.log('Processing product:', p.tenSanPham, 'Status:', p.trangThai, 'Price fields:', {
-      giaThapNhat: p.giaThapNhat,
-      giaCaoNhat: p.giaCaoNhat,
-      giaBan: p.giaBan,
-      gia: p.gia
-    })
     
     // Filter products by status if status filter is applied
     if (statusFilter !== '' && statusFilter !== null && statusFilter !== undefined) {
       const productStatus = parseInt(statusFilter)
-      console.log('Filtering by status:', productStatus, 'Product status:', p.trangThai)
       if (p.trangThai !== productStatus) {
-        console.log('Skipping product due to status mismatch')
         continue // Skip products that don't match the status filter
       }
     }
@@ -135,7 +124,6 @@ const allPrices = computed(() => {
     
     if (possiblePrices.length > 0) {
       prices.push(...possiblePrices)
-      console.log('Added prices for product:', p.tenSanPham, possiblePrices)
     }
     
     // Also check variants if they exist
@@ -152,34 +140,28 @@ const allPrices = computed(() => {
         const price = Number(v.giaBan || v.gia || 0)
         if (!Number.isNaN(price) && price > 0) {
           prices.push(price)
-          console.log('Added variant price:', price)
         }
       }
     }
   }
   
-  console.log('Final prices array:', prices)
   return prices
 })
 
 const minBound = computed(() => {
   if (!allPrices.value.length) {
-    console.log('No prices available, returning 0 for minBound')
     return 0
   }
   const min = Math.max(0, Math.min(...allPrices.value))
-  console.log('Calculated minBound:', min, 'from prices:', allPrices.value)
   return min
 })
 
 const MAX_CAP = 100000000 // 100 million VND
 const maxBound = computed(() => {
   if (!allPrices.value.length) {
-    console.log('No prices available, returning MAX_CAP for maxBound')
     return MAX_CAP
   }
   const max = Math.min(Math.max(...allPrices.value), MAX_CAP)
-  console.log('Calculated maxBound:', max, 'from prices:', allPrices.value)
   return max
 })
 
@@ -201,23 +183,13 @@ watch(
 watch(
   () => localFilters.value.trangThai,
   (newStatus, oldStatus) => {
-    console.log('=== STATUS FILTER CHANGED ===')
-    console.log('From:', oldStatus, 'To:', newStatus)
-    console.log('Current products:', productStore.products?.length || 0)
-    
     // Force recalculation by accessing computed values
     const newMin = minBound.value
     const newMax = maxBound.value
     
-    console.log('New price bounds - Min:', newMin, 'Max:', newMax)
-    console.log('Old price filters - Min:', localFilters.value.minPrice, 'Max:', localFilters.value.maxPrice)
-    
     // Reset price filters to new bounds when status changes
     localFilters.value.minPrice = newMin
     localFilters.value.maxPrice = newMax
-    
-    console.log('Updated price filters - Min:', localFilters.value.minPrice, 'Max:', localFilters.value.maxPrice)
-    console.log('=== END STATUS CHANGE ===')
   },
   { immediate: false },
 )

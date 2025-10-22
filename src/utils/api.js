@@ -59,10 +59,9 @@ client.interceptors.response.use(
   },
 )
 
-// Add request interceptor to log requests
+// Add request interceptor
 client.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method, config.url, config.data)
     return config
   },
   (error) => {

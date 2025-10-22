@@ -19,9 +19,9 @@ import {
   advancedSearchPage,
   getAllSanPhamChiTiet,
   deleteCTSP,
-  deleteCTSPWithCascade,
   searchSanPhamChiTiet,
-  updateChiTietSanPham
+  updateChiTietSanPham,
+  getHinhAnhByCtspId
 } from '@/service/sanpham/SanPhamService'
 // import client from '@/utils/api'
 export const useProductStore = defineStore('products', () => {
@@ -72,9 +72,7 @@ export const useProductStore = defineStore('products', () => {
     loading.value = true
     error.value = null
     try {
-      console.log('Fetching products...')
       const response = await getAllSanPham()
-      console.log('API response:', response)
 
       // Handle different response formats
       let data = response.data || response
@@ -92,7 +90,6 @@ export const useProductStore = defineStore('products', () => {
           const dateB = new Date(b.ngayTao || b.createdAt || 0)
           return dateB - dateA
         })
-        console.log('Products loaded successfully:', products.value.length)
       } else if (data && Array.isArray(data.content)) {
         // Sort by creation date (newest first)
         products.value = data.content.sort((a, b) => {
@@ -100,20 +97,20 @@ export const useProductStore = defineStore('products', () => {
           const dateB = new Date(b.ngayTao || b.createdAt || 0)
           return dateB - dateA
         })
-        console.log('Products loaded successfully:', products.value.length)
       } else {
         products.value = []
-        console.log('No products found')
       }
 
       // Load variants for each product to calculate min/max prices
       await fetchAllVariants()
       
       // Map variants to products
+      // Note: anhDaiDien should be set when creating product, so we don't load it here
       products.value = products.value.map(product => {
         const productVariants = variants.value.filter(variant => 
           variant.idSanPham === product.id || variant.sanPhamId === product.id
         )
+        
         return {
           ...product,
           variants: productVariants
@@ -139,13 +136,33 @@ export const useProductStore = defineStore('products', () => {
     try {
       const res = await getAllSanPhamChiTiet()
       const data = res.data || res
+      
+      let variantsList = []
       if (Array.isArray(data)) {
-        variants.value = data.map(normalizeCtsp)
+        variantsList = data.map(normalizeCtsp)
       } else if (data && Array.isArray(data.content)) {
-        variants.value = data.content.map(normalizeCtsp)
+        variantsList = data.content.map(normalizeCtsp)
       } else {
         variants.value = []
+        return variants.value
       }
+      
+      // Load images for each variant
+      variants.value = await Promise.all(variantsList.map(async (variant) => {
+        let images = []
+        try {
+          const imagesResponse = await getHinhAnhByCtspId(variant.id)
+          images = imagesResponse.data || []
+        } catch (err) {
+          // Silently skip if images fail to load
+        }
+        
+        return {
+          ...variant,
+          images
+        }
+      }))
+      
       return variants.value
     } catch (err) {
       error.value = err.message || 'Không thể tải danh sách biến thể'
@@ -160,10 +177,7 @@ export const useProductStore = defineStore('products', () => {
   const removeVariant = async (id) => {
     variantsLoading.value = true
     try {
-      console.log('ProductStore: Removing variant with ID:', id)
-      // Use cascade delete to handle foreign key constraints
-      await deleteCTSPWithCascade(id)
-      console.log('ProductStore: Variant removed successfully')
+      await deleteCTSP(id)
       variants.value = variants.value.filter((v) => v.id !== id)
     } catch (err) {
       console.error('ProductStore: Error removing variant:', err)
@@ -328,12 +342,8 @@ export const useProductStore = defineStore('products', () => {
     loading.value = true
     error.value = null
     try {
-      console.log('ProductStore: Updating product with ID:', id, 'Data:', productData)
-      
       const response = await updateSanPham(id, productData)
       const updatedProduct = response.data || response
-      
-      console.log('ProductStore: Update response:', updatedProduct)
       
       // Update the product in the local array
       const index = products.value.findIndex((p) => p.id === id)
@@ -344,7 +354,6 @@ export const useProductStore = defineStore('products', () => {
           ...updatedProduct,
           variants: productData.variants || existingVariants
         }
-        console.log('ProductStore: Updated product in local array:', products.value[index])
       }
       
       return updatedProduct
@@ -365,28 +374,18 @@ export const useProductStore = defineStore('products', () => {
     loading.value = true
     error.value = null
     try {
-      console.log('ProductStore: Deleting product with ID:', id)
-      
       // First, get all variants for this product
       const productVariants = variants.value.filter(variant => 
         variant.idSanPham === id || variant.sanPhamId === id
       )
       
-      console.log(`ProductStore: Found ${productVariants.length} variants to delete first`)
-      
       // Delete all variants first (cascade delete)
       if (productVariants.length > 0) {
-        console.log('ProductStore: Deleting variants first...')
         const deleteVariantPromises = productVariants.map(variant => 
-          deleteCTSPWithCascade(variant.id).catch(err => {
-            console.warn(`Failed to delete variant ${variant.id}:`, err)
-            // Continue even if some variants fail to delete
-            return null
-          })
+          deleteCTSP(variant.id).catch(() => null)
         )
         
         await Promise.allSettled(deleteVariantPromises)
-        console.log('ProductStore: Variants deletion completed')
         
         // Update local variants state
         variants.value = variants.value.filter(variant => 
@@ -395,25 +394,14 @@ export const useProductStore = defineStore('products', () => {
       }
       
       // Now delete the main product
-      console.log('ProductStore: Deleting main product...')
       const response = await deleteSanPham(id)
-      console.log('ProductStore: Delete response:', response)
       
       // Remove from local state
       products.value = products.value.filter((p) => p.id !== id)
-      console.log('ProductStore: Product removed from local state')
       
       return response
     } catch (err) {
       error.value = err.message || 'Không thể xóa sản phẩm'
-      console.error('ProductStore: Error deleting product:', err)
-      console.error('ProductStore: Full error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        message: err.message,
-        code: err.code
-      })
       
       // Provide more specific error messages
       if (err.response?.status === 404) {
@@ -423,7 +411,6 @@ export const useProductStore = defineStore('products', () => {
         throw new Error(`Không thể xóa sản phẩm: ${errorMsg}`)
       } else if (err.response?.status === 500) {
         const serverError = err.response?.data?.message || err.response?.data?.error || 'Lỗi server không xác định'
-        console.error('Server error details:', err.response?.data)
         
         // Check for foreign key constraint errors
         if (serverError.includes('REFERENCE constraint') || serverError.includes('FK_')) {
@@ -448,14 +435,10 @@ export const useProductStore = defineStore('products', () => {
     loading.value = true
     error.value = null
     try {
-      console.log('ProductStore: Bulk deleting products with IDs:', ids)
-      
       // Delete each product individually with cascade delete
       for (const id of ids) {
         await removeProduct(id)
       }
-      
-      console.log('ProductStore: Bulk delete completed successfully')
     } catch (err) {
       error.value = err.message || 'Không thể xóa sản phẩm'
       console.error('ProductStore: Error bulk deleting products:', err)

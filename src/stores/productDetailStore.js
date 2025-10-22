@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { deleteCTSP, deleteCTSPWithCascade, getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
 import api from '@/utils/api'
 
 export const useProductDetailStore = defineStore('productDetail', () => {
@@ -15,29 +15,35 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     try {
       if (productId) {
         productIdGlobal.value = productId
-        console.log('Setting productIdGlobal.value to:', productId)
-      } else {
-        console.warn(
-          'fetchProductVariants called with undefined productId, keeping current value:',
-          productIdGlobal.value,
-        )
       }
       loading.value = true
-      console.log('Fetching variants for productId:', productId)
       
       // Use the proper service function
       const response = await getCTSPBySanPham(productId)
-      console.log('API response:', response.data)
       
       const data = response.data || response
-      variants.value = Array.isArray(data) ? data.map((variant) => {
-        console.log('Processing variant:', variant)
-        return {
-          ...variant,
-          imeiCount: 0, // Sẽ được cập nhật sau
-        }
-      }) : []
-      console.log('Processed variants:', variants.value)
+      
+      // Load images for each variant
+      if (Array.isArray(data)) {
+        variants.value = await Promise.all(data.map(async (variant) => {
+          // Load images for this variant
+          let images = []
+          try {
+            const imagesResponse = await getHinhAnhByCtspId(variant.id)
+            images = imagesResponse.data || []
+          } catch (err) {
+            // Silently skip if images fail to load
+          }
+          
+          return {
+            ...variant,
+            images,
+            imeiCount: 0, // Sẽ được cập nhật sau
+          }
+        }))
+      } else {
+        variants.value = []
+      }
     } catch (err) {
       error.value = err.message
       console.error('Lỗi khi lấy danh sách biến thể:', err)
@@ -62,7 +68,6 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         sanPhamId: variantData.san_pham_id,
       }
 
-      console.log('Sending add data:', transformedData)
       const response = await api.post('/api/chi-tiet-san-pham', transformedData)
 
       // Thêm ảnh nếu có
@@ -80,7 +85,6 @@ export const useProductDetailStore = defineStore('productDetail', () => {
 
       // Làm mới danh sách
       const productIdToRefresh = variantData.san_pham_id || productIdGlobal.value
-      console.log('Refreshing variants after add with productId:', productIdToRefresh)
       await fetchProductVariants(productIdToRefresh)
       return response.data
     } catch (err) {
@@ -96,8 +100,6 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     try {
       loading.value = true
 
-      console.log('updateVariant called with productIdGlobal.value:', productIdGlobal.value)
-
       // Transform field names để match với backend
       const transformedData = {
         id: variantData.id,
@@ -110,10 +112,6 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         sanPhamId: productIdGlobal.value || variantData.san_pham_id, // Fallback nếu productIdGlobal.value là undefined
       }
 
-      console.log('productIdGlobal.value:', productIdGlobal.value)
-      console.log('variantData.san_pham_id:', variantData.san_pham_id)
-
-      console.log('Sending update data:', transformedData)
       const response = await api.put(`/api/chi-tiet-san-pham/${variantData.id}`, transformedData)
 
       // Xử lý ảnh - đây là logic đơn giản, thực tế cần phức tạp hơn

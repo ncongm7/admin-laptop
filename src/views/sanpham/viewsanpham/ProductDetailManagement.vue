@@ -650,8 +650,6 @@ let filterDebounceTimer = null
 onMounted(async () => {
   loading.value = true
   try {
-    console.log('Fetching product data for ID:', productId.value)
-    
     // Check if productId is available
     if (!productId.value) {
       console.error('Product ID is not available')
@@ -665,15 +663,6 @@ onMounted(async () => {
     
     // Load attributes first
     await productStore.loadAttributes()
-    if (showDebug.value) {
-      console.log('Attributes loaded')
-      console.log('CPUs:', productStore.cpus.length)
-      console.log('RAMs:', productStore.rams.length)
-      console.log('GPUs:', productStore.gpus.length)
-      console.log('Colors:', productStore.colors.length)
-      console.log('Storages:', productStore.storages.length)
-      console.log('Screens:', productStore.screens.length)
-    }
     
     // Fetch product details first
     await productStore.fetchProductByIdSP(productId.value)
@@ -688,9 +677,6 @@ onMounted(async () => {
       // Fetch variants for this product using getCTSPBySanPham API
       await fetchProductVariants(productId.value)
       
-      // Fetch attributes for filtering
-      await attributeStore.fetchAttributes()
-      
       // Fetch audit logs
       await fetchAuditLogs()
       
@@ -701,9 +687,6 @@ onMounted(async () => {
           filters.value.maxPrice = maxPrice.value
         }
       })
-      
-      // Debug: Check if variants are loaded
-      console.log('Product variants after fetching:', productDetailStore.variants)
     }
   } catch (error) {
     console.error('Error fetching product data:', error)
@@ -716,7 +699,6 @@ onMounted(async () => {
 const fetchProductVariants = async (productId) => {
   variantsLoading.value = true
   try {
-    console.log('Fetching variants for product ID:', productId)
     const response = await getCTSPBySanPham(productId)
     const data = response.data || response
     
@@ -737,10 +719,8 @@ const fetchProductVariants = async (productId) => {
         loaiManHinh: variant.kichThuocManHinh ? { kichThuoc: variant.kichThuocManHinh, id: variant.idLoaiManHinh } : null,
         pin: variant.dungLuongPin ? { dungLuongPin: variant.dungLuongPin, id: variant.idPin } : null,
       }))
-      console.log('Variants loaded successfully:', productDetailStore.variants.length)
     } else {
       productDetailStore.variants = []
-      console.log('No variants found for product')
     }
   } catch (error) {
     console.error('Error fetching product variants:', error)
@@ -808,13 +788,37 @@ const getProductDescription = (product) => {
 const selectedProduct = computed(() => {
   // First try to get from productDetailStore
   if (productDetailStore.productDetail && productDetailStore.productDetail.id == productId.value) {
-    console.log('Product from productDetailStore:', productDetailStore.productDetail)
-    return productDetailStore.productDetail
+    let product = productDetailStore.productDetail
+    
+    // Get first image from first variant if no product image
+    if (!product.anhDaiDien && productVariants.value && productVariants.value.length > 0) {
+      // Try to find first variant with image
+      for (const variant of productVariants.value) {
+        if (variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
+          const firstImage = variant.images[0]
+          let imageUrl = null
+          
+          // Handle both object with url property and direct string url
+          if (typeof firstImage === 'string') {
+            imageUrl = firstImage
+          } else if (firstImage && firstImage.url) {
+            imageUrl = firstImage.url
+          } else if (firstImage && firstImage.uri) {
+            imageUrl = firstImage.uri
+          }
+          
+          if (imageUrl) {
+            product = { ...product, anhDaiDien: imageUrl }
+            break
+          }
+        }
+      }
+    }
+    
+    return product
   }
   // Fallback to productStore if available
   const product = productStore.products.find((p) => p.id == productId.value) || {}
-  console.log('Product from productStore:', product)
-  console.log('Available fields:', Object.keys(product))
   return product
 })
 
@@ -922,8 +926,6 @@ const showAddForm = () => {
 }
 
 const editVariant = async (variant) => {
-  console.log('Edit variant:', variant)
-  
   try {
     // Ensure attributes are loaded
     await productStore.loadAttributes()
@@ -973,13 +975,9 @@ const editVariant = async (variant) => {
 }
 
 const confirmDelete = async (variantId) => {
-  console.log('ProductDetailManagement confirmDelete called with variantId:', variantId)
-  
   if (confirm('Bạn có chắc muốn xóa biến thể này?')) {
     try {
-      console.log('Calling productDetailStore.deleteVariant with ID:', variantId)
       await productDetailStore.deleteVariant(variantId)
-      console.log('Variant deletion completed successfully')
     } catch (error) {
       console.error('Error in confirmDelete:', error)
       alert('Lỗi khi xóa biến thể: ' + (error.message || 'Lỗi không xác định'))
@@ -992,9 +990,6 @@ const closeModal = () => {
 }
 
 const handleSave = async (variantData) => {
-  console.log('handleSave called with mode:', mode.value)
-  console.log('productId.value:', productId.value)
-
   if (mode.value === 'add') {
     await productDetailStore.addVariant({
       ...variantData,
@@ -1091,7 +1086,6 @@ const bulkDelete = async () => {
   if (confirm(`Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?`)) {
     try {
       loading.value = true
-      console.log('Bulk delete variants:', selectedVariants.value)
       
       // Delete each variant individually
       const deletePromises = selectedVariants.value.map(async (variantId) => {
@@ -1107,8 +1101,6 @@ const bulkDelete = async () => {
       const results = await Promise.allSettled(deletePromises)
       const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
       const failCount = selectedVariants.value.length - successCount
-      
-      console.log(`Bulk delete completed: ${successCount} success, ${failCount} failed`)
       
       if (failCount === 0) {
         alert('Xóa tất cả biến thể thành công!')
@@ -1322,10 +1314,6 @@ watch(
   (newProductDetail) => {
     if (newProductDetail && newProductDetail.id == productId.value) {
       productDetailStore.productDetail = newProductDetail
-      console.log(
-        'Synced productDetailStore.productDetail with productStore.productDetail:',
-        newProductDetail,
-      )
     }
   },
   { deep: true },
@@ -1346,7 +1334,7 @@ watch([
   // Debounce the filtering to avoid too many updates
   clearTimeout(filterDebounceTimer)
   filterDebounceTimer = setTimeout(() => {
-    console.log('Filters changed, triggering filter update')
+    // Filter update
   }, 300)
 })
 
@@ -1368,10 +1356,6 @@ watch(
     const product = newProducts.find((p) => p.id == productId.value)
     if (product) {
       productDetailStore.productDetail = product
-      console.log(
-        'Synced productDetailStore.productDetail with product from products array:',
-        product,
-      )
     }
   },
   { deep: true },

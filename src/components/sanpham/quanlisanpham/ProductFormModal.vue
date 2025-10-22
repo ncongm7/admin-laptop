@@ -54,87 +54,6 @@
                   </div>
                 </div>
 
-                <!-- Product Images -->
-                <div class="card mb-4">
-                  <div class="card-header bg-light">
-                    <div class="d-flex align-items-center gap-2">
-                      <i class="bi bi-images text-success"></i>
-                      <h6 class="mb-0">Hình ảnh sản phẩm</h6>
-                    </div>
-                  </div>
-                  <div class="card-body">
-                    <div class="row g-3 mb-3">
-                      <!-- Main image slot -->
-                      <div class="col">
-                        <div class="image-upload-slot main-image" @click="triggerMainImageUpload">
-                          <img
-                            v-if="form.anhDaiDien"
-                            :src="form.anhDaiDien"
-                            class="uploaded-image"
-                            alt="Ảnh đại diện"
-                          />
-                          <div v-else class="upload-placeholder">
-                            <i class="bi bi-camera"></i>
-                            <p class="upload-label">Ảnh đại diện</p>
-                          </div>
-                        </div>
-                        <p class="upload-label">Thêm ảnh</p>
-                        <input
-                          type="file"
-                          class="d-none"
-                          accept="image/*"
-                          @change="handleImageUpload"
-                          ref="imageInput"
-                        />
-                      </div>
-
-                      <!-- Image slots 2-5 (Gallery) -->
-                      <div class="col" v-for="index in 4" :key="index">
-                        <div class="image-upload-slot" @click="triggerGalleryUpload">
-                          <img
-                            v-if="form.images[index - 1]"
-                            :src="form.images[index - 1]"
-                            class="uploaded-image"
-                            :alt="'Image ' + (index + 1)"
-                          />
-                          <div v-else class="upload-placeholder">
-                            <i class="bi bi-plus-lg"></i>
-                          </div>
-                          <button
-                            v-if="form.images[index - 1]"
-                            type="button"
-                            class="btn-remove-image-slot"
-                            @click.stop="removeImage(index - 1)"
-                          >
-                            <i class="bi bi-x"></i>
-                          </button>
-                        </div>
-                      </div>
-                      <!-- Hidden gallery input -->
-                      <input
-                        type="file"
-                        class="d-none"
-                        accept="image/*"
-                        multiple
-                        @change="handleGalleryUpload"
-                        ref="galleryInput"
-                      />
-                    </div>
-
-                    <!-- Upload guidelines -->
-                    <div class="upload-guidelines">
-                      <p class="guidelines-title">Hướng dẫn tải ảnh:</p>
-                      <ul class="guidelines-list">
-                        <li>Tối đa 5 hình ảnh</li>
-                        <li>Kích thước tối đa 5MB mỗi ảnh</li>
-                        <li>Định dạng: JPG, PNG, WebP</li>
-                        <li>Khuyến nghị: Ảnh vuông 800x800px trở lên</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-
                 <!-- Variants Section with Specifications Merged -->
                 <div class="card mb-4">
                   <div class="card-header bg-light">
@@ -169,7 +88,7 @@
                         <!-- First row: Color, CPU, RAM, GPU -->
                         <div class="row g-3 mb-3">
                           <div class="col-md-3">
-                            <label class="form-label">Màu sắc <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">Màu sắc</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedMauSacIds.length === 0" class="text-muted">Chọn màu sắc...</span>
@@ -198,7 +117,7 @@
                             </div>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label">CPU <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">CPU</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedCpuIds.length === 0" class="text-muted">Chọn CPU...</span>
@@ -227,7 +146,7 @@
                             </div>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label">RAM <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">RAM</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedRamIds.length === 0" class="text-muted">Chọn RAM...</span>
@@ -256,7 +175,7 @@
                             </div>
                           </div>
                           <div class="col-md-3">
-                            <label class="form-label">GPU <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">GPU</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedGpuIds.length === 0" class="text-muted">Chọn GPU...</span>
@@ -289,7 +208,7 @@
                         <!-- Second row: Storage, Screen, Battery -->
                         <div class="row g-3 mb-4">
                           <div class="col-md-4">
-                            <label class="form-label">Ổ cứng <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">Ổ cứng</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedOCungIds.length === 0" class="text-muted">Chọn ổ cứng...</span>
@@ -318,7 +237,7 @@
                             </div>
                           </div>
                           <div class="col-md-4">
-                            <label class="form-label">Màn hình <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">Màn hình</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedLoaiManHinhIds.length === 0" class="text-muted">Chọn màn hình...</span>
@@ -347,7 +266,7 @@
                             </div>
                           </div>
                           <div class="col-md-4">
-                            <label class="form-label">Pin <small class="text-muted">(Chọn nhiều)</small></label>
+                            <label class="form-label">Pin</label>
                             <div class="dropdown">
                               <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
                                 <span v-if="variantConfig.selectedPinIds.length === 0" class="text-muted">Chọn pin...</span>
@@ -997,13 +916,25 @@ const saveProduct = async () => {
       }
     }
 
+    // Get anhDaiDien from form or first variant preview
+    let anhDaiDien = form.value.anhDaiDien
+    if (!anhDaiDien && form.value.variants && form.value.variants.length > 0) {
+      const firstVariant = form.value.variants[0]
+      // Check anhDaiDien from variant preview
+      if (firstVariant.anhDaiDien) {
+        anhDaiDien = firstVariant.anhDaiDien
+      } else if (firstVariant.images && firstVariant.images.length > 0) {
+        anhDaiDien = firstVariant.images[0].url || firstVariant.images[0]
+      }
+    }
+    
     const productPayload = {
-      tenSanPham: form.value.tenSanPham,
+      tenSanPham: form.value.tenSanPham || '',
       maSanPham: form.value.maSanPham || '',
       moTaChiTiet: form.value.moTaChiTiet || '',
       trangThai: parseInt(form.value.trangThai) || 1,
-      anhDaiDien: form.value.anhDaiDien || null,
-      images: form.value.images || [],
+      anhDaiDien: anhDaiDien,
+      images: [],
       giaThapNhat: giaThapNhat,
       giaCaoNhat: giaCaoNhat
     }
@@ -1021,10 +952,17 @@ const saveProduct = async () => {
        variantConfig.value.selectedPinIds.length > 0)
 
     if (hasVariantsToCreate) {
-      // Calculate average price from variants or use default
+      // Calculate correct price range from preview variants
       const variantPrices = form.value.variants
         .map(v => parseFloat(v.giaBan) || 0)
         .filter(price => price > 0)
+      
+      // Update product payload with correct price range
+      if (variantPrices.length > 0) {
+        productPayload.giaThapNhat = Math.min(...variantPrices)
+        productPayload.giaCaoNhat = Math.max(...variantPrices)
+      }
+      
       const defaultPrice = variantPrices.length > 0 ? variantPrices[0] : 1000000 // Use first variant price or default 1M VND
 
       // Use comprehensive creation function
@@ -1060,53 +998,58 @@ const saveProduct = async () => {
       
       // Update form with created data
       form.value.id = result.product.id
+      form.value.anhDaiDien = anhDaiDien // Keep the image URL
       
-      // Map created variants with attribute names for display
-      form.value.variants = result.variants.map(variant => ({
-        ...variant,
-        tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
-        tenGpu: variant.idGpu ? gpus.value.find(g => g.id === variant.idGpu)?.tenGpu : null,
-        tenRam: variant.idRam ? rams.value.find(r => r.id === variant.idRam)?.tenRam : null,
-        dungLuongOCung: variant.idOCung ? storages.value.find(s => s.id === variant.idOCung)?.dungLuong : null,
-        tenMauSac: variant.idMauSac ? colors.value.find(c => c.id === variant.idMauSac)?.tenMau : null,
-        kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
-        dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null,
-        serials: result.serials.filter(serial => serial.ctspId === variant.id).map(serial => ({
-          id: serial.id,
-          soSerial: serial.serialNo,
-          trangThai: serial.trangThai
-        }))
-      }))
-
-      // Update product with correct price range after variants are created
-      if (result.variants && result.variants.length > 0) {
-        const variantPrices = result.variants
-          .map(v => parseFloat(v.giaBan) || 0)
-          .filter(price => price > 0)
-        
-        if (variantPrices.length > 0) {
-          const actualGiaThapNhat = Math.min(...variantPrices)
-          const actualGiaCaoNhat = Math.max(...variantPrices)
-          
-          console.log('Updating product price range:', { 
-            originalMin: giaThapNhat, 
-            originalMax: giaCaoNhat,
-            actualMin: actualGiaThapNhat, 
-            actualMax: actualGiaCaoNhat,
-            variantPrices 
-          })
-          
-          // Update the product with correct price range
-          const priceUpdatePayload = {
-            ...productPayload,
-            giaThapNhat: actualGiaThapNhat,
-            giaCaoNhat: actualGiaCaoNhat
-          }
-          
-          await updateSanPham(form.value.id, priceUpdatePayload)
-          console.log('Product price range updated successfully')
+      // Save product image to all created variants
+      if (anhDaiDien && result.variants && result.variants.length > 0) {
+        try {
+          const imageRequests = result.variants.map(variant => ({
+            idSpct: variant.id,
+            url: anhDaiDien,
+            anhChinhDaiDien: true
+          }))
+          await createHinhAnhBatch(imageRequests)
+          console.log('✅ Product main image saved to all variants')
+        } catch (error) {
+          console.error('❌ Error saving images to variants:', error)
         }
       }
+      
+      // Map created variants with attribute names for display and load images
+      form.value.variants = await Promise.all(result.variants.map(async (variant) => {
+        let images = []
+        let variantAnhDaiDien = null
+        
+        // Load images from database
+        try {
+          const imagesResponse = await getHinhAnhByCtspId(variant.id)
+          images = imagesResponse.data || []
+          if (images.length > 0) {
+            variantAnhDaiDien = images[0].url || images[0]
+          }
+        } catch (err) {
+          console.warn(`Failed to load images for variant ${variant.id}`)
+        }
+        
+        return {
+          ...variant,
+          tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
+          tenGpu: variant.idGpu ? gpus.value.find(g => g.id === variant.idGpu)?.tenGpu : null,
+          tenRam: variant.idRam ? rams.value.find(r => r.id === variant.idRam)?.tenRam : null,
+          dungLuongOCung: variant.idOCung ? storages.value.find(s => s.id === variant.idOCung)?.dungLuong : null,
+          tenMauSac: variant.idMauSac ? colors.value.find(c => c.id === variant.idMauSac)?.tenMau : null,
+          kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
+          dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null,
+          images: images,
+          anhDaiDien: variantAnhDaiDien,
+          serials: result.serials.filter(serial => serial.ctspId === variant.id).map(serial => ({
+            id: serial.id,
+            soSerial: serial.serialNo,
+            trangThai: serial.trangThai
+          }))
+        }
+      }))
+
 
       alert(`Tạo thành công sản phẩm với ${result.variants.length} biến thể và ${result.serials.length} serial!`)
     } else {
@@ -1198,6 +1141,39 @@ const generateVariants = async () => {
         soLuongTon: variant.soLuongTon || 0,
         serials: variant.serials || []
       }))
+      
+      // Auto-save product's main image to all new variants
+      if (form.value.anhDaiDien && response.data.length > 0) {
+        try {
+          const imageRequests = response.data.map(variant => ({
+            idSpct: variant.id,
+            url: form.value.anhDaiDien,
+            anhChinhDaiDien: true
+          }))
+          await createHinhAnhBatch(imageRequests)
+          console.log('Product main image saved to all variants')
+          
+          // Reload variants with images
+          const variantsWithImages = await Promise.all(
+            form.value.variants.map(async (variant) => {
+              try {
+                const imagesResponse = await getHinhAnhByCtspId(variant.id)
+                const images = imagesResponse.data || []
+                return {
+                  ...variant,
+                  images,
+                  anhDaiDien: images.length > 0 ? (images[0].url || images[0]) : null
+                }
+              } catch (err) {
+                return variant
+              }
+            })
+          )
+          form.value.variants = variantsWithImages
+        } catch (error) {
+          console.error('Error saving images to variants:', error)
+        }
+      }
     }
 
     alert(`Tạo thành công ${calculateTotalCombinations.value} biến thể!`)
