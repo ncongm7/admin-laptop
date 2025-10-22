@@ -14,8 +14,8 @@
       </div>
 
       <div class="col-md-4">
-        <label class="form-label">Loại *</label>
-        <select class="form-select" v-model.number="form.loaiPhieuGiamGia" :disabled="isDetail">
+        <label class="form-label">Hình thức giảm *</label>
+        <select class="form-select" v-model.number="form.loaiPhieuGiamGia" :disabled="isDetail" @change="onChangeLoai">
           <option :value="0">%</option>
           <option :value="1">VND</option>
         </select>
@@ -26,7 +26,7 @@
         <input type="number" class="form-control" v-model.number="form.giaTriGiamGia" :disabled="isDetail" />
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-4"  v-if="showCap">
         <label class="form-label">Số tiền giảm tối đa</label>
         <input type="number" class="form-control" v-model.number="form.soTienGiamToiDa" :disabled="isDetail" />
       </div>
@@ -39,14 +39,6 @@
       <div class="col-md-4">
         <label class="form-label">Số lượng dùng *</label>
         <input type="number" min="1" class="form-control" v-model.number="form.soLuongDung" :disabled="isDetail" />
-      </div>
-
-      <div class="col-md-4">
-        <label class="form-label">Riêng tư</label>
-        <select class="form-select" v-model="form.riengTu" :disabled="isDetail">
-          <option :value="false">Không</option>
-          <option :value="true">Có</option>
-        </select>
       </div>
 
       <div class="col-md-6">
@@ -62,14 +54,6 @@
       <div class="col-12">
         <label class="form-label">Mô tả</label>
         <textarea class="form-control" rows="3" v-model="form.moTa" :disabled="isDetail"></textarea>
-      </div>
-
-      <div class="col-md-3">
-        <label class="form-label">Trạng thái</label>
-        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Hoạt động</option>
-          <option :value="0">Ngưng</option>
-        </select>
       </div>
 
       <div class="col-12 mt-2">
@@ -102,13 +86,21 @@ const form = ref({
   ngayBatDau: '',              // 'yyyy-MM-ddTHH:mm' (phù hợp input datetime-local)
   ngayKetThuc: '',
   riengTu: false,
-  moTa: '',
-  trangThai: 1
+  moTa: ''
 })
+//ô giá trị giảm
+const showCap = ref(form.value.loaiPhieuGiamGia === 0) // 0=%, 1=VND
 
-/** =======================
- *  Helpers chuyển đổi thời gian
- *  ======================= */
+function onChangeLoai () {
+   if (Number(form.value.loaiPhieuGiamGia) === 1) {
+    // VND: ẩn ô và set cap = giá trị giảm (BE cũng sẽ set lại)
+     showCap.value = false
+     form.value.soTienGiamToiDa = form.value.giaTriGiamGia || 0
+   } else {
+     // %: hiện ô
+     showCap.value = true
+     form.value.soTienGiamToiDa = 0}
+}
 
 /** "yyyy-MM-ddTHH:mm" (local) -> ISO Instant "yyyy-MM-ddTHH:mm:ss.sssZ" */
 function toInstantISOString(localStr) {

@@ -11,6 +11,11 @@
           placeholder="Tìm theo SDT / Serial"
           style="max-width: 280px"
         />
+        <select v-model="status" class="form-select" style="max-width: 160px">
+          <option value="">Tất cả trạng thái</option>
+          <option :value="0">Đang hiệu lực</option>
+          <option :value="1">Hết hạn</option>
+        </select>
       </div>
     </div>
 
@@ -32,12 +37,12 @@
         <!-- dùng paged để hiển thị theo trang -->
         <tr v-for="(it, idx) in paged" :key="it.id">
           <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
-          <td>{{ it.hoTenKhachHang }} <br> {{ it.sdt }} </td>
+          <td>{{ it.hoTenKhachHang }} <br> {{ it.soDienThoai }} </td>
           <td>{{ it.tenSP }}</td>
           <td>{{ it.soSerial }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
           <td>{{ showDate(it.ngayKetThuc) }}</td>
-          <td>{{ it.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
+          <td>{{ showTrangThai(it.trangThai) }}</td>
           <td class="d-flex gap-2">
             <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
             <button class="btn btn-info" @click="ViewLichSuBaoHanh(it.id)">Xem Lịch Sử</button>
@@ -91,14 +96,23 @@ const fetchList = async () => {
 }
 
 // Lọc realtime ở client
+const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
-  if (!s) return list.value
-  return list.value.filter(
-    x =>
+  return list.value.filter(x => {
+    // text
+    const textOk =
+      !s ||
       (x.soDienThoai || '').toLowerCase().includes(s) ||
       (x.soSerial || '').toLowerCase().includes(s)
-  )
+
+    // status (đổi x.trangThaiTinh -> nếu BE trả trường ấy; còn không thì x.trangThai)
+    const cur = Number(x.trangThai)
+    const statusOk = status.value === '' || cur === Number(status.value)
+
+    return textOk && statusOk
+  })
 })
 
 // Tính trang & cắt trang
@@ -131,6 +145,7 @@ const remove = async (id) => {
 }
 
 // Helpers hiển thị
+const showTrangThai = (n) => (n === 0 ? 'Đang hiệu lực' : n === 1 ? 'Hết hạn' : 'Không xác định')
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))

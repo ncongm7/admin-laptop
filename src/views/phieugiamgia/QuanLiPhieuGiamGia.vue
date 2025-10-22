@@ -5,15 +5,17 @@
     <!-- Thanh công cụ -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex gap-2">
-        <input
-          v-model="q"
-          class="form-control"
-          placeholder="Tìm theo mã / tên…"
-          style="max-width: 280px"
-        />
+        <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
+        <select v-model="status" class="form-select" style="max-width: 160px">
+          <option value="">Tất cả trạng thái</option>
+          <option :value="0">Sắp diễn ra</option>
+          <option :value="1">Đang hiệu lực</option>
+          <option :value="2">Hết hạn</option>
+        </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
     </div>
+
 
     <!-- Bảng danh sách -->
     <table class="table table-bordered table-hover">
@@ -22,14 +24,13 @@
           <th>#</th>
           <th>Mã</th>
           <th>Tên phiếu</th>
-          <th>Loại</th>
-          <th>Giá trị</th>
+          <th>Hình thức giảm</th>
+          <th>Giá trị giảm</th>
           <th>Giảm tối đa</th>
           <th>HĐ tối thiểu</th>
           <th>Số lượng</th>
           <th>Bắt đầu</th>
           <th>Kết thúc</th>
-          <th>Riêng tư</th>
           <th>Trạng thái</th>
           <th style="width: 220px">Hành động</th>
         </tr>
@@ -47,8 +48,7 @@
           <td>{{ it.soLuongDung }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
           <td>{{ showDate(it.ngayKetThuc) }}</td>
-          <td>{{ it.riengTu ? 'Có' : 'Không' }}</td>
-          <td>{{ it.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
+          <td>{{ showTrangThai(it.trangThai) }}</td>
           <td class="d-flex gap-2">
             <button class="btn btn-info" @click="viewDetail(it.id)">Chi tiết</button>
             <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
@@ -102,16 +102,33 @@ const fetchList = async () => {
 }
 
 // Lọc realtime ở client
+// const filtered = computed(() => {
+//   const s = q.value.trim().toLowerCase()
+//   if (!s) return list.value
+//   return list.value.filter(
+//     x =>
+//       (x.ma || '').toLowerCase().includes(s) ||
+//       (x.tenPhieuGiamGia || '').toLowerCase().includes(s)
+//   )
+// })
+const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
-  if (!s) return list.value
-  return list.value.filter(
-    x =>
+  return list.value.filter(x => {
+    // text
+    const textOk =
+      !s ||
       (x.ma || '').toLowerCase().includes(s) ||
       (x.tenPhieuGiamGia || '').toLowerCase().includes(s)
-  )
-})
 
+    // status (đổi x.trangThaiTinh -> nếu BE trả trường ấy; còn không thì x.trangThai)
+    const cur = Number(x.trangThai ?? x.trangThaiTinh)
+    const statusOk = status.value === '' || cur === Number(status.value)
+
+    return textOk && statusOk
+  })
+})
 // Tính trang & cắt trang
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
 const paged = computed(() => {
@@ -145,19 +162,25 @@ const remove = async (id) => {
   }
 }
 
+// 
+
 // Helpers hiển thị
 const showLoai = (n) => (n === 0 ? '%' : n === 1 ? 'VND' : n)
+const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
   if (isNaN(d)) return String(v)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 onMounted(fetchList)
 </script>
 
 <style scoped>
-h1 { text-align: center; margin-bottom: 16px; }
+h1 {
+  text-align: center;
+  margin-bottom: 16px;
+}
 </style>

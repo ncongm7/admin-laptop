@@ -121,23 +121,23 @@ const routes = [
   {
     path: '/nhan-vien',
     name: 'NhanVien',
-    component: () => import('@/components/taikhoan/nhanvien/NhanVien.vue'),
+    component: () => import('@/components/taikhoan/NhanVien.vue'),
   },
   {
     path: '/nhan-vien/them',
     name: 'NhanVienForm',
-    component: () => import('@/components/taikhoan/nhanvien/NhanVienForm.vue'),
-  },
-  {
-    path: '/nhan-vien/sua/:id',
-    name: 'NhanVienUpdateForm',
-    component: () => import('@/components/taikhoan/nhanvien/NhanVienUpdateForm.vue'),
-    props: true,
+    component: () => import('@/components/taikhoan/NhanVienForm.vue'),
   },
   {
     path: '/login',
     name: 'Login',
     component: LoginView,
+  },
+  {
+    path: '/nhan-vien/sua/:id',
+    name: 'NhanVienUpdateForm',
+    component: () => import('@/components/taikhoan/NhanVienUpdateForm.vue'),
+    props: true,
   },
 
   ///Long phiếu giảm giá v2
@@ -195,7 +195,7 @@ const routes = [
   //Lịch Sử Bảo Hành
   {
     path: '/lich-su-bao-hanh/:id',
-    name: 'DotGiamGiaChiTietView',
+    name: 'LichSuBaoHanhView',
     component: () => import('@/views/baohanh/LichSuBaoHanhView.vue'),
     props: true,
   },
