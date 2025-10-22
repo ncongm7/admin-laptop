@@ -4,12 +4,13 @@
 
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex gap-2">
-        <input
-          v-model="q"
-          class="form-control"
-          placeholder="Tìm theo tên..."
-          style="max-width: 280px"
-        />
+        <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
+        <select v-model="status" class="form-select" style="max-width: 160px">
+          <option value="">Tất cả trạng thái</option>
+          <option :value="0">0 - Sắp diễn ra</option>
+          <option :value="1">1 - Đang hiệu lực</option>
+          <option :value="2">2 - Hết hạn</option>
+        </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
     </div>
@@ -36,7 +37,7 @@
       <td>{{ it.moTa }}</td>
       <td>{{ showDate(it.ngayBatDau) }}</td>
       <td>{{ showDate(it.ngayKetThuc) }}</td>
-      <td>{{ it.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</td>
+      <td>{{ showTrangThai(it.trangThai) }}</td>
       <!-- Đồng bộ bố cục nút: d-flex gap-2, cùng kiểu class và thứ tự -->
       <td class="d-flex gap-2">
         <button class="btn btn-info" @click="viewProducts(it.id)">Chi tiết</button>
@@ -90,12 +91,24 @@ const fetchList = async () => {
   }
 }
 
+//
+const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
-  if (!s) return list.value
-  return list.value.filter(x => (x.tenKm || '').toLowerCase().includes(s))
-})
+  return list.value.filter(x => {
+    // text
+    const textOk =
+      !s ||
+      (x. tenKm|| '').toLowerCase().includes(s)
 
+    // status (đổi x.trangThaiTinh -> nếu BE trả trường ấy; còn không thì x.trangThai)
+    const cur = Number(x.trangThai ?? x.trangThaiTinh)
+    const statusOk = status.value === '' || cur === Number(status.value)
+
+    return textOk && statusOk
+  })
+})
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
 const paged = computed(() => {
   const start = (page.value - 1) * pageSize.value
@@ -123,6 +136,8 @@ const remove = async (id) => {
   }
 }
 
+//Định dạng hiển thị
+const showTrangThai = (n) => (n === 0 ? 'Sáp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))

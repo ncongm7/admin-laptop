@@ -4,17 +4,17 @@
 
     <!-- Thanh công cụ -->
     <div class="d-flex align-items-center justify-content-between mb-3">
-  <div class="d-flex gap-2">
-    <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
-    <select v-model="status" class="form-select" style="max-width: 160px">
-      <option value="">Tất cả trạng thái</option>
-      <option :value="0">0 - Sắp diễn ra</option>
-      <option :value="1">1 - Đang hiệu lực</option>
-      <option :value="2">2 - Hết hạn</option>
-    </select>
-  </div>
-  <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
-</div>
+      <div class="d-flex gap-2">
+        <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
+        <select v-model="status" class="form-select" style="max-width: 160px">
+          <option value="">Tất cả trạng thái</option>
+          <option :value="0">0 - Sắp diễn ra</option>
+          <option :value="1">1 - Đang hiệu lực</option>
+          <option :value="2">2 - Hết hạn</option>
+        </select>
+      </div>
+      <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
+    </div>
 
 
     <!-- Bảng danh sách -->
@@ -48,7 +48,7 @@
           <td>{{ it.soLuongDung }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
           <td>{{ showDate(it.ngayKetThuc) }}</td>
-           <td>{{ showTrangThai(it.trangThai) }}</td>
+          <td>{{ showTrangThai(it.trangThai) }}</td>
           <td class="d-flex gap-2">
             <button class="btn btn-info" @click="viewDetail(it.id)">Chi tiết</button>
             <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
@@ -166,18 +166,21 @@ const remove = async (id) => {
 
 // Helpers hiển thị
 const showLoai = (n) => (n === 0 ? '%' : n === 1 ? 'VND' : n)
-const showTrangThai=(n)=> (n===0?'Chưa diễn ra':n===1?'Đang diễn ra':n===2?'Đã kết thúc':n)  
+const showTrangThai = (n) => (n === 0 ? 'Sáp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
   if (isNaN(d)) return String(v)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 onMounted(fetchList)
 </script>
 
 <style scoped>
-h1 { text-align: center; margin-bottom: 16px; }
+h1 {
+  text-align: center;
+  margin-bottom: 16px;
+}
 </style>
