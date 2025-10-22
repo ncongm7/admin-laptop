@@ -8,9 +8,9 @@
         <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
         <select v-model="status" class="form-select" style="max-width: 160px">
           <option value="">Tất cả trạng thái</option>
-          <option :value="0">0 - Sắp diễn ra</option>
-          <option :value="1">1 - Đang hiệu lực</option>
-          <option :value="2">2 - Hết hạn</option>
+          <option :value="0">Sắp diễn ra</option>
+          <option :value="1">Đang hiệu lực</option>
+          <option :value="2">Hết hạn</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
