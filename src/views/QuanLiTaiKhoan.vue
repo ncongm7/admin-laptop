@@ -168,7 +168,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import UserDetailModal from '@/components/taikhoan/UserDetailModal.vue'
-import NhanVien from '@/components/taikhoan/NhanVien.vue'
+import NhanVien from '@/components/taikhoan/nhanvien/NhanVien.vue'
 import KhachHangManager from '@/components/taikhoan/khachhang/KhachHangManager.vue'
 // import UserEditModal from './UserEditModal.vue'
 // import { formatDate } from '@/utils/dateFormatter'

@@ -21,6 +21,15 @@ export const nhanVienApi = {
   remove(id) {
     return axiosInstance.delete(`${base}/xoa-nv/${id}`)
   },
+  uploadAvatar(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return axiosInstance.post(`${base}/upload-avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }
 
 // Mapping helpers between FE form and BE fields
@@ -48,7 +57,7 @@ export function mapDtoToUi(nv) {
     phone: nv.soDienThoai,
     address: nv.diaChi,
     status: nv.trangThai === 1,
-    gender: nv.gioiTinh === 1 ? 'Nam' : nv.gioiTinh === 0 ? 'Nữ' : '',
+    gender: nv.gioiTinh,
     avatar: nv.anhNhanVien,
     chucVu: nv.chucVu,
     danhGia: nv.danhGia,
