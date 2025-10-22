@@ -28,14 +28,6 @@
         <textarea class="form-control" rows="3" v-model="form.moTa" :disabled="isDetail"></textarea>
       </div>
 
-      <div class="col-md-3">
-        <label class="form-label">Trạng thái</label>
-        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Hoạt động</option>
-          <option :value="0">Ngưng</option>
-        </select>
-      </div>
-
       <div class="col-12 mt-2">
         <button v-if="!isDetail" type="submit" class="btn btn-success me-2">Lưu</button>
         <button type="button" class="btn btn-secondary" @click="back">Quay lại</button>
@@ -60,8 +52,7 @@ const form = ref({
   giaTri: 0,
   moTa: '',
   ngayBatDau: '', // 'yyyy-MM-ddTHH:mm'
-  ngayKetThuc: '',
-  trangThai: 1
+  ngayKetThuc: ''
 })
 
 /** =======================
@@ -98,8 +89,7 @@ onMounted(async () => {
       giaTri: data.giaTri,
       moTa: data.moTa,
       ngayBatDau: instantToLocalInput(data.ngayBatDau),
-      ngayKetThuc: instantToLocalInput(data.ngayKetThuc),
-      trangThai: data.trangThai
+      ngayKetThuc: instantToLocalInput(data.ngayKetThuc)
     }
   }
 })
@@ -115,7 +105,6 @@ function normalizedPayload() {
   return {
     ...form.value,
     giaTri: Number(form.value.giaTri),
-    trangThai: Number(form.value.trangThai),
     ngayBatDau: toInstantISOString(form.value.ngayBatDau),
     ngayKetThuc: toInstantISOString(form.value.ngayKetThuc),
   }
