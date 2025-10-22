@@ -137,7 +137,8 @@ const remove = async (id) => {
 }
 
 //Định dạng hiển thị
-const showTrangThai = (n) => (n === 0 ? 'Sáp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))

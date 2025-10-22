@@ -166,7 +166,7 @@ const remove = async (id) => {
 
 // Helpers hiển thị
 const showLoai = (n) => (n === 0 ? '%' : n === 1 ? 'VND' : n)
-const showTrangThai = (n) => (n === 0 ? 'Sáp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
