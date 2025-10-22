@@ -37,7 +37,7 @@
         <!-- dùng paged để hiển thị theo trang -->
         <tr v-for="(it, idx) in paged" :key="it.id">
           <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
-          <td>{{ it.hoTenKhachHang }} <br> {{ it.sdt }} </td>
+          <td>{{ it.hoTenKhachHang }} <br> {{ it.soDienThoai }} </td>
           <td>{{ it.tenSP }}</td>
           <td>{{ it.soSerial }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
