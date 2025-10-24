@@ -583,11 +583,18 @@ const editVariant = async (variant) => {
           keyboard: true,
           focus: true
         })
+        
+        // Remove aria-hidden after modal is shown
+        modalElement.addEventListener('shown.bs.modal', () => {
+          modalElement.removeAttribute('aria-hidden')
+        }, { once: true })
+        
         modal.show()
       } else {
         // Manual show as fallback
         modalElement.classList.add('show', 'd-block')
         modalElement.style.display = 'block'
+        modalElement.removeAttribute('aria-hidden')
         modalElement.setAttribute('aria-modal', 'true')
         modalElement.setAttribute('role', 'dialog')
         document.body.classList.add('modal-open')

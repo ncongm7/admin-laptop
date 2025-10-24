@@ -98,13 +98,33 @@
                     <div class="section-title"><i class="bi bi-tags me-1"></i> Hình ảnh</div>
 
                     <div class="info-row">
-                      <strong>Hình ảnh sản phẩm:</strong>
-                      <div class="image-container">
-                        <img
-                          :src="selectedProduct?.anhDaiDien || '/placeholder-product.jpg'"
-                          alt="Product Image"
-                          class="product-image"
-                        />
+                      <strong>Hình ảnh sản phẩm ({{ allProductImages.length }}):</strong>
+                      <div class="images-gallery">
+                        <div 
+                          v-if="allProductImages.length === 0" 
+                          class="image-container"
+                        >
+                          <img
+                            src=""
+                            alt="No Image"
+                            class="product-image"
+                          />
+                          <p class="text-muted text-center mt-2">Chưa có hình ảnh</p>
+                        </div>
+                        <div 
+                          v-for="(image, index) in allProductImages" 
+                          :key="index"
+                          class="image-item"
+                        >
+                          <img
+                            :src="image.url"
+                            :alt="`Product Image ${index + 1}`"
+                            class="product-image"
+                          />
+                          <div class="image-info" v-if="image.variantName">
+                            <small class="text-muted">{{ image.variantName }}</small>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -245,6 +265,7 @@
                       <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
                     </th>
                     <th width="30">STT</th>
+                    <th width="60">ẢNH</th>
                     <th width="100">SKU</th>
                     <th width="60">MÀU</th>
                     <th width="80">CPU</th>
@@ -263,14 +284,14 @@
                 </thead>
                 <tbody>
                   <tr v-if="variantsLoading">
-                    <td colspan="16" class="text-center py-5">
+                    <td colspan="17" class="text-center py-5">
                       <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                       </div>
                     </td>
                   </tr>
                   <tr v-else-if="filteredVariants.length === 0">
-                    <td colspan="16" class="text-center py-5 text-muted">
+                    <td colspan="17" class="text-center py-5 text-muted">
                       <i class="bi bi-box-seam display-5"></i>
                       <p class="mt-3">Không có biến thể nào</p>
                     </td>
@@ -280,6 +301,20 @@
                       <input type="checkbox" v-model="selectedVariants" :value="variant.id" />
                     </td>
                     <td>{{ index + 1 }}</td>
+                    <td>
+                      <div class="variant-image-cell">
+                        <img 
+                          v-if="variant.images && variant.images.length > 0"
+                          :src="getVariantImageUrl(variant)"
+                          :alt="variant.maCtsp"
+                          class="variant-thumbnail"
+                          @error="handleImageError"
+                        />
+                        <div v-else class="no-image-placeholder">
+                          <i class="bi bi-image"></i>
+                        </div>
+                      </div>
+                    </td>
                     <td>
                       <code class="sku-code">{{ variant.maCtsp }}</code>
                     </td>
@@ -349,230 +384,13 @@
         </div>
       </div>
     </div>
-
-    <!-- Variant Edit Modal -->
-    <div class="modal fade" id="variantEditModal" tabindex="-1" aria-labelledby="variantEditModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="variantEditModalLabel">
-              <i class="bi bi-pencil-square me-2"></i>
-              Chỉnh sửa biến thể: {{ editForm.maCtsp }}
-            </h5>
-            <button type="button" class="btn-close" @click="handleCloseModal" aria-label="Close"></button>
-          </div>
-          
-          <div class="modal-body">
-            <form @submit.prevent="handleSubmitEdit">
-              <div class="row g-3">
-                <!-- Mã CTSP (readonly) -->
-                <div class="col-md-6">
-                  <label class="form-label">Mã chi tiết sản phẩm</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    v-model="editForm.maCtsp"
-                    readonly
-                    style="background-color: #f8f9fa;"
-                  />
-                </div>
-                
-                <!-- Tên sản phẩm (readonly for this context) -->
-                <div class="col-md-6">
-                  <label class="form-label">Tên sản phẩm</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    v-model="editForm.tenSanPham"
-                    readonly
-                    style="background-color: #f8f9fa;"
-                  />
-                </div>
-
-                <!-- CPU -->
-                <div class="col-md-6">
-                  <label class="form-label">CPU <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idCpu"
-                    :class="{ 'is-invalid': editErrors.idCpu }"
-                  >
-                    <option value="">Chọn CPU</option>
-                    <option v-for="cpu in productStore.cpus" :key="cpu.id" :value="cpu.id">
-                      {{ cpu.tenCpu }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idCpu" class="invalid-feedback">{{ editErrors.idCpu }}</div>
-                </div>
-
-                <!-- RAM -->
-                <div class="col-md-6">
-                  <label class="form-label">RAM <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idRam"
-                    :class="{ 'is-invalid': editErrors.idRam }"
-                  >
-                    <option value="">Chọn RAM</option>
-                    <option v-for="ram in productStore.rams" :key="ram.id" :value="ram.id">
-                      {{ ram.tenRam }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idRam" class="invalid-feedback">{{ editErrors.idRam }}</div>
-                </div>
-
-                <!-- GPU -->
-                <div class="col-md-6">
-                  <label class="form-label">GPU <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idGpu"
-                    :class="{ 'is-invalid': editErrors.idGpu }"
-                  >
-                    <option value="">Chọn GPU</option>
-                    <option v-for="gpu in productStore.gpus" :key="gpu.id" :value="gpu.id">
-                      {{ gpu.tenGpu }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idGpu" class="invalid-feedback">{{ editErrors.idGpu }}</div>
-                </div>
-
-                <!-- Màu sắc -->
-                <div class="col-md-6">
-                  <label class="form-label">Màu sắc <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idMauSac"
-                    :class="{ 'is-invalid': editErrors.idMauSac }"
-                  >
-                    <option value="">Chọn màu sắc</option>
-                    <option v-for="color in productStore.colors" :key="color.id" :value="color.id">
-                      <span class="d-flex align-items-center">
-                        <span 
-                          class="color-preview me-2" 
-                          :style="{ backgroundColor: color.hexCode }"
-                        ></span>
-                        {{ color.tenMau }}
-                      </span>
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idMauSac" class="invalid-feedback">{{ editErrors.idMauSac }}</div>
-                </div>
-
-                <!-- Ổ cứng -->
-                <div class="col-md-6">
-                  <label class="form-label">Ổ cứng <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idOCung"
-                    :class="{ 'is-invalid': editErrors.idOCung }"
-                  >
-                    <option value="">Chọn ổ cứng</option>
-                    <option v-for="storage in productStore.storages" :key="storage.id" :value="storage.id">
-                      {{ storage.dungLuong }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idOCung" class="invalid-feedback">{{ editErrors.idOCung }}</div>
-                </div>
-
-                <!-- Màn hình -->
-                <div class="col-md-6">
-                  <label class="form-label">Màn hình <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idLoaiManHinh"
-                    :class="{ 'is-invalid': editErrors.idLoaiManHinh }"
-                  >
-                    <option value="">Chọn màn hình</option>
-                    <option v-for="screen in productStore.screens" :key="screen.id" :value="screen.id">
-                      {{ screen.kichThuoc }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idLoaiManHinh" class="invalid-feedback">{{ editErrors.idLoaiManHinh }}</div>
-                </div>
-
-                <!-- Pin -->
-                <div class="col-md-6">
-                  <label class="form-label">Pin <span class="text-danger">*</span></label>
-                  <select 
-                    class="form-select" 
-                    v-model="editForm.idPin"
-                    :class="{ 'is-invalid': editErrors.idPin }"
-                  >
-                    <option value="">Chọn pin</option>
-                    <option v-for="battery in productStore.batteries" :key="battery.id" :value="battery.id">
-                      {{ battery.dungLuongPin }}
-                    </option>
-                  </select>
-                  <div v-if="editErrors.idPin" class="invalid-feedback">{{ editErrors.idPin }}</div>
-                </div>
-
-                <!-- Giá bán -->
-                <div class="col-md-6">
-                  <label class="form-label">Giá bán <span class="text-danger">*</span></label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    v-model.number="editForm.giaBan"
-                    :class="{ 'is-invalid': editErrors.giaBan }"
-                    placeholder="Nhập giá bán"
-                    min="0"
-                    step="1000"
-                  />
-                  <div v-if="editErrors.giaBan" class="invalid-feedback">{{ editErrors.giaBan }}</div>
-                </div>
-
-                <!-- Số lượng tồn -->
-                <div class="col-md-6">
-                  <label class="form-label">Số lượng tồn <span class="text-danger">*</span></label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    v-model.number="editForm.soLuongTon"
-                    :class="{ 'is-invalid': editErrors.soLuongTon }"
-                    placeholder="Nhập số lượng tồn"
-                    min="0"
-                  />
-                  <div v-if="editErrors.soLuongTon" class="invalid-feedback">{{ editErrors.soLuongTon }}</div>
-                </div>
-
-                <!-- Trạng thái -->
-                <div class="col-md-12">
-                  <label class="form-label">Trạng thái</label>
-                  <select class="form-select" v-model="editForm.trangThai">
-                    <option :value="1">Hoạt động</option>
-                    <option :value="0">Ẩn</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Error message -->
-              <div v-if="editGeneralError" class="alert alert-danger mt-3">
-                {{ editGeneralError }}
-              </div>
-            </form>
-          </div>
-          
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="handleCancelEdit">
-              <i class="bi bi-x-circle me-1"></i>
-              Hủy
-            </button>
-            <button 
-              type="button" 
-              class="btn btn-primary" 
-              @click="handleSubmitEdit"
-              :disabled="editLoading"
-            >
-              <span v-if="editLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-              <i v-else class="bi bi-check-circle me-1"></i>
-              {{ editLoading ? 'Đang cập nhật...' : 'Cập nhật' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
+
+  <!-- Edit Variant Modal (Component) -->
+  <VariantEditModal 
+    ref="editModal"
+    @updated="handleVariantUpdated"
+  />
 </template>
 
 <script setup>
@@ -582,7 +400,8 @@ import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
 import { useAttributeStore } from '@/stores/attributeStore'
 import { formatCurrency } from '@/utils/formatters'
-import { getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
+import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -597,7 +416,10 @@ const mode = ref('add')
 const viewMode = ref('grid') // 'grid' or 'list'
 const loading = ref(false)
 
-// Edit modal state
+// Modal refs
+const editModal = ref(null)
+
+// Edit modal state (kept for backward compatibility, but will use VariantEditModal component)
 const editLoading = ref(false)
 const editErrors = ref({})
 const editGeneralError = ref('')
@@ -676,6 +498,32 @@ onMounted(async () => {
       // Fetch variants for this product using getCTSPBySanPham API
       await fetchProductVariants(productId.value)
       
+      // Update product with image from first variant if product doesn't have one
+      if (!productDetailStore.productDetail.anhDaiDien && productDetailStore.variants && productDetailStore.variants.length > 0) {
+        for (const variant of productDetailStore.variants) {
+          if (variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
+            const firstImage = variant.images[0]
+            let imageUrl = null
+            
+            if (typeof firstImage === 'string') {
+              imageUrl = firstImage
+            } else if (firstImage && firstImage.url) {
+              imageUrl = firstImage.url
+            } else if (firstImage && firstImage.uri) {
+              imageUrl = firstImage.uri
+            }
+            
+            if (imageUrl) {
+              productDetailStore.productDetail = {
+                ...productDetailStore.productDetail,
+                anhDaiDien: imageUrl
+              }
+              break
+            }
+          }
+        }
+      }
+      
       // Fetch audit logs
       await fetchAuditLogs()
       
@@ -702,22 +550,38 @@ const fetchProductVariants = async (productId) => {
     const data = response.data || response
     
     if (Array.isArray(data)) {
-      // Normalize the data structure to match ProductVariantsView format
-      productDetailStore.variants = data.map(variant => ({
-        ...variant,
-        // Map flat fields to nested objects for consistency
-        mauSac: variant.tenMauSac ? {
-          tenMau: variant.tenMauSac,
-          hexCode: variant.hexCodeMauSac || '#000000',
-          id: variant.idMauSac
-        } : null,
-        cpu: variant.tenCpu ? { tenCpu: variant.tenCpu, id: variant.idCpu } : null,
-        ram: variant.tenRam ? { tenRam: variant.tenRam, id: variant.idRam } : null,
-        gpu: variant.tenGpu ? { tenGpu: variant.tenGpu, id: variant.idGpu } : null,
-        oCung: variant.dungLuongOCung ? { dungLuong: variant.dungLuongOCung, id: variant.idOCung } : null,
-        loaiManHinh: variant.kichThuocManHinh ? { kichThuoc: variant.kichThuocManHinh, id: variant.idLoaiManHinh } : null,
-        pin: variant.dungLuongPin ? { dungLuongPin: variant.dungLuongPin, id: variant.idPin } : null,
+      // Normalize the data structure and load images for each variant
+      const variantsWithImages = await Promise.all(data.map(async (variant) => {
+        let images = []
+        
+        // Load images for this variant
+        try {
+          const imagesResponse = await getHinhAnhByCtspId(variant.id)
+          images = imagesResponse.data || []
+          console.log(`Variant ${variant.id} (${variant.maCtsp}) - Loaded ${images.length} images:`, images)
+        } catch (err) {
+          console.warn(`Failed to load images for variant ${variant.id}`)
+        }
+        
+        return {
+          ...variant,
+          images: images, // Add images array
+          // Map flat fields to nested objects for consistency
+          mauSac: variant.tenMauSac ? {
+            tenMau: variant.tenMauSac,
+            hexCode: variant.hexCodeMauSac || '#000000',
+            id: variant.idMauSac
+          } : null,
+          cpu: variant.tenCpu ? { tenCpu: variant.tenCpu, id: variant.idCpu } : null,
+          ram: variant.tenRam ? { tenRam: variant.tenRam, id: variant.idRam } : null,
+          gpu: variant.tenGpu ? { tenGpu: variant.tenGpu, id: variant.idGpu } : null,
+          oCung: variant.dungLuongOCung ? { dungLuong: variant.dungLuongOCung, id: variant.idOCung } : null,
+          loaiManHinh: variant.kichThuocManHinh ? { kichThuoc: variant.kichThuocManHinh, id: variant.idLoaiManHinh } : null,
+          pin: variant.dungLuongPin ? { dungLuongPin: variant.dungLuongPin, id: variant.idPin } : null,
+        }
       }))
+      
+      productDetailStore.variants = variantsWithImages
     } else {
       productDetailStore.variants = []
     }
@@ -823,6 +687,46 @@ const selectedProduct = computed(() => {
 
 const productVariants = computed(() => productDetailStore.variants)
 
+// Get all images from all variants
+const allProductImages = computed(() => {
+  const images = []
+  
+  // Add product main image if exists
+  if (selectedProduct.value?.anhDaiDien) {
+    images.push({
+      url: selectedProduct.value.anhDaiDien,
+      source: 'product'
+    })
+  }
+  
+  // Add all images from all variants
+  if (productVariants.value && Array.isArray(productVariants.value)) {
+    productVariants.value.forEach(variant => {
+      if (variant.images && Array.isArray(variant.images)) {
+        variant.images.forEach(image => {
+          const imageUrl = typeof image === 'string' ? image : (image.url || image.uri)
+          if (imageUrl && !images.some(img => img.url === imageUrl)) {
+            images.push({
+              url: imageUrl,
+              source: 'variant',
+              variantId: variant.id,
+              variantName: [
+                variant.tenCpu,
+                variant.tenRam,
+                variant.tenGpu,
+                variant.dungLuongOCung,
+                variant.tenMauSac
+              ].filter(Boolean).join(' - ')
+            })
+          }
+        })
+      }
+    })
+  }
+  
+  return images
+})
+
 // Computed property for filtered variants
 const filteredVariants = computed(() => {
   if (!productVariants.value || !Array.isArray(productVariants.value)) {
@@ -896,6 +800,36 @@ const filteredVariants = computed(() => {
 })
 
 // Helper functions
+const getVariantImageUrl = (variant) => {
+  console.log(`Getting image URL for variant ${variant.maCtsp}:`, {
+    hasImages: !!variant.images,
+    imagesLength: variant.images?.length || 0,
+    firstImage: variant.images?.[0]
+  })
+  
+  if (variant.images && variant.images.length > 0) {
+    const firstImage = variant.images[0]
+    // Handle both string URL and object with url property
+    if (typeof firstImage === 'string') {
+      console.log(`→ Returning string URL:`, firstImage)
+      return firstImage
+    } else if (firstImage && firstImage.url) {
+      console.log(`→ Returning object.url:`, firstImage.url)
+      return firstImage.url
+    } else if (firstImage && firstImage.uri) {
+      console.log(`→ Returning object.uri:`, firstImage.uri)
+      return firstImage.uri
+    }
+  }
+  console.log(`→ No image found, returning null`)
+  return null
+}
+
+const handleImageError = (event) => {
+  // Set placeholder image on error
+  event.target.src = 'https://via.placeholder.com/50x50?text=No+Image'
+}
+
 const getVariantImage = (variant) => {
   if (variant.anhSanPhams && variant.anhSanPhams.length > 0) {
     const primaryImage = variant.anhSanPhams.find((img) => img.is_default)
@@ -925,19 +859,25 @@ const showAddForm = () => {
 }
 
 const editVariant = async (variant) => {
+  console.log('Edit variant:', variant)
+  
   try {
     // Ensure attributes are loaded
     await productStore.loadAttributes()
     
-    // Reset form and errors
-    resetEditForm()
+    // Wait for next tick to ensure modal is rendered
+    await nextTick()
     
-    // Load variant data into form
-    loadVariantData(variant)
+    // Load variant data into modal
+    if (editModal.value) {
+      editModal.value.resetForm()
+      editModal.value.loadVariantData(variant)
+    }
     
     // Show modal
     const modalElement = document.getElementById('variantEditModal')
     if (modalElement) {
+      // Create new modal instance each time to avoid issues
       if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         // Dispose any existing instance first
         const existingModal = bootstrap.Modal.getInstance(modalElement)
@@ -951,11 +891,18 @@ const editVariant = async (variant) => {
           keyboard: true,
           focus: true
         })
+        
+        // Remove aria-hidden after modal is shown
+        modalElement.addEventListener('shown.bs.modal', () => {
+          modalElement.removeAttribute('aria-hidden')
+        }, { once: true })
+        
         modal.show()
       } else {
         // Manual show as fallback
         modalElement.classList.add('show', 'd-block')
         modalElement.style.display = 'block'
+        modalElement.removeAttribute('aria-hidden')
         modalElement.setAttribute('aria-modal', 'true')
         modalElement.setAttribute('role', 'dialog')
         document.body.classList.add('modal-open')
@@ -970,6 +917,18 @@ const editVariant = async (variant) => {
   } catch (error) {
     console.error('Error opening edit modal:', error)
     alert('Có lỗi khi mở form chỉnh sửa: ' + error.message)
+  }
+}
+
+const handleVariantUpdated = async () => {
+  console.log('ProductDetailManagement: Handling variant updated event')
+  
+  try {
+    // Reload variants list after successful update
+    await fetchProductVariants(productId.value)
+    console.log('ProductDetailManagement: Variants list refreshed successfully')
+  } catch (error) {
+    console.error('ProductDetailManagement: Error refreshing variants list:', error)
   }
 }
 
@@ -1696,12 +1655,94 @@ watch(
   margin-top: 1rem;
 }
 
+.images-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.image-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  transition: all 0.3s ease;
+}
+
+.image-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.image-item .product-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.image-info {
+  text-align: center;
+  width: 100%;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.image-info small {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
 .product-image {
   width: 100%;
   max-width: 200px;
   height: auto;
   border-radius: 8px;
   object-fit: cover;
+}
+
+.variant-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.variant-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.variant-thumbnail:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.no-image-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 1.25rem;
 }
 
 .variant-card {

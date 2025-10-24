@@ -24,19 +24,6 @@
                   style="background-color: #f8f9fa;"
                 />
               </div>
-              
-              <!-- Tên sản phẩm (editable) -->
-              <div class="col-md-6">
-                <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  v-model="form.tenSanPham"
-                  :class="{ 'is-invalid': errors.tenSanPham }"
-                  placeholder="Nhập tên sản phẩm"
-                />
-                <div v-if="errors.tenSanPham" class="invalid-feedback">{{ errors.tenSanPham }}</div>
-              </div>
 
               <!-- CPU -->
               <div class="col-md-6">
@@ -45,6 +32,8 @@
                   class="form-select" 
                   v-model="form.idCpu"
                 >
+                  <option value="">Chọn CPU</option>
+                  <option v-if="productStore.cpus.length === 0" disabled>Đang tải...</option>
                   <option v-for="cpu in productStore.cpus" :key="cpu.id" :value="cpu.id">
                     {{ cpu.tenCpu }}
                   </option>
@@ -58,6 +47,8 @@
                   class="form-select" 
                   v-model="form.idRam"
                 >
+                  <option value="">Chọn RAM</option>
+                  <option v-if="productStore.rams.length === 0" disabled>Đang tải...</option>
                   <option v-for="ram in productStore.rams" :key="ram.id" :value="ram.id">
                     {{ ram.tenRam }}
                   </option>
@@ -71,6 +62,8 @@
                   class="form-select" 
                   v-model="form.idGpu"
                 >
+                  <option value="">Chọn GPU</option>
+                  <option v-if="productStore.gpus.length === 0" disabled>Đang tải...</option>
                   <option v-for="gpu in productStore.gpus" :key="gpu.id" :value="gpu.id">
                     {{ gpu.tenGpu }}
                   </option>
@@ -84,14 +77,10 @@
                   class="form-select" 
                   v-model="form.idMauSac"
                 >
+                  <option value="">Chọn màu sắc</option>
+                  <option v-if="productStore.colors.length === 0" disabled>Đang tải...</option>
                   <option v-for="color in productStore.colors" :key="color.id" :value="color.id">
-                    <span class="d-flex align-items-center">
-                      <span 
-                        class="color-preview me-2" 
-                        :style="{ backgroundColor: color.hexCode }"
-                      ></span>
-                      {{ color.tenMau }}
-                    </span>
+                    {{ color.tenMau }}
                   </option>
                 </select>
               </div>
@@ -103,6 +92,8 @@
                   class="form-select" 
                   v-model="form.idOCung"
                 >
+                  <option value="">Chọn ổ cứng</option>
+                  <option v-if="productStore.storages.length === 0" disabled>Đang tải...</option>
                   <option v-for="storage in productStore.storages" :key="storage.id" :value="storage.id">
                     {{ storage.dungLuong }}
                   </option>
@@ -116,6 +107,8 @@
                   class="form-select" 
                   v-model="form.idLoaiManHinh"
                 >
+                  <option value="">Chọn màn hình</option>
+                  <option v-if="productStore.screens.length === 0" disabled>Đang tải...</option>
                   <option v-for="screen in productStore.screens" :key="screen.id" :value="screen.id">
                     {{ screen.kichThuoc }}
                   </option>
@@ -129,6 +122,8 @@
                   class="form-select" 
                   v-model="form.idPin"
                 >
+                  <option value="">Chọn pin</option>
+                  <option v-if="productStore.batteries.length === 0" disabled>Đang tải...</option>
                   <option v-for="battery in productStore.batteries" :key="battery.id" :value="battery.id">
                     {{ battery.dungLuongPin }}
                   </option>
@@ -137,7 +132,7 @@
 
               <!-- Giá bán -->
               <div class="col-md-6">
-                <label class="form-label">Giá bán <span class="text-danger">*</span></label>
+                <label class="form-label">Giá bán (VNĐ) <span class="text-danger">*</span></label>
                 <input 
                   type="number" 
                   class="form-control" 
@@ -150,22 +145,8 @@
                 <div v-if="errors.giaBan" class="invalid-feedback">{{ errors.giaBan }}</div>
               </div>
 
-              <!-- Số lượng tồn -->
-              <div class="col-md-6">
-                <label class="form-label">Số lượng tồn <span class="text-danger">*</span></label>
-                <input 
-                  type="number" 
-                  class="form-control" 
-                  v-model.number="form.soLuongTon"
-                  :class="{ 'is-invalid': errors.soLuongTon }"
-                  placeholder="Nhập số lượng tồn"
-                  min="0"
-                />
-                <div v-if="errors.soLuongTon" class="invalid-feedback">{{ errors.soLuongTon }}</div>
-              </div>
-
               <!-- Trạng thái -->
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <label class="form-label">Trạng thái</label>
                 <select class="form-select" v-model="form.trangThai">
                   <option :value="1">Hoạt động</option>
@@ -222,6 +203,7 @@ const emit = defineEmits(['updated', 'close'])
 // Form data
 const form = reactive({
   id: '',
+  idSanPham: '',
   maCtsp: '',
   tenSanPham: '',
   idCpu: '',
@@ -232,7 +214,7 @@ const form = reactive({
   idLoaiManHinh: '',
   idPin: '',
   giaBan: 0,
-  soLuongTon: 0,
+  soLuongTon: 0,  // Hidden field, keep current value
   trangThai: 1
 })
 
@@ -245,6 +227,7 @@ const generalError = ref('')
 const resetForm = () => {
   Object.assign(form, {
     id: '',
+    idSanPham: '',
     maCtsp: '',
     tenSanPham: '',
     idCpu: '',
@@ -274,6 +257,17 @@ const loadVariantData = (variant) => {
   errors.value = {}
   generalError.value = ''
   
+  // Debug: Log productStore attributes
+  console.log('VariantEditModal: productStore attributes:', {
+    cpus: productStore.cpus.length,
+    rams: productStore.rams.length,
+    gpus: productStore.gpus.length,
+    colors: productStore.colors.length,
+    storages: productStore.storages.length,
+    screens: productStore.screens.length,
+    batteries: productStore.batteries.length
+  })
+  
   // Map variant data to form with comprehensive field mapping
   // Use the first available CPU if variant doesn't have one
   const defaultCpu = productStore.cpus.length > 0 ? productStore.cpus[0].id : ''
@@ -286,6 +280,7 @@ const loadVariantData = (variant) => {
   
   const formData = {
     id: variant.id,
+    idSanPham: variant.idSanPham || variant.sanPhamId || '',
     maCtsp: variant.maCtsp || '',
     tenSanPham: variant.tenSanPham || variant.sanPham?.tenSanPham || '',
     // Use existing values or default to first available option
@@ -297,7 +292,7 @@ const loadVariantData = (variant) => {
     idLoaiManHinh: variant.idLoaiManHinh || variant.loaiManHinh?.id || variant.screenId || defaultScreen,
     idPin: variant.idPin || variant.pin?.id || variant.batteryId || defaultBattery,
     giaBan: Number(variant.giaBan) || 0,
-    soLuongTon: Number(variant.soLuongTon) || 0,
+    soLuongTon: Number(variant.soLuongTon) || 0,  // Keep current value
     trangThai: variant.trangThai ?? 1
   }
   
@@ -306,19 +301,20 @@ const loadVariantData = (variant) => {
   Object.assign(form, formData)
   
   console.log('VariantEditModal: Form after assignment:', { ...form })
+  
+  // Debug: Check if form IDs match with productStore options
+  console.log('VariantEditModal: Checking ID matches:')
+  console.log('- CPU ID in form:', form.idCpu, '→ exists in options?', productStore.cpus.some(c => c.id === form.idCpu))
+  console.log('- RAM ID in form:', form.idRam, '→ exists in options?', productStore.rams.some(r => r.id === form.idRam))
+  console.log('- GPU ID in form:', form.idGpu, '→ exists in options?', productStore.gpus.some(g => g.id === form.idGpu))
+  console.log('- Color ID in form:', form.idMauSac, '→ exists in options?', productStore.colors.some(c => c.id === form.idMauSac))
+  console.log('- Storage ID in form:', form.idOCung, '→ exists in options?', productStore.storages.some(s => s.id === form.idOCung))
+  console.log('- Screen ID in form:', form.idLoaiManHinh, '→ exists in options?', productStore.screens.some(s => s.id === form.idLoaiManHinh))
+  console.log('- Battery ID in form:', form.idPin, '→ exists in options?', productStore.batteries.some(b => b.id === form.idPin))
 }
 
 const validateForm = () => {
   const newErrors = {}
-  
-  // Validate product name
-  if (!form.tenSanPham || form.tenSanPham.trim().length === 0) {
-    newErrors.tenSanPham = 'Vui lòng nhập tên sản phẩm'
-  } else if (form.tenSanPham.trim().length < 3) {
-    newErrors.tenSanPham = 'Tên sản phẩm phải có ít nhất 3 ký tự'
-  } else if (form.tenSanPham.trim().length > 255) {
-    newErrors.tenSanPham = 'Tên sản phẩm không được vượt quá 255 ký tự'
-  }
   
   // Only validate price and quantity - attributes are optional
   
@@ -329,16 +325,7 @@ const validateForm = () => {
     newErrors.giaBan = 'Giá bán không được vượt quá 1 tỷ VND'
   }
   
-  // Validate quantity
-  if (form.soLuongTon === null || form.soLuongTon === undefined) {
-    newErrors.soLuongTon = 'Vui lòng nhập số lượng tồn'
-  } else if (form.soLuongTon < 0) {
-    newErrors.soLuongTon = 'Số lượng tồn không được âm'
-  } else if (!Number.isInteger(form.soLuongTon)) {
-    newErrors.soLuongTon = 'Số lượng tồn phải là số nguyên'
-  } else if (form.soLuongTon > 1000000) { // 1 million max
-    newErrors.soLuongTon = 'Số lượng tồn không được vượt quá 1 triệu'
-  }
+  // Số lượng tồn không cần validate vì đã bỏ khỏi form
   
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
@@ -406,36 +393,30 @@ const handleSubmit = async () => {
   generalError.value = ''
   
   try {
-    // Prepare payload with proper data types - only send valid values
+    // Prepare payload with proper data types - keep UUIDs as strings
     const payload = {
+      idSanPham: form.idSanPham,
+      maCtsp: form.maCtsp,
       tenSanPham: form.tenSanPham?.trim(),
       giaBan: Number(form.giaBan) || 0,
-      soLuongTon: Number(form.soLuongTon) || 0,
+      soLuongTon: Number(form.soLuongTon) || 0,  // Include current value
       trangThai: Number(form.trangThai) ?? 1
     }
     
-    // Only include attribute IDs if they have valid values
-    if (form.idCpu) payload.idCpu = Number(form.idCpu)
-    if (form.idRam) payload.idRam = Number(form.idRam)
-    if (form.idGpu) payload.idGpu = Number(form.idGpu)
-    if (form.idMauSac) payload.idMauSac = Number(form.idMauSac)
-    if (form.idOCung) payload.idOCung = Number(form.idOCung)
-    if (form.idLoaiManHinh) payload.idLoaiManHinh = Number(form.idLoaiManHinh)
-    if (form.idPin) payload.idPin = Number(form.idPin)
+    // Include attribute IDs as strings (UUIDs)
+    if (form.idCpu) payload.idCpu = form.idCpu
+    if (form.idRam) payload.idRam = form.idRam
+    if (form.idGpu) payload.idGpu = form.idGpu
+    if (form.idMauSac) payload.idMauSac = form.idMauSac
+    if (form.idOCung) payload.idOCung = form.idOCung
+    if (form.idLoaiManHinh) payload.idLoaiManHinh = form.idLoaiManHinh
+    if (form.idPin) payload.idPin = form.idPin
     
     console.log('VariantEditModal: Prepared payload:', payload)
     
-    // Only validate required fields (name, price, quantity)
-    if (!payload.tenSanPham) {
-      throw new Error('Tên sản phẩm không được để trống')
-    }
-    
+    // Only validate required fields (price)
     if (!payload.giaBan || payload.giaBan <= 0) {
       throw new Error('Giá bán phải lớn hơn 0')
-    }
-    
-    if (payload.soLuongTon < 0) {
-      throw new Error('Số lượng tồn không được âm')
     }
     
     console.log('VariantEditModal: Calling productStore.updateVariant')

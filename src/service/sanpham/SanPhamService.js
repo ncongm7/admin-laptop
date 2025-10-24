@@ -506,6 +506,30 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
       }
     }
     
+    // Step 3.5: Save images for each variant from preview data
+    if (previewVariants && previewVariants.length > 0) {
+      console.log('Saving variant images...')
+      for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
+        const variant = variants[i]
+        const previewVariant = previewVariants[i]
+        
+        // Save variant image if provided
+        if (previewVariant.anhDaiDien) {
+          try {
+            const imageRequest = {
+              idSpct: variant.id,
+              url: previewVariant.anhDaiDien,
+              anhChinhDaiDien: true
+            }
+            await createHinhAnhBatch([imageRequest])
+            console.log(`✅ Saved image for variant ${variant.id}:`, previewVariant.anhDaiDien)
+          } catch (imageError) {
+            console.warn(`❌ Failed to save image for variant ${variant.id}:`, imageError)
+          }
+        }
+      }
+    }
+    
     // Step 4: Create serials for each variant based on preview data
     const allSerials = []
     if (previewVariants && previewVariants.length > 0) {

@@ -256,20 +256,22 @@ export const useProductStore = defineStore('products', () => {
       
       // Prepare the payload - only include provided values
       const updatePayload = {
+        idSanPham: payload.idSanPham,
+        maCtsp: payload.maCtsp,
         tenSanPham: payload.tenSanPham?.trim() || '',
         giaBan: Number(payload.giaBan) || 0,
-        soLuongTon: Number(payload.soLuongTon) || 0,
+        soLuongTon: Number(payload.soLuongTon) ?? 0,  // Backend requires this field
         trangThai: payload.trangThai ?? 1
       }
       
-      // Only include attribute IDs if they are provided
-      if (payload.idCpu) updatePayload.idCpu = Number(payload.idCpu)
-      if (payload.idRam) updatePayload.idRam = Number(payload.idRam)
-      if (payload.idGpu) updatePayload.idGpu = Number(payload.idGpu)
-      if (payload.idMauSac) updatePayload.idMauSac = Number(payload.idMauSac)
-      if (payload.idOCung) updatePayload.idOCung = Number(payload.idOCung)
-      if (payload.idLoaiManHinh) updatePayload.idLoaiManHinh = Number(payload.idLoaiManHinh)
-      if (payload.idPin) updatePayload.idPin = Number(payload.idPin)
+      // Only include attribute IDs if they are provided (keep as UUID strings)
+      if (payload.idCpu) updatePayload.idCpu = payload.idCpu
+      if (payload.idRam) updatePayload.idRam = payload.idRam
+      if (payload.idGpu) updatePayload.idGpu = payload.idGpu
+      if (payload.idMauSac) updatePayload.idMauSac = payload.idMauSac
+      if (payload.idOCung) updatePayload.idOCung = payload.idOCung
+      if (payload.idLoaiManHinh) updatePayload.idLoaiManHinh = payload.idLoaiManHinh
+      if (payload.idPin) updatePayload.idPin = payload.idPin
       
       console.log('ProductStore: Prepared update payload:', updatePayload)
       
@@ -280,10 +282,6 @@ export const useProductStore = defineStore('products', () => {
       
       if (updatePayload.giaBan <= 0) {
         throw new Error('Giá bán phải lớn hơn 0')
-      }
-      
-      if (updatePayload.soLuongTon < 0) {
-        throw new Error('Số lượng tồn không được âm')
       }
       
       console.log('ProductStore: Calling updateChiTietSanPham API')
