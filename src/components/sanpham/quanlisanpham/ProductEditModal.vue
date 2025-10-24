@@ -44,6 +44,17 @@
                   />
                 </div>
 
+                <!-- Mô tả -->
+                <div class="col-md-12">
+                  <label class="form-label">Mô tả</label>
+                  <textarea
+                    class="form-control"
+                    v-model="form.moTa"
+                    rows="3"
+                    placeholder="Nhập mô tả sản phẩm"
+                  ></textarea>
+                </div>
+
                 <!-- Trạng thái -->
                 <div class="col-md-12">
                   <label class="form-label">Trạng thái</label>
@@ -82,11 +93,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-// Form data - chỉ 3 trường đơn giản
+// Form data - including description field
 const form = ref({
   id: null,
   maSanPham: '',
   tenSanPham: '',
+  moTa: '',
   trangThai: 1
 })
 
@@ -97,6 +109,7 @@ const initializeForm = () => {
       id: props.product.id,
       maSanPham: props.product.maSanPham || '',
       tenSanPham: props.product.tenSanPham || '',
+      moTa: props.product.moTa || '',
       trangThai: props.product.trangThai !== undefined ? props.product.trangThai : 1
     }
   }

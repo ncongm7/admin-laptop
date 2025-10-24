@@ -292,12 +292,42 @@ const saveEditedProduct = async (productData) => {
   try {
     console.log('Product edited from modal:', productData)
     
-    // Product is already updated by ProductFormModal
-    // Just refresh the list and close modal
+    // Validate required fields
+    if (!productData.tenSanPham?.trim()) {
+      alert('Vui lòng nhập tên sản phẩm')
+      return
+    }
+
+    loading.value = true
+
+    // Call the store's editProduct method to update the product
+    await productStore.editProduct(productData.id, productData)
+    
+    console.log('Product updated successfully')
+    alert('Cập nhật sản phẩm thành công!')
+    
+    // Refresh the product list and close modal
     await fetchData()
     closeEditModal()
   } catch (error) {
-    console.error('Error refreshing product list:', error)
+    console.error('Error updating product:', error)
+    
+    // Show detailed error message
+    let errorMessage = 'Lỗi khi cập nhật sản phẩm'
+    
+    if (error.message) {
+      errorMessage = error.message
+    } else if (error.response?.data?.message) {
+      errorMessage = `Lỗi server: ${error.response.data.message}`
+    } else if (error.response?.data?.error) {
+      errorMessage = `Lỗi server: ${error.response.data.error}`
+    } else if (error.response?.status) {
+      errorMessage = `Lỗi HTTP ${error.response.status}: ${error.response.statusText || 'Không xác định'}`
+    }
+    
+    alert(errorMessage)
+  } finally {
+    loading.value = false
   }
 }
 
