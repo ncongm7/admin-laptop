@@ -266,20 +266,20 @@
                     </th>
                     <th width="30">STT</th>
                     <th width="60">ẢNH</th>
-                    <th width="100">SKU</th>
-                    <th width="60">MÀU</th>
-                    <th width="80">CPU</th>
-                    <th width="60">RAM</th>
-                    <th width="70">GPU</th>
-                    <th width="70">MÀN HÌNH</th>
-                    <th width="50">PIN</th>
-                    <th width="70">Ổ CỨNG</th>
-                    <th width="75">GIÁ BÁN</th>
-                    <th width="60">SỐ LƯỢNG TỒN</th>
-                    <th width="65">TRẠNG THÁI</th>
-                    <th width="70">NGÀY TẠO</th>
-                    <th width="70">NGÀY CẬP NHẬT</th>
-                    <th width="60">TÁC VỤ</th>
+                    <th width="90">SKU</th>
+                    <th width="55">MÀU</th>
+                    <th width="70">CPU</th>
+                    <th width="55">RAM</th>
+                    <th width="65">GPU</th>
+                    <th width="65">MÀN HÌNH</th>
+                    <th width="45">PIN</th>
+                    <th width="65">Ổ CỨNG</th>
+                    <th width="70">GIÁ BÁN</th>
+                    <th width="55">SỐ LƯỢNG TỒN</th>
+                    <th width="60">TRẠNG THÁI</th>
+                    <th width="65">NGÀY TẠO</th>
+                    <th width="65">NGÀY CẬP NHẬT</th>
+                    <th width="120" class="text-center">TÁC VỤ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -356,12 +356,31 @@
                     </td>
                     <td>{{ formatDate(variant.createdAt) || 'N/A' }}</td>
                     <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
-                    <td>
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary btn-sm" @click="editVariant(variant)" title="Chỉnh sửa">
+                    <td class="text-center actions-column">
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-info btn-sm" 
+                          @click="openSerialModal(variant)" 
+                          title="Quản lý serial"
+                        >
+                          <i class="bi bi-list-ol"></i>
+                        </button>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary btn-sm" 
+                          @click="editVariant(variant)" 
+                          title="Chỉnh sửa"
+                        >
                           <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-sm" @click="confirmDelete(variant.id)" title="Xóa">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-danger btn-sm" 
+                          @click="confirmDelete(variant.id)" 
+                          title="Xóa biến thể"
+                          style="display: inline-block !important; min-width: 32px;"
+                        >
                           <i class="bi bi-trash"></i>
                         </button>
                       </div>
@@ -400,7 +419,7 @@ import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
 import { useAttributeStore } from '@/stores/attributeStore'
 import { formatCurrency } from '@/utils/formatters'
-import { getCTSPBySanPham, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId, getSerialsByCtspId, createSerialsBatch, updateSerial, updateSerialStatus, deleteSerial, importSerialsFromExcel, updateChiTietSanPham, deleteCTSP, deleteCTSPWithCascade, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 
 const route = useRoute()
@@ -441,6 +460,13 @@ const editForm = ref({
 
 // Audit logs state
 const auditLogs = ref([])
+
+// Serial management state
+const serialLoading = ref(false)
+const serialInput = ref('')
+const serialValidationError = ref('')
+const serialValidationSuccess = ref(false)
+const showSerialModal = ref(false)
 
 // Filters state
 const filters = ref({
@@ -933,12 +959,75 @@ const handleVariantUpdated = async () => {
 }
 
 const confirmDelete = async (variantId) => {
-  if (confirm('Bạn có chắc muốn xóa biến thể này?')) {
+  console.log('confirmDelete called with variantId:', variantId)
+  
+  // Find the variant to get its details for confirmation
+  const variant = productVariants.value.find(v => v.id === variantId)
+  if (!variant) {
+    alert('Không tìm thấy biến thể để xóa')
+    return
+  }
+  
+  // Enhanced confirmation message with variant details
+  const confirmMessage = `Bạn có chắc muốn xóa biến thể này?\n\nMã biến thể: ${variant.maCtsp}\nThông số: ${getVariantSpecs(variant)}\n\nLưu ý: Tất cả serial và dữ liệu liên quan sẽ bị xóa vĩnh viễn!`
+  
+  if (confirm(confirmMessage)) {
     try {
-      await productDetailStore.deleteVariant(variantId)
+      loading.value = true
+      console.log('Deleting variant:', variantId)
+      
+      // Call API to delete variant with cascade (this will delete serials and images first)
+      await deleteCTSPWithCascade(variantId)
+      
+      // Remove from local state immediately for better UX
+      const variantIndex = productVariants.value.findIndex(v => v.id === variantId)
+      if (variantIndex !== -1) {
+        productVariants.value.splice(variantIndex, 1)
+      }
+      
+      // Also remove from productDetailStore if it exists
+      if (productDetailStore.variants) {
+        const storeIndex = productDetailStore.variants.findIndex(v => v.id === variantId)
+        if (storeIndex !== -1) {
+          productDetailStore.variants.splice(storeIndex, 1)
+        }
+      }
+      
+      // Refresh data from server to ensure consistency
+      await fetchProductVariants(productId.value)
+      
+      alert('Đã xóa biến thể thành công!')
+      console.log('Variant deleted successfully:', variantId)
+      
     } catch (error) {
-      console.error('Error in confirmDelete:', error)
-      alert('Lỗi khi xóa biến thể: ' + (error.message || 'Lỗi không xác định'))
+      console.error('Error deleting variant:', error)
+      
+      // Provide detailed error messages
+      let errorMessage = 'Lỗi khi xóa biến thể'
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message?.includes('FK_HinhAnh_CTSP') || error.message?.includes('hinh_anh')) {
+        errorMessage = 'Lỗi khi xóa hình ảnh liên quan đến biến thể. Vui lòng thử lại.'
+      } else if (error.message?.includes('FK_Serial_CTSP') || error.message?.includes('serial')) {
+        errorMessage = 'Lỗi khi xóa serial liên quan đến biến thể. Vui lòng thử lại.'
+      } else if (error.message?.includes('REFERENCE constraint')) {
+        errorMessage = 'Không thể xóa biến thể do có dữ liệu liên quan. Hệ thống đang xử lý...'
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Biến thể không tồn tại hoặc đã bị xóa'
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Không thể xóa biến thể do ràng buộc dữ liệu'
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Lỗi server khi xóa biến thể. Vui lòng thử lại sau.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      alert(errorMessage)
+      
+      // Refresh data in case of partial deletion
+      await fetchProductVariants(productId.value)
+    } finally {
+      loading.value = false
     }
   }
 }
@@ -1578,6 +1667,466 @@ watch(
   },
   { deep: true },
 )
+
+// ===== SERIAL MANAGEMENT FUNCTIONS =====
+
+// Open serial management modal
+const openSerialModal = async (variant) => {
+  try {
+    console.log('Opening serial modal for variant:', variant)
+    currentVariant.value = { ...variant, serials: [] }
+    
+    // Fetch existing serials for this variant
+    await loadVariantSerials(variant.id)
+    
+    // Simply show modal using Vue reactive state
+    showSerialModal.value = true
+    
+    // Add modal-open class to body for proper styling
+    await nextTick()
+    document.body.classList.add('modal-open')
+    
+    console.log('Serial modal opened successfully')
+  } catch (error) {
+    console.error('Error opening serial modal:', error)
+    alert('Không thể mở modal quản lý serial')
+  }
+}
+
+// Close serial management modal
+const closeSerialModal = () => {
+  // Simply hide modal using Vue reactive state
+  showSerialModal.value = false
+  
+  // Remove modal-open class from body
+  document.body.classList.remove('modal-open')
+  
+  // Reset form
+  serialInput.value = ''
+  serialValidationError.value = ''
+  serialValidationSuccess.value = false
+  currentVariant.value = {}
+  
+  console.log('Serial modal closed')
+}
+
+// Load serials for a specific variant
+const loadVariantSerials = async (variantId) => {
+  try {
+    console.log('Loading serials for variant:', variantId)
+    const response = await getSerialsByCtspId(variantId)
+    const serials = response.data || []
+    
+    // Update current variant with serials
+    if (currentVariant.value) {
+      currentVariant.value.serials = serials.map(serial => ({
+        id: serial.id,
+        soSerial: serial.soSerial || serial.serialNo,
+        trangThai: serial.trangThai !== undefined ? serial.trangThai : 1
+      }))
+    }
+    
+    console.log('Loaded serials:', currentVariant.value.serials)
+  } catch (error) {
+    console.error('Error loading variant serials:', error)
+    if (currentVariant.value) {
+      currentVariant.value.serials = []
+    }
+  }
+}
+
+// Get variant specifications string
+const getVariantSpecs = (variant) => {
+  if (!variant) return 'N/A'
+  
+  const specs = []
+  if (variant.tenCpu) specs.push(`CPU: ${variant.tenCpu}`)
+  if (variant.tenRam) specs.push(`RAM: ${variant.tenRam}`)
+  if (variant.tenGpu) specs.push(`GPU: ${variant.tenGpu}`)
+  if (variant.mauSac?.tenMau) specs.push(`Màu: ${variant.mauSac.tenMau}`)
+  
+  return specs.length > 0 ? specs.join(', ') : 'N/A'
+}
+
+// Validate serial input
+const validateSerialInput = () => {
+  const input = serialInput.value.trim()
+  serialValidationError.value = ''
+  serialValidationSuccess.value = false
+  
+  if (!input) return
+  
+  // Split by comma or semicolon and validate each serial
+  const serials = input.split(/[,;]/).map(s => s.trim()).filter(s => s)
+  
+  for (const serial of serials) {
+    // Check length (7 characters)
+    if (serial.length !== 7) {
+      serialValidationError.value = `Serial "${serial}" phải có đúng 7 ký tự`
+      return
+    }
+    
+    // Check if contains both letters and numbers
+    const hasLetter = /[a-zA-Z]/.test(serial)
+    const hasNumber = /[0-9]/.test(serial)
+    
+    if (!hasLetter || !hasNumber) {
+      serialValidationError.value = `Serial "${serial}" phải chứa cả chữ và số`
+      return
+    }
+    
+    // Check for duplicates in current variant
+    if (currentVariant.value.serials?.some(s => s.soSerial === serial)) {
+      serialValidationError.value = `Serial "${serial}" đã tồn tại`
+      return
+    }
+  }
+  
+  serialValidationSuccess.value = true
+}
+
+// Add serial numbers
+const addSerialNumbers = () => {
+  const input = serialInput.value.trim()
+  if (!input) {
+    alert('Vui lòng nhập serial number')
+    return
+  }
+  
+  // Validate first
+  validateSerialInput()
+  if (serialValidationError.value) {
+    return
+  }
+  
+  // Split and add serials
+  const serials = input.split(/[,;]/).map(s => s.trim()).filter(s => s)
+  
+  if (!currentVariant.value.serials) {
+    currentVariant.value.serials = []
+  }
+  
+  serials.forEach(serial => {
+    currentVariant.value.serials.push({
+      soSerial: serial,
+      trangThai: 1,
+      // No id means it's not saved yet
+    })
+  })
+  
+  // Clear input
+  serialInput.value = ''
+  serialValidationError.value = ''
+  serialValidationSuccess.value = false
+  
+  console.log('Added serials:', serials)
+}
+
+// Toggle serial status
+const toggleSerialStatus = async (index) => {
+  if (currentVariant.value.serials && currentVariant.value.serials[index]) {
+    const serial = currentVariant.value.serials[index]
+    const oldStatus = serial.trangThai
+    const newStatus = serial.trangThai === 1 ? 0 : 1
+    
+    // Update serial status
+    serial.trangThai = newStatus
+    
+    // If serial has ID (already saved), update it on server immediately
+    if (serial.id) {
+      try {
+        await updateSerialStatus(serial.id, newStatus)
+        console.log(`Serial ${serial.soSerial} status updated to ${newStatus}`)
+      } catch (error) {
+        console.error('Error updating serial status:', error)
+        console.error('Error details:', error.response?.data || error.message)
+        
+        // Revert on error
+        serial.trangThai = oldStatus
+        
+        // Show more detailed error message
+        let errorMessage = 'Lỗi khi cập nhật trạng thái serial'
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response?.status === 400) {
+          errorMessage = 'Dữ liệu không hợp lệ khi cập nhật trạng thái serial'
+        } else if (error.response?.status === 404) {
+          errorMessage = 'Không tìm thấy serial để cập nhật'
+        }
+        
+        alert(errorMessage)
+        return
+      }
+    }
+    
+    // Sync stock quantity with active serials count
+    await syncVariantStockWithActiveSerials()
+  }
+}
+
+// Remove serial
+const removeSerial = async (index) => {
+  if (confirm('Bạn có chắc chắn muốn xóa serial này?')) {
+    if (currentVariant.value.serials) {
+      const serial = currentVariant.value.serials[index]
+      
+      // If serial has ID (already saved), delete it from server
+      if (serial.id) {
+        try {
+          await deleteSerial(serial.id)
+          console.log(`Serial ${serial.soSerial} deleted from server`)
+        } catch (error) {
+          console.error('Error deleting serial from server:', error)
+          alert('Lỗi khi xóa serial từ server')
+          return
+        }
+      }
+      
+      // Remove from local array
+      currentVariant.value.serials.splice(index, 1)
+      
+      // Sync stock quantity with remaining active serials
+      await syncVariantStockWithActiveSerials()
+    }
+  }
+}
+
+// Get count of unsaved serials
+const getUnsavedSerialsCount = () => {
+  if (!currentVariant.value.serials) return 0
+  return currentVariant.value.serials.filter(s => !s.id).length
+}
+
+// Get dynamic save button text
+const getSaveButtonText = () => {
+  if (serialLoading.value) {
+    return 'Đang lưu...'
+  }
+  
+  return 'Lưu'
+}
+
+// Save serials
+const saveSerials = async () => {
+  if (!currentVariant.value.id) {
+    alert('Không tìm thấy thông tin biến thể')
+    return
+  }
+  
+  const unsavedSerials = currentVariant.value.serials?.filter(s => !s.id) || []
+  const totalSerials = currentVariant.value.serials?.length || 0
+  
+  // If no serials at all
+  if (totalSerials === 0) {
+    alert('Chưa có serial nào để lưu. Vui lòng thêm serial trước khi lưu.')
+    return
+  }
+  
+  // If no unsaved serials, just sync stock and show success
+  if (unsavedSerials.length === 0) {
+    try {
+      serialLoading.value = true
+      
+      // Sync stock quantity with active serials count
+      await syncVariantStockWithActiveSerials()
+      
+      // Refresh variant data in the main list
+      await fetchProductVariants(productId.value)
+      
+      alert('Đã đồng bộ thành công số lượng tồn kho với serial!')
+      
+      // Close modal and return to product detail page
+      closeSerialModal()
+      
+    } catch (error) {
+      console.error('Error syncing serials:', error)
+      alert('Lỗi khi đồng bộ dữ liệu serial')
+    } finally {
+      serialLoading.value = false
+    }
+    return
+  }
+  
+  try {
+    serialLoading.value = true
+    
+    // Prepare serial data for API
+    const serialRequests = unsavedSerials.map(serial => ({
+      ctspId: currentVariant.value.id,
+      serialNo: serial.soSerial,
+      trangThai: serial.trangThai
+    }))
+    
+    console.log('Saving serials:', serialRequests)
+    
+    // Call API to create serials
+    const response = await createSerialsBatch(serialRequests)
+    const createdSerials = response.data || []
+    
+    console.log('Created serials:', createdSerials)
+    
+    // Update local serials with IDs from server
+    createdSerials.forEach((createdSerial, index) => {
+      const localSerial = unsavedSerials[index]
+      if (localSerial) {
+        localSerial.id = createdSerial.id
+      }
+    })
+    
+    alert(`Đã lưu ${createdSerials.length} serial thành công!`)
+    
+    // Sync stock quantity with active serials count
+    await syncVariantStockWithActiveSerials()
+    
+    // Refresh variant data in the main list
+    await fetchProductVariants(productId.value)
+    
+    // Close modal and return to product detail page
+    closeSerialModal()
+    
+  } catch (error) {
+    console.error('Error saving serials:', error)
+    
+    let errorMessage = 'Lỗi khi lưu serial'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    alert(errorMessage)
+  } finally {
+    serialLoading.value = false
+  }
+}
+
+// Import from Excel
+const importFromExcel = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  if (!currentVariant.value.id) {
+    alert('Không tìm thấy thông tin biến thể')
+    return
+  }
+  
+  try {
+    serialLoading.value = true
+    
+    console.log('Importing serials from Excel for variant:', currentVariant.value.id)
+    
+    const response = await importSerialsFromExcel(currentVariant.value.id, file)
+    const importedSerials = response.data || []
+    
+    console.log('Imported serials:', importedSerials)
+    
+    // Reload serials for this variant
+    await loadVariantSerials(currentVariant.value.id)
+    
+    alert(`Đã import ${importedSerials.length} serial thành công!`)
+    
+    // Sync stock quantity with active serials count
+    await syncVariantStockWithActiveSerials()
+    
+    // Refresh variant data in the main list
+    await fetchProductVariants(productId.value)
+    
+    // Close modal and return to product detail page
+    closeSerialModal()
+    
+  } catch (error) {
+    console.error('Error importing serials:', error)
+    
+    let errorMessage = 'Lỗi khi import serial từ Excel'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    alert(errorMessage)
+  } finally {
+    serialLoading.value = false
+    // Clear file input
+    event.target.value = ''
+  }
+}
+
+// Download Excel template
+const downloadExcelTemplate = () => {
+  // Create a simple CSV template
+  const csvContent = 'Serial Number\nABC1234\nDEF5678\nGHI9012'
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'serial_template.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+// Sync variant stock quantity with active serials count
+const syncVariantStockWithActiveSerials = async () => {
+  if (!currentVariant.value || !currentVariant.value.id) {
+    console.warn('No current variant to sync stock for')
+    return
+  }
+  
+  try {
+    // Count active serials (trangThai === 1)
+    const activeSerialCount = currentVariant.value.serials?.filter(serial => serial.trangThai === 1).length || 0
+    
+    console.log(`Syncing stock for variant ${currentVariant.value.maCtsp}: ${activeSerialCount} active serials`)
+    
+    // Update variant stock quantity on server
+    const updateData = {
+      idSanPham: currentVariant.value.idSanPham || productId.value,
+      maCtsp: currentVariant.value.maCtsp,
+      giaBan: currentVariant.value.giaBan,
+      ghiChu: currentVariant.value.ghiChu || '',
+      soLuongTon: activeSerialCount,
+      soLuongTamGiu: currentVariant.value.soLuongTamGiu || 0,
+      trangThai: currentVariant.value.trangThai,
+      idCpu: currentVariant.value.idCpu,
+      idGpu: currentVariant.value.idGpu,
+      idRam: currentVariant.value.idRam,
+      idOCung: currentVariant.value.idOCung,
+      idMauSac: currentVariant.value.idMauSac,
+      idLoaiManHinh: currentVariant.value.idLoaiManHinh,
+      idPin: currentVariant.value.idPin
+    }
+    
+    await updateChiTietSanPham(currentVariant.value.id, updateData)
+    
+    // Update local variant data
+    currentVariant.value.soLuongTon = activeSerialCount
+    
+    // Update the variant in the main list as well
+    const variantIndex = productDetailStore.variants.findIndex(v => v.id === currentVariant.value.id)
+    if (variantIndex !== -1) {
+      productDetailStore.variants[variantIndex].soLuongTon = activeSerialCount
+    }
+    
+    console.log(`Stock quantity updated to ${activeSerialCount} for variant ${currentVariant.value.maCtsp}`)
+    
+  } catch (error) {
+    console.error('Error syncing variant stock with active serials:', error)
+    
+    let errorMessage = 'Lỗi khi đồng bộ số lượng tồn kho'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    alert(errorMessage)
+  }
+}
 </script>
 
 <style scoped>
@@ -2276,5 +2825,250 @@ input[type='checkbox']:focus {
   margin-top: 0.25rem;
   font-size: 0.875em;
   color: #dc3545;
+}
+
+/* ===== SERIAL MANAGEMENT MODAL STYLES ===== */
+#serialModal {
+  z-index: 9999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#serialModal .modal-dialog {
+  max-width: 1200px;
+}
+
+#serialModal .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+#serialModal .modal-title {
+  color: #495057;
+  font-weight: 600;
+}
+
+.variant-info-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.info-item {
+  margin-bottom: 0.5rem;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.serial-management-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.serial-list-section {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: #ffffff;
+}
+
+.section-title {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.serial-table {
+  font-size: 14px;
+}
+
+.serial-table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.serial-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.serial-table .fw-medium {
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.input-group .form-control.is-invalid {
+  border-color: #fbbf24;
+}
+
+.input-group .form-control.is-valid {
+  border-color: #10b981;
+}
+
+.text-warning {
+  color: #f59e0b !important;
+}
+
+/* Serial status indicators */
+.bi-circle-fill {
+  animation: pulse 2s infinite;
+}
+
+.bi-check-circle-fill {
+  color: #10b981 !important;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Modal backdrop styles */
+.modal-backdrop {
+  z-index: 9998 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Modal footer styles */
+#serialModal .modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+#serialModal .btn-success {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+#serialModal .btn-success:hover {
+  background-color: #059669;
+  border-color: #047857;
+}
+
+#serialModal .btn-secondary {
+  background-color: #6b7280;
+  border-color: #6b7280;
+}
+
+#serialModal .btn-secondary:hover {
+  background-color: #4b5563;
+  border-color: #374151;
+}
+
+/* ===== ACTION BUTTONS STYLES ===== */
+.btn-group {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+.btn-group .btn {
+  display: inline-block !important;
+  visibility: visible !important;
+  flex: 0 0 auto !important;
+  margin: 0 1px !important;
+}
+
+.btn-outline-info {
+  color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  background-color: transparent !important;
+}
+
+.btn-outline-info:hover {
+  color: #fff !important;
+  background-color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+}
+
+.btn-outline-secondary {
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+  background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover {
+  color: #fff !important;
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.btn-outline-danger {
+  color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  background-color: transparent !important;
+}
+
+.btn-outline-danger:hover {
+  color: #fff !important;
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.4rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+  border-radius: 0.2rem !important;
+  min-width: 28px !important;
+  height: 28px !important;
+}
+
+/* Ensure actions column has proper width */
+.variants-table th:last-child,
+.variants-table td:last-child {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* Prevent table from being too wide */
+.variants-table {
+  table-layout: fixed !important;
+  width: 100% !important;
 }
 </style>
