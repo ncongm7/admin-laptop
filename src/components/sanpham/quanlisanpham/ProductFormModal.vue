@@ -39,7 +39,7 @@
 
                       <div class="col-md-12">
                         <label class="form-label">Mã sản phẩm</label>
-                        <input type="text" class="form-control" v-model="form.maSanPham" />
+                        <input type="text" class="form-control" v-model="form.maSanPham"/>
                       </div>
 
                       <div class="col-md-12">
