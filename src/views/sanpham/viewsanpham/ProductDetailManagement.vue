@@ -266,20 +266,20 @@
                     </th>
                     <th width="30">STT</th>
                     <th width="60">ẢNH</th>
-                    <th width="90">SKU</th>
-                    <th width="55">MÀU</th>
-                    <th width="70">CPU</th>
-                    <th width="55">RAM</th>
-                    <th width="65">GPU</th>
-                    <th width="65">MÀN HÌNH</th>
-                    <th width="45">PIN</th>
-                    <th width="65">Ổ CỨNG</th>
-                    <th width="70">GIÁ BÁN</th>
-                    <th width="55">SỐ LƯỢNG TỒN</th>
-                    <th width="60">TRẠNG THÁI</th>
-                    <th width="65">NGÀY TẠO</th>
-                    <th width="65">NGÀY CẬP NHẬT</th>
-                    <th width="120" class="text-center">TÁC VỤ</th>
+                    <th width="100">SKU</th>
+                    <th width="60">MÀU</th>
+                    <th width="80">CPU</th>
+                    <th width="60">RAM</th>
+                    <th width="70">GPU</th>
+                    <th width="70">MÀN HÌNH</th>
+                    <th width="50">PIN</th>
+                    <th width="70">Ổ CỨNG</th>
+                    <th width="75">GIÁ BÁN</th>
+                    <th width="60">SỐ LƯỢNG TỒN</th>
+                    <th width="65">TRẠNG THÁI</th>
+                    <th width="70">NGÀY TẠO</th>
+                    <th width="70">NGÀY CẬP NHẬT</th>
+                    <th width="60">TÁC VỤ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -405,6 +405,13 @@
     </div>
   </div>
 
+  <!-- Serial Management Modal -->
+  <SerialManagementModal 
+    v-model="showSerialModal"
+    :variant="currentVariant"
+    @save="handleSerialSaved"
+  />
+
   <!-- Edit Variant Modal (Component) -->
   <VariantEditModal 
     ref="editModal"
@@ -419,8 +426,9 @@ import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
 import { useAttributeStore } from '@/stores/attributeStore'
 import { formatCurrency } from '@/utils/formatters'
-import { getCTSPBySanPham, getHinhAnhByCtspId, getSerialsByCtspId, createSerialsBatch, updateSerial, updateSerialStatus, deleteSerial, importSerialsFromExcel, updateChiTietSanPham, deleteCTSP, deleteCTSPWithCascade, getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId, getSerialsByCtspId, createSerialsBatch, updateSerial, updateSerialStatus, deleteSerial, importSerialsFromExcel, updateChiTietSanPham, deleteCTSP, deleteCTSPWithCascade} from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
+import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1669,9 +1677,29 @@ watch(
 )
 
 // ===== SERIAL MANAGEMENT FUNCTIONS =====
+// Now simplified to use SerialManagementModal component
 
 // Open serial management modal
 const openSerialModal = async (variant) => {
+  currentVariant.value = variant
+  showSerialModal.value = true
+}
+
+// Handle serial saved event from modal
+const handleSerialSaved = async ({ variantId, serials }) => {
+  // Count only active serials (trangThai = 1)
+  const activeSerialCount = serials.filter(s => s.trangThai === 1).length
+  console.log('Serials saved for variant:', variantId, 'Total:', serials.length, 'Active:', activeSerialCount)
+  
+  showSerialModal.value = false
+  currentVariant.value = {}
+  
+  // Reload variants to reflect updated stock (backend should return updated soLuongTon)
+  await fetchProductVariants(productId.value)
+}
+
+// OLD FUNCTIONS - NOW HANDLED BY SerialManagementModal
+/* const OLD_openSerialModal = async (variant) => {
   try {
     console.log('Opening serial modal for variant:', variant)
     currentVariant.value = { ...variant, serials: [] }
@@ -1693,20 +1721,8 @@ const openSerialModal = async (variant) => {
   }
 }
 
-// Close serial management modal
-const closeSerialModal = () => {
-  // Simply hide modal using Vue reactive state
-  showSerialModal.value = false
-  
-  // Remove modal-open class from body
-  document.body.classList.remove('modal-open')
-  
-  // Reset form
-  serialInput.value = ''
-  serialValidationError.value = ''
-  serialValidationSuccess.value = false
-  currentVariant.value = {}
-  
+// Removed - handled by SerialManagementModal
+// const closeSerialModal = () => { ... }  
   console.log('Serial modal closed')
 }
 
@@ -1906,8 +1922,9 @@ const getSaveButtonText = () => {
   return 'Lưu'
 }
 
-// Save serials
-const saveSerials = async () => {
+// Removed - handled by SerialManagementModal
+// const saveSerials = async () => {
+/*
   if (!currentVariant.value.id) {
     alert('Không tìm thấy thông tin biến thể')
     return
@@ -2000,8 +2017,11 @@ const saveSerials = async () => {
   }
 }
 
-// Import from Excel
-const importFromExcel = async (event) => {
+*/
+
+// Removed - handled by SerialManagementModal
+// const importFromExcel = async (event) => {
+/*
   const file = event.target.files[0]
   if (!file) return
   
@@ -2052,8 +2072,11 @@ const importFromExcel = async (event) => {
   }
 }
 
-// Download Excel template
-const downloadExcelTemplate = () => {
+*/
+
+// Removed - handled by SerialManagementModal
+// const downloadExcelTemplate = () => {
+/*
   // Create a simple CSV template
   const csvContent = 'Serial Number\nABC1234\nDEF5678\nGHI9012'
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -2069,8 +2092,11 @@ const downloadExcelTemplate = () => {
     document.body.removeChild(link)
   }
 }
+*/
 
-// Sync variant stock quantity with active serials count
+// OLD FUNCTIONS END - All serial management now handled by SerialManagementModal component
+
+// Sync stock quantity with active serials count
 const syncVariantStockWithActiveSerials = async () => {
   if (!currentVariant.value || !currentVariant.value.id) {
     console.warn('No current variant to sync stock for')
@@ -2825,175 +2851,6 @@ input[type='checkbox']:focus {
   margin-top: 0.25rem;
   font-size: 0.875em;
   color: #dc3545;
-}
-
-/* ===== SERIAL MANAGEMENT MODAL STYLES ===== */
-#serialModal {
-  z-index: 9999 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-#serialModal .modal-dialog {
-  max-width: 1200px;
-}
-
-#serialModal .modal-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-}
-
-#serialModal .modal-title {
-  color: #495057;
-  font-weight: 600;
-}
-
-.variant-info-card {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.info-item {
-  margin-bottom: 0.5rem;
-}
-
-.info-item:last-child {
-  margin-bottom: 0;
-}
-
-.serial-management-container {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.serial-list-section {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 1rem;
-  background-color: #ffffff;
-}
-
-.section-title {
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 1rem;
-}
-
-.serial-table {
-  font-size: 14px;
-}
-
-.serial-table thead th {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  font-weight: 600;
-  color: #495057;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.serial-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.serial-table .fw-medium {
-  font-weight: 500;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.input-group .form-control.is-invalid {
-  border-color: #fbbf24;
-}
-
-.input-group .form-control.is-valid {
-  border-color: #10b981;
-}
-
-.text-warning {
-  color: #f59e0b !important;
-}
-
-/* Serial status indicators */
-.bi-circle-fill {
-  animation: pulse 2s infinite;
-}
-
-.bi-check-circle-fill {
-  color: #10b981 !important;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* Modal backdrop styles */
-.modal-backdrop {
-  z-index: 9998 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Modal footer styles */
-#serialModal .modal-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
-}
-
-#serialModal .btn-success {
-  background-color: #10b981;
-  border-color: #10b981;
-}
-
-#serialModal .btn-success:hover {
-  background-color: #059669;
-  border-color: #047857;
-}
-
-#serialModal .btn-secondary {
-  background-color: #6b7280;
-  border-color: #6b7280;
-}
-
-#serialModal .btn-secondary:hover {
-  background-color: #4b5563;
-  border-color: #374151;
 }
 
 /* ===== ACTION BUTTONS STYLES ===== */

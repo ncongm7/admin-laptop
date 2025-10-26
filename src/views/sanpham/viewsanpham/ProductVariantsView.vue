@@ -132,6 +132,7 @@
                 <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
               </th>
               <th width="30">STT</th>
+              <th width="60">ẢNH</th>
               <th width="100">SKU</th>
               <th width="60">MÀU</th>
               <th width="80">CPU</th>
@@ -150,14 +151,14 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="16" class="text-center py-5">
+              <td colspan="17" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                   <span class="visually-hidden">Loading...</span>
                 </div>
               </td>
             </tr>
             <tr v-else-if="variantsList.length === 0">
-              <td colspan="16" class="text-center py-5 text-muted">
+              <td colspan="17" class="text-center py-5 text-muted">
                 <i class="bi bi-box-seam display-5"></i>
                 <p class="mt-3">Không có biến thể nào</p>
               </td>
@@ -167,6 +168,20 @@
                 <input type="checkbox" v-model="selectedVariants" :value="variant.id" />
               </td>
               <td>{{ (currentPage * pageSize) + index + 1 }}</td>
+              <td>
+                <div class="variant-image-cell">
+                  <img 
+                    v-if="variant.images && variant.images.length > 0"
+                    :src="getVariantImageUrl(variant)"
+                    :alt="variant.maCtsp"
+                    class="variant-thumbnail"
+                    @error="handleImageError"
+                  />
+                  <div v-else class="no-image-placeholder">
+                    <i class="bi bi-image"></i>
+                  </div>
+                </div>
+              </td>
               <td>
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
@@ -209,12 +224,30 @@
               </td>
               <td>{{ formatDate(variant.createdAt) || 'N/A' }}</td>
               <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary btn-sm" @click="editVariant(variant)" title="Chỉnh sửa">
+              <td class="text-center actions-column">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-info btn-sm" 
+                    @click="openSerialModal(variant)" 
+                    title="Quản lý serial"
+                  >
+                    <i class="bi bi-list-ol"></i>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary btn-sm" 
+                    @click="editVariant(variant)" 
+                    title="Chỉnh sửa"
+                  >
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-outline-danger btn-sm" @click="deleteVariant(variant)" title="Xóa">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger btn-sm" 
+                    @click="deleteVariant(variant)" 
+                    title="Xóa biến thể"
+                  >
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -278,6 +311,13 @@
     @updated="handleVariantUpdated"
   />
 
+  <!-- Serial Management Modal -->
+  <SerialManagementModal 
+    v-model="showSerialModal"
+    :variant="currentVariant"
+    @save="handleSerialSaved"
+  />
+
   <!-- Simple Test Modal -->
   <div class="modal fade" id="testModal" tabindex="-1">
     <div class="modal-dialog">
@@ -305,6 +345,7 @@ import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
 import { useProductStore } from '@/stores/productStore'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
+import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
 const productStore = useProductStore()
 
@@ -326,6 +367,10 @@ const maxPrice = ref(100000000) // Dynamic max price
 // Modal refs
 const editModal = ref(null)
 const selectedVariantForEdit = ref(null)
+
+// Serial modal state
+const showSerialModal = ref(false)
+const currentVariant = ref(null)
 
 const filters = ref({
   cpu: '',
@@ -743,6 +788,54 @@ const getColorHex = (tenMau) => {
   }
   return colorMap[tenMau] || '#000000'
 }
+
+// Serial Management Functions
+const openSerialModal = async (variant) => {
+  currentVariant.value = variant
+  showSerialModal.value = true
+}
+
+const handleSerialSaved = async ({ variantId, serials }) => {
+  // Count only active serials (trangThai = 1)
+  const activeSerialCount = serials.filter(s => s.trangThai === 1).length
+  console.log('Serials saved for variant:', variantId, 'Total:', serials.length, 'Active:', activeSerialCount)
+  
+  showSerialModal.value = false
+  currentVariant.value = null
+  
+  // Reload variants list to reflect updated stock (backend should return updated soLuongTon)
+  await triggerFetch()
+}
+
+const getVariantSpecs = (variant) => {
+  if (!variant) return ''
+  const specs = []
+  if (variant.tenCpu) specs.push(variant.tenCpu)
+  if (variant.tenRam) specs.push(variant.tenRam)
+  if (variant.tenGpu) specs.push(variant.tenGpu)
+  if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
+  return specs.join(' | ') || 'N/A'
+}
+
+const getVariantImageUrl = (variant) => {
+  if (variant.images && variant.images.length > 0) {
+    const firstImage = variant.images[0]
+    if (typeof firstImage === 'string') {
+      return firstImage
+    } else if (firstImage && firstImage.url) {
+      return firstImage.url
+    } else if (firstImage && firstImage.uri) {
+      return firstImage.uri
+    }
+  }
+  return null
+}
+
+const handleImageError = (event) => {
+  event.target.src = 'https://via.placeholder.com/50x50?text=No+Image'
+}
+
+// Removed: All serial management functions are now handled by SerialManagementModal component
 </script>
 
 <style scoped>
@@ -1057,5 +1150,148 @@ input[type='checkbox']:checked {
 input[type='checkbox']:focus {
   border-color: #86efac;
   box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+}
+
+input[type='checkbox']:checked {
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+input[type='checkbox']:focus {
+  border-color: #86efac;
+  box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+}
+
+/* Variant Image Styles */
+.variant-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.variant-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.variant-thumbnail:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.no-image-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 1.25rem;
+}
+
+/* Serial Modal Styles */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1040;
+}
+
+.serial-management-container {
+  padding: 1rem 0;
+}
+
+.variant-info-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.info-item {
+  margin-bottom: 0.5rem;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.serial-list-section {
+  margin-top: 1rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.serial-table {
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.serial-table thead {
+  background-color: #f3f4f6;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.serial-table th {
+  font-weight: 600;
+  color: #4b5563;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.serial-table td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.serial-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Actions column */
+.actions-column {
+  min-width: 120px !important;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
 }
 </style>
