@@ -53,21 +53,24 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/stores/authStore'
+import { useRouter } from 'vue-router'
 
-const emit = defineEmits(['toggle-sidebar']);
-
-const authStore = useAuthStore();
+const emit = defineEmits(['toggle-sidebar'])
+const router = useRouter()
+const authStore = useAuthStore()
 
 const toggleSidebar = () => {
-    emit('toggle-sidebar');
-};
+    emit('toggle-sidebar')
+}
 
-const logout = () => {
-    authStore.logout();
-    // Có thể cần chuyển hướng về trang đăng nhập ở đây
-    // router.push('/login');
-};
+const logout = async () => {
+    if (confirm('Bạn có chắc muốn đăng xuất?')) {
+        await authStore.logout()
+        // Chuyển hướng về trang đăng nhập
+        router.push('/login')
+    }
+}
 </script>
 
 <style scoped>

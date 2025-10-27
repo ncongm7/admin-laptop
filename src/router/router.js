@@ -1,15 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '@/views/user/LoginView.vue'
-// import ProductVariantsList from '@/views/sanpham/ProductVariantsList.vue'
+import { useAuthStore } from '@/stores/authStore'
+
 const routes = [
-  // { path: '/', name: 'TrangChu', component: () => import('@/views/TrangChu.vue') },
-  { path: '/', name: 'DashBoardView', component: () => import('@/views/DashboardView.vue') },
-  { path: '/ban-hang', name: 'SalesView', component: () => import('@/views/SalesView.vue') },
+  // Route đăng nhập - KHÔNG yêu cầu xác thực
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { requiresAuth: false, hideForAuth: true } // Ẩn khi đã đăng nhập
+  },
+
+  // Các route cần bảo vệ - YÊU CẦU xác thực
+  {
+    path: '/',
+    name: 'DashBoardView',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ban-hang',
+    name: 'SalesView',
+    component: () => import('@/views/banhang/SalesView.vue'),
+    meta: { requiresAuth: true }
+  },
   // { path: '/ban-hang', name: 'ProductsView', component: () => import('@/views/ProductsView.vue') },
   {
     path: '/quan-li-hoa-don',
     name: 'QuanLiHoaDon',
     component: () => import('@/views/QuanLiHoaDon.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/quan-li-hoa-don/chi-tiet/:code',
@@ -128,11 +147,7 @@ const routes = [
     name: 'NhanVienForm',
     component: () => import('@/components/taikhoan/nhanvien/NhanVienForm.vue'),
   },
-  {
-    path: '/login',
-    name: 'Login',
-    component: LoginView,
-  },
+  // Route /login đã được định nghĩa ở đầu file với meta.requiresAuth
   {
     path: '/nhan-vien/sua/:id',
     name: 'NhanVienUpdateForm',
@@ -204,6 +219,47 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// ==================== NAVIGATION GUARDS ====================
+/**
+ * Bảo vệ các route yêu cầu xác thực
+ */
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore()
+
+  // Khởi tạo auth store nếu chưa có (lần đầu load app)
+  if (authStore.token === null && localStorage.getItem('token')) {
+    authStore.initialize()
+  }
+
+  const isAuthenticated = authStore.isAuthenticated
+  const requiresAuth = to.meta.requiresAuth !== false // Mặc định tất cả routes đều yêu cầu auth trừ khi set false
+  const hideForAuth = to.meta.hideForAuth === true
+
+  console.log('Navigation Guard:', {
+    to: to.path,
+    isAuthenticated,
+    requiresAuth,
+    hideForAuth
+  })
+
+  // Nếu route yêu cầu xác thực và user chưa đăng nhập
+  if (requiresAuth && !isAuthenticated) {
+    console.log('→ Chuyển hướng đến /login (chưa đăng nhập)')
+    next('/login')
+    return
+  }
+
+  // Nếu user đã đăng nhập và cố vào trang login
+  if (hideForAuth && isAuthenticated) {
+    console.log('→ Chuyển hướng đến / (đã đăng nhập)')
+    next('/')
+    return
+  }
+
+  // Cho phép tiếp tục
+  next()
 })
 
 export default router
