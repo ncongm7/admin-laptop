@@ -22,18 +22,42 @@
       </div>
 
       <div class="col-md-4">
-        <label class="form-label">Giá trị giảm *</label>
-        <input type="number" class="form-control" v-model.number="form.giaTriGiamGia" :disabled="isDetail" />
+        <label class="form-label">Hoạt động</label>
+        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
+        </select>
       </div>
 
-      <div class="col-md-4"  v-if="showCap">
+      <div class="col-md-4">
+        <label class="form-label">Giá trị giảm *</label>
+        <input
+          type="number"
+          class="form-control"
+          v-model.number="form.giaTriGiamGia"
+          :min="0"
+          :max="form.loaiPhieuGiamGia === 0 ? 100 : undefined"
+          :step="form.loaiPhieuGiamGia === 0 ? 0.01 : 1"
+          :disabled="isDetail"
+        />
+        <!-- Preview (không ảnh hưởng input) -->
+        <small class="text-muted">
+          {{ form.loaiPhieuGiamGia === 0
+              ? `${(+form.giaTriGiamGia || 0).toLocaleString('vi-VN')}%`
+              : vndFormat(+form.giaTriGiamGia || 0) }}
+        </small>
+      </div>
+
+      <div class="col-md-4" v-if="showCap">
         <label class="form-label">Số tiền giảm tối đa</label>
         <input type="number" class="form-control" v-model.number="form.soTienGiamToiDa" :disabled="isDetail" />
+        <small class="text-muted">{{ showCurrency(form.soTienGiamToiDa) }}</small>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Hóa đơn tối thiểu</label>
         <input type="number" class="form-control" v-model.number="form.hoaDonToiThieu" :disabled="isDetail" />
+        <small class="text-muted">{{ showCurrency(form.hoaDonToiThieu) }}</small>
       </div>
 
       <div class="col-md-4">
@@ -65,9 +89,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getVoucherById, addVoucher, updateVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
+
+// ===== Format tiền/số theo chuẩn Việt Nam =====
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const n = parseFloat(v)
+  if (isNaN(n)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(n) // ví dụ: 1234567 -> "1.234.567"
+}
+
+const vndFormat = (n) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n)
+// ví dụ: vndFormat(1234567) -> "1.234.567 ₫"
 
 const route = useRoute()
 const router = useRouter()
@@ -86,7 +122,8 @@ const form = ref({
   ngayBatDau: '',              // 'yyyy-MM-ddTHH:mm' (phù hợp input datetime-local)
   ngayKetThuc: '',
   riengTu: false,
-  moTa: ''
+  moTa: '',
+  trangThai: 1
 })
 //ô giá trị giảm
 const showCap = ref(form.value.loaiPhieuGiamGia === 0) // 0=%, 1=VND
@@ -101,6 +138,14 @@ function onChangeLoai () {
      showCap.value = true
      form.value.soTienGiamToiDa = 0}
 }
+
+watch(() => form.value.loaiPhieuGiamGia, () => onChangeLoai(), { immediate: true })
+
+watch(() => form.value.giaTriGiamGia, (v) => {
+  if (Number(form.value.loaiPhieuGiamGia) === 1) {
+    form.value.soTienGiamToiDa = v || 0
+  }
+})
 
 /** "yyyy-MM-ddTHH:mm" (local) -> ISO Instant "yyyy-MM-ddTHH:mm:ss.sssZ" */
 function toInstantISOString(localStr) {
@@ -175,8 +220,20 @@ function normalizedPayload() {
   }
 }
 
+function precheck () {
+  if (!form.value.ma?.trim()) { alert('Thiếu mã'); return false }
+  if (!form.value.tenPhieuGiamGia?.trim()) { alert('Thiếu tên'); return false }
+  if (!form.value.ngayBatDau || !form.value.ngayKetThuc) { alert('Thiếu thời gian'); return false }
+  if (Number(form.value.loaiPhieuGiamGia) === 0) {
+    const v = +form.value.giaTriGiamGia || 0
+    if (v < 0 || v > 100) { alert('Giá trị giảm (%) phải trong khoảng 0–100'); return false }
+  }
+  return true
+}
+
 const save = async () => {
   try {
+    if (!precheck()) return
     const payload = normalizedPayload()
     let resp
     if (mode.value === 'add') {

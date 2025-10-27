@@ -7,10 +7,15 @@
       <div class="d-flex gap-2">
         <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
         <select v-model="status" class="form-select" style="max-width: 160px">
-          <option value="">Tất cả trạng thái</option>
+          <option value="">Tất cả hiệu lực</option>
           <option :value="0">Sắp diễn ra</option>
           <option :value="1">Đang hiệu lực</option>
           <option :value="2">Hết hạn</option>
+        </select>
+        <select v-model="active" class="form-select" style="max-width: 140px">
+          <option value="">Tất cả hoạt động</option>
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
@@ -31,7 +36,8 @@
           <th>Số lượng</th>
           <th>Bắt đầu</th>
           <th>Kết thúc</th>
-          <th>Trạng thái</th>
+          <th>Hiệu lực</th>
+          <th>Hoạt động</th>
           <th style="width: 220px">Hành động</th>
         </tr>
       </thead>
@@ -42,13 +48,30 @@
           <td>{{ it.ma }}</td>
           <td>{{ it.tenPhieuGiamGia }}</td>
           <td>{{ showLoai(it.loaiPhieuGiamGia) }}</td>
-          <td>{{ it.giaTriGiamGia }}</td>
-          <td>{{ it.soTienGiamToiDa }}</td>
-          <td>{{ it.hoaDonToiThieu }}</td>
+          <td>{{ showCurrency(it.giaTriGiamGia) }}</td>
+          <td>{{ showCurrency(it.soTienGiamToiDa) }}</td>
+          <td>{{ showCurrency(it.hoaDonToiThieu) }}</td>
           <td>{{ it.soLuongDung }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
           <td>{{ showDate(it.ngayKetThuc) }}</td>
-          <td>{{ showTrangThai(it.trangThai) }}</td>
+          <!-- Hiệu lực theo thời gian (FE tính) -->
+          <td>
+            <span
+              v-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 0"
+             >Sắp diễn ra</span>
+            <span
+              v-else-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 1"
+              >Đang hiệu lực</span>
+            <span
+              v-else
+              >Hết hạn</span>
+          </td>
+
+          <!-- Hoạt động (công tắc quản trị: 1=Bật, khác=Tắt) -->
+          <td>
+            <span v-if="it.trangThai === 1">Bật</span>
+            <span v-else >Tắt</span>
+          </td>
           <td class="d-flex gap-2">
             <button class="btn btn-info" @click="viewDetail(it.id)">Chi tiết</button>
             <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
@@ -78,9 +101,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVouchers, deleteVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
+
+// === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
+const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
+  const s = Date.parse(startIso)
+  const e = Date.parse(endIso)
+  if (isNaN(s) || isNaN(e)) return null
+  return nowMs < s ? 0 : nowMs > e ? 2 : 1
+}
+
+// Tick nhẹ để UI tự đổi nhãn mỗi 30s (có thể bỏ nếu không cần)
+const nowMs = ref(Date.now())
+let timerId
+let serverOffsetMs = 0 // nếu không dùng giờ server, cứ để 0
 
 const router = useRouter()
 const list = ref([])
@@ -94,6 +130,12 @@ const pageSize = ref(5)   // số dòng mỗi trang
 const fetchList = async () => {
   try {
     const res = await getVouchers()
+    // Lấy giờ server nếu có
+    const serverDateStr = res?.headers?.date || res?.headers?.Date
+    if (serverDateStr) {
+      const serverNow = new Date(serverDateStr).getTime()
+      serverOffsetMs = Date.now() - serverNow
+    }
     list.value = res?.data ?? res ?? []
     page.value = 1
   } catch (e) {
@@ -112,6 +154,7 @@ const fetchList = async () => {
 //   )
 // })
 const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+const active = ref('') // '' = tất cả; 1 = Bật; 0 = Tắt
 
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
@@ -122,11 +165,16 @@ const filtered = computed(() => {
       (x.ma || '').toLowerCase().includes(s) ||
       (x.tenPhieuGiamGia || '').toLowerCase().includes(s)
 
-    // status (đổi x.trangThaiTinh -> nếu BE trả trường ấy; còn không thì x.trangThai)
-    const cur = Number(x.trangThai ?? x.trangThaiTinh)
-    const statusOk = status.value === '' || cur === Number(status.value)
+    // hiệu lực theo thời gian (đã có)
+    const stTime = calcTrangThaiTinh(x.ngayBatDau, x.ngayKetThuc, nowMs.value)
+    const statusOk = status.value === '' || stTime === Number(status.value)
 
-    return textOk && statusOk
+    // hoạt động theo công tắc quản trị (1=Bật, khác=Tắt)
+    const activeOk =
+      active.value === '' ||
+      (Number(active.value) === 1 ? x.trangThai === 1 : x.trangThai !== 1)
+
+    return textOk && statusOk && activeOk
   })
 })
 // Tính trang & cắt trang
@@ -141,7 +189,7 @@ const prevPage = () => { if (page.value > 1) page.value-- }
 const nextPage = () => { if (page.value < totalPages.value) page.value++ }
 
 // Khi gõ tìm kiếm -> quay về trang 1
-watch(q, () => { page.value = 1 })
+watch([q, status, active], () => { page.value = 1 })
 
 // Điều hướng
 const goToAdd = () => router.push('/phieu-giam-gia2/add')
@@ -165,8 +213,15 @@ const remove = async (id) => {
 // 
 
 // Helpers hiển thị
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const number = parseFloat(v)
+  if (isNaN(number)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(number)
+}
+
 const showLoai = (n) => (n === 0 ? '%' : n === 1 ? 'VND' : n)
-const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
@@ -175,7 +230,41 @@ const showDate = (v) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-onMounted(fetchList)
+function scheduleTick() {
+  clearTimeout(timerId)
+  const now = Date.now() - serverOffsetMs
+
+  // Tìm mốc start/end gần nhất trong tương lai
+  const deltas = []
+  for (const x of list.value) {
+    const s = Date.parse(x.ngayBatDau)
+    const e = Date.parse(x.ngayKetThuc)
+    if (!isNaN(s) && s > now) deltas.push(s - now)
+    if (!isNaN(e) && e > now) deltas.push(e - now)
+  }
+
+  // Fallback 30s nếu không có mốc nào (UI vẫn “đập nhịp”)
+  const nextDelta = deltas.length ? Math.min(...deltas) : 30000
+
+  // Đợi đến mốc (đệm 20ms), nhưng không quá 30s
+  const wait = Math.max(50, Math.min(nextDelta + 20, 30000))
+  timerId = setTimeout(() => {
+    nowMs.value = Date.now() - serverOffsetMs
+    scheduleTick()
+  }, wait)
+}
+
+onMounted(async () => {
+  await fetchList()
+  scheduleTick()
+})
+
+onUnmounted(() => {
+  clearTimeout(timerId)
+})
+
+// Khi danh sách đổi (refetch / xoá / thêm), lên lịch lại
+watch(list, () => scheduleTick())
 </script>
 
 <style scoped>
