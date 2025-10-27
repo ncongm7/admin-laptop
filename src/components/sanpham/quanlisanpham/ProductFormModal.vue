@@ -496,12 +496,209 @@
     </div>
     <div class="modal-backdrop fade show"></div>
 
-    <!-- Serial Management Modal - Using Reusable Component -->
-    <SerialManagementModal 
-      v-model="showSerialModal"
-      :variant="currentVariant"
-      @save="handleSerialSaved"
-    />
+    <!-- Serial Management Modal - Floating on top -->
+    <teleport to="body">
+      <div v-if="showSerialModal" class="serial-modal-overlay">
+        <div class="serial-modal-wrapper">
+          <div class="serial-modal-dialog">
+            <div class="serial-modal-content">
+              <div class="serial-modal-header">
+                <h5 class="serial-modal-title">
+                  Quản lý Serial Numbers
+                  
+                </h5>
+                <button type="button" class="btn-close" @click="closeSerialModal"></button>
+              </div>
+              <div class="serial-modal-body">
+                <!-- Variant Info -->
+                <div class="mb-3">
+                  <h6 class="section-title">Thông tin biến thể:</h6>
+                  <div class="variant-info-grid">
+                    <div class="info-item">
+                      <span class="info-label">SKU:</span>
+                      <span class="info-value">Tự động tạo</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Cấu hình:</span>
+                      <span
+                        class="info-value text-truncate"
+                        :title="getVariantConfig(currentVariantIndex)"
+                        >{{ getVariantConfig(currentVariantIndex) }}</span
+                      >
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Giá bán:</span>
+                      <span class="info-value">{{ formatPrice(currentVariant?.giaBan) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add Serial Number -->
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Thêm Serial Number:</label>
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      :class="{ 'is-invalid': serialValidationError, 'is-valid': serialValidationSuccess }"
+                      v-model="serialInput"
+                      @input="validateSerialInput"
+                      placeholder="Nhập serial (VD: ABC1234, 9B2KX13)"
+                      maxlength="50"
+                    />
+                    <button type="button" class="btn btn-success" @click="addSerialNumbers">
+                      <i class="bi bi-plus-lg"></i> Thêm
+                    </button>
+                  </div>
+                  <div v-if="serialValidationError" class="text-warning small mt-1">
+                    <i class="bi bi-exclamation-triangle"></i> {{ serialValidationError }}
+                  </div>
+                  <small class="text-muted"
+                    >Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;). Mỗi serial phải có đúng 7 ký tự gồm cả chữ và số.</small
+                  >
+                </div>
+
+                <!-- Import from Excel -->
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Import từ Excel:</label>
+                  <div class="d-flex gap-2">
+                    <input
+                      type="file"
+                      ref="excelFileInput"
+                      accept=".xlsx,.xls,.csv"
+                      class="d-none"
+                      @change="importFromExcel"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      @click="$refs.excelFileInput.click()"
+                    >
+                      <i class="bi bi-file-earmark-arrow-up"></i> Chọn file
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-info btn-sm"
+                      @click="downloadExcelTemplate"
+                    >
+                      <i class="bi bi-download"></i> Tải mẫu
+                    </button>
+                  </div>
+                  <small class="text-muted">Hỗ trợ file .xlsx, .csv</small>
+                </div>
+
+                <!-- Serial Numbers List -->
+                <div class="serial-list-section">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="section-title mb-0">Danh sách Serial Numbers:</h6>
+                    <i
+                      class="bi bi-question-circle-fill text-info"
+                      style="cursor: pointer"
+                      title="Danh sách serial"
+                    ></i>
+                  </div>
+
+                  <div
+                    v-if="currentVariant?.serials?.length > 0"
+                    class="table-responsive"
+                    style="max-height: 250px"
+                  >
+                    <table class="table table-hover serial-table">
+                      <thead>
+                        <tr>
+                          <th style="width: 15%">STT</th>
+                          <th style="width: 40%">Serial Number</th>
+                          <th style="width: 20%">Trạng thái</th>
+                          <th style="width: 25%">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(serial, idx) in currentVariant.serials" :key="idx">
+                          <td>{{ idx + 1 }}</td>
+                          <td class="fw-medium">
+                            {{ serial.soSerial }}
+                            <i 
+                              v-if="!serial.id" 
+                              class="bi bi-circle-fill text-warning ms-1" 
+                              title="Chưa lưu vào database"
+                              style="font-size: 6px;"
+                            ></i>
+                            <i 
+                              v-else 
+                              class="bi bi-check-circle-fill text-success ms-1" 
+                              title="Đã lưu vào database"
+                              style="font-size: 10px;"
+                            ></i>
+                          </td>
+                          <td>
+                            <span 
+                              class="badge" 
+                              :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'"
+                            >
+                              {{ serial.trangThai === 1 ? 'Có sẵn' : 'Ẩn' }}
+                            </span>
+                          </td>
+                          <td>
+                            <div class="d-flex gap-1">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                @click="toggleSerialStatus(idx)"
+                                :title="serial.trangThai === 1 ? 'Chuyển sang Ẩn' : 'Chuyển sang Có sẵn'"
+                              >
+                                <i class="bi bi-pencil"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                @click="removeSerial(idx)"
+                                title="Xóa serial"
+                              >
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Chưa có serial number nào</p>
+                  </div>
+                </div>
+              </div>
+              <div class="serial-modal-footer">
+                <div class="d-flex align-items-center me-auto" v-if="currentVariant?.serials?.length > 0">
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Tổng: {{ currentVariant.serials.length }} serial
+                    <span v-if="getUnsavedSerialsCount() > 0" class="text-warning ms-2">
+                      ({{ getUnsavedSerialsCount() }} chưa lưu)
+                    </span>
+                  </small>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-secondary" @click="closeSerialModal">
+                    <i class="bi bi-x-lg"></i> Hủy
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-success" 
+                    @click="saveSerials"
+                    :disabled="loading"
+                  >
+                    <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="bi bi-check-lg"></i> 
+                    {{ loading ? 'Lưu...' : 'Lưu' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -511,7 +708,6 @@ import { useProductStore } from '@/stores/productStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
 import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
-import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
 const productStore = useProductStore()
 const router = useRouter()
@@ -547,55 +743,6 @@ onMounted(async () => {
   await loadAttributes()
 })
 
-// Helper functions to get selected attribute names - MOVED UP for proper exposure
-const getSelectedCpuNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const cpu = cpus.value.find(c => c.id === id)
-    return cpu ? cpu.tenCpu : ''
-  }).filter(name => name)
-}
-
-const getSelectedRamNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const ram = rams.value.find(r => r.id === id)
-    return ram ? ram.tenRam : ''
-  }).filter(name => name)
-}
-
-const getSelectedGpuNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const gpu = gpus.value.find(g => g.id === id)
-    return gpu ? gpu.tenGpu : ''
-  }).filter(name => name)
-}
-
-const getSelectedStorageNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const storage = storages.value.find(s => s.id === id)
-    return storage ? storage.dungLuong : ''
-  }).filter(name => name)
-}
-
-const getSelectedColorNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const color = colors.value.find(c => c.id === id)
-    return color ? color.tenMau : ''
-  }).filter(name => name)
-}
-
-const getSelectedDisplayNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const display = displays.value.find(d => d.id === id)
-    return display ? display.kichThuoc : ''
-  }).filter(name => name)
-}
-
-const getSelectedBatteryNames = (selectedIds) => {
-  return selectedIds.map(id => {
-    const battery = batteries.value.find(b => b.id === id)
-    return battery ? battery.dungLuongPin : ''
-  }).filter(name => name)
-}
 
 const props = defineProps({
   product: Object,
@@ -637,7 +784,9 @@ const variantConfig = ref({
 
 const showSerialModal = ref(false)
 const currentVariantIndex = ref(-1)
-// Removed: serialInput, serialValidationError, serialValidationSuccess - handled by SerialManagementModal
+const serialInput = ref('')
+const serialValidationError = ref('')
+const serialValidationSuccess = ref('')
 
 const currentVariant = computed(() => {
   if (currentVariantIndex.value >= 0 && displayVariants.value[currentVariantIndex.value]) {
@@ -738,7 +887,7 @@ const generatePreviewVariants = () => {
     config.selectedPinIds.length > 0
 
   if (!hasSelectedAttributes) {
-    previewVariants.value = []
+    form.value.variants = []
     return
   }
 
@@ -791,9 +940,7 @@ const generatePreviewVariants = () => {
     })
   })
 
-  // ✅ FIX: Assign to previewVariants instead of form.value.variants
-  previewVariants.value = combinations
-  console.log(`✅ Generated ${combinations.length} preview variants`)
+  form.value.variants = combinations
 }
 
 // Comprehensive save function - creates product, variants, and serials simultaneously
@@ -807,12 +954,12 @@ const saveProduct = async () => {
       return
     }
 
-    // ✅ FIX: Calculate price range from displayVariants (preview or actual)
+    // Calculate price range from variants
     let giaThapNhat = 0
     let giaCaoNhat = 0
     
-    if (displayVariants.value && displayVariants.value.length > 0) {
-      const variantPrices = displayVariants.value
+    if (form.value.variants && form.value.variants.length > 0) {
+      const variantPrices = form.value.variants
         .map(v => parseFloat(v.giaBan) || 0)
         .filter(price => price > 0)
       
@@ -822,10 +969,10 @@ const saveProduct = async () => {
       }
     }
 
-    // ✅ FIX: Get anhDaiDien from form or first variant in displayVariants
+    // Get anhDaiDien from form or first variant preview
     let anhDaiDien = form.value.anhDaiDien
-    if (!anhDaiDien && displayVariants.value && displayVariants.value.length > 0) {
-      const firstVariant = displayVariants.value[0]
+    if (!anhDaiDien && form.value.variants && form.value.variants.length > 0) {
+      const firstVariant = form.value.variants[0]
       // Check anhDaiDien from variant preview
       if (firstVariant.anhDaiDien) {
         anhDaiDien = firstVariant.anhDaiDien
@@ -852,9 +999,8 @@ const saveProduct = async () => {
       console.log('Creating product with payload:', productPayload)
     }
 
-    // ✅ FIX: Use previewVariants or displayVariants to check for variants to create
-    const variantsToCreate = previewVariants.value.length > 0 ? previewVariants.value : (form.value.variants || [])
-    const hasVariantsToCreate = variantsToCreate.length > 0 && 
+    // For new products, check if we have variants to create
+    const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 && 
       (variantConfig.value.selectedCpuIds.length > 0 ||
        variantConfig.value.selectedGpuIds.length > 0 ||
        variantConfig.value.selectedRamIds.length > 0 ||
@@ -864,8 +1010,8 @@ const saveProduct = async () => {
        variantConfig.value.selectedPinIds.length > 0)
 
     if (hasVariantsToCreate) {
-      // ✅ FIX: Calculate correct price range from variantsToCreate (preview or actual)
-      const variantPrices = variantsToCreate
+      // Calculate correct price range from preview variants
+      const variantPrices = form.value.variants
         .map(v => parseFloat(v.giaBan) || 0)
         .filter(price => price > 0)
       
@@ -894,9 +1040,9 @@ const saveProduct = async () => {
         serials: [] // Collect serials from variants
       }]
 
-      // ✅ FIX: Collect all serials from variantsToCreate
+      // Collect all serials from variants
       const allSerials = []
-      variantsToCreate.forEach(variant => {
+      form.value.variants.forEach(variant => {
         if (variant.serials && variant.serials.length > 0) {
           allSerials.push(...variant.serials)
         }
@@ -904,7 +1050,7 @@ const saveProduct = async () => {
       variantConfigs[0].serials = allSerials
 
       console.log('Creating product with variants and serials:', variantConfigs)
-      console.log('Preview variants data:', variantsToCreate)
+      console.log('Preview variants data:', form.value.variants)
 
       // If add-variants-only mode with existing product ID, pass it directly
       if (isAddVariantsMode.value && form.value.id) {
@@ -912,8 +1058,7 @@ const saveProduct = async () => {
         productPayload.id = form.value.id
       }
 
-      // ✅ FIX: Pass variantsToCreate instead of form.value.variants
-      const result = await createProductWithVariantsAndSerials(productPayload, variantConfigs, variantsToCreate)
+      const result = await createProductWithVariantsAndSerials(productPayload, variantConfigs, form.value.variants)
       
       // Update form with created data
       form.value.id = result.product.id
@@ -1124,11 +1269,6 @@ const saveAndCreateVariants = async () => {
     loading.value = true
     error.value = null
 
-    console.log('🔵 saveAndCreateVariants called')
-    console.log('🔵 previewVariants:', previewVariants.value?.length)
-    console.log('🔵 form.value.variants:', form.value.variants?.length)
-    console.log('🔵 variantConfig:', variantConfig.value)
-
     if (!form.value.tenSanPham.trim()) {
       alert('Vui lòng nhập tên sản phẩm')
       return
@@ -1162,14 +1302,8 @@ const saveAndCreateVariants = async () => {
     }
 
       // Step 2: Create variants if preview variants exist
-      // ✅ FIX: Prioritize previewVariants if they exist, then form.value.variants
-      const variantsToCreate = (previewVariants.value && previewVariants.value.length > 0) 
-        ? previewVariants.value 
-        : (form.value.variants && form.value.variants.length > 0) 
-          ? form.value.variants 
-          : []
+      const variantsToCreate = form.value.variants || previewVariants.value || []
       console.log('Variants to create:', variantsToCreate.length, variantsToCreate)
-      console.log('previewVariants:', previewVariants.value?.length, 'form.value.variants:', form.value.variants?.length)
       console.log('Serials in each variant:', variantsToCreate.map(v => ({
         id: v.id,
         serials: v.serials?.length || 0,
@@ -1415,29 +1549,6 @@ const goBackToProductList = () => {
 // Note: createVariants functionality is handled by generateVariants function above
 
 const openSerialModal = async (index) => {
-  console.log('Opening serial modal for variant index:', index)
-  currentVariantIndex.value = index
-  showSerialModal.value = true
-}
-
-// Handle serial saved event from SerialManagementModal
-const handleSerialSaved = async ({ variantId, serials }) => {
-  console.log('Serials saved for variant:', variantId, 'Count:', serials.length)
-  
-  // Update the variant in displayVariants with new serials and stock count
-  if (currentVariantIndex.value >= 0 && displayVariants.value[currentVariantIndex.value]) {
-    const variant = displayVariants.value[currentVariantIndex.value]
-    variant.serials = serials
-    variant.soLuongTon = serials.length
-    console.log(`Updated variant ${currentVariantIndex.value} stock to ${serials.length}`)
-  }
-  
-  showSerialModal.value = false
-  currentVariantIndex.value = -1
-}
-
-// OLD openSerialModal - Handled by SerialManagementModal
-/* const OLD_openSerialModal = async (index) => {
   console.log('=== OPENING SERIAL MODAL ===')
   console.log('Variant index:', index)
   console.log('Current showSerialModal value:', showSerialModal.value)
@@ -1510,18 +1621,10 @@ const handleSerialSaved = async ({ variantId, serials }) => {
 }
 
 const updateStockFromSerials = () => {
-  // ✅ FIX: Update stock for previewVariants based on their serial numbers
-  if (previewVariants.value && previewVariants.value.length > 0) {
-    previewVariants.value.forEach(variant => {
-      variant.soLuongTon = (variant.serials || []).length
-    })
-  }
-  // Also update form.value.variants if they exist (for saved variants)
-  if (form.value.variants && form.value.variants.length > 0) {
-    form.value.variants.forEach(variant => {
-      variant.soLuongTon = (variant.serials || []).length
-    })
-  }
+  // Update stock for all variants based on their serial numbers
+  form.value.variants.forEach(variant => {
+    variant.soLuongTon = (variant.serials || []).length
+  })
 }
 
 // Image upload functions
@@ -1568,9 +1671,6 @@ const removeImage = (index) => {
 }
 
 const selectVariantImage = async (index) => {
-  console.log('🔵 selectVariantImage called with index:', index)
-  console.log('🔵 displayVariants length:', displayVariants.value?.length)
-  
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -1582,30 +1682,16 @@ const selectVariantImage = async (index) => {
         loading.value = true
         
         // Upload to Cloudinary
-        console.log('🔵 Uploading image to Cloudinary...')
         const imageUrl = await uploadImageToCloudinary(file)
-        console.log('🔵 Image uploaded:', imageUrl)
         
-        // ✅ FIX: Update displayVariants (preview or actual variants)
-        const targetVariant = displayVariants.value[index]
-        console.log('🔵 Target variant:', targetVariant)
-        if (targetVariant) {
-          targetVariant.anhDaiDien = imageUrl
-          
-          // Also update in previewVariants if exists
-          if (previewVariants.value[index]) {
-            previewVariants.value[index].anhDaiDien = imageUrl
-          }
-          
-          // Also update in form.value.variants if exists
-          if (form.value.variants && form.value.variants[index]) {
-            form.value.variants[index].anhDaiDien = imageUrl
-          }
+        // Update local variant
+        if (form.value.variants[index]) {
+          form.value.variants[index].anhDaiDien = imageUrl
           
           // Save to backend if variant has ID
-          if (targetVariant.id) {
+          if (form.value.variants[index].id) {
             const imageRequest = {
-              idSpct: targetVariant.id,
+              idSpct: form.value.variants[index].id,
               url: imageUrl,
               anhChinhDaiDien: true
             }
@@ -1632,9 +1718,8 @@ const removeVariantImage = (index) => {
   }
 }
 
-// Removed - Handled by SerialManagementModal
 // Serial modal functions
-/* const closeSerialModal = () => {
+const closeSerialModal = () => {
   console.log('Closing serial modal')
   
   // Ask for confirmation if there are unsaved changes
@@ -1744,10 +1829,7 @@ const validateSerial = (serial) => {
   return { valid: true }
 }
 
-*/
-
-// Removed - Handled by SerialManagementModal
-/* const addSerialNumbers = () => {
+const addSerialNumbers = () => {
   if (!serialInput.value.trim()) {
     alert('Vui lòng nhập serial number')
     return
@@ -1839,7 +1921,55 @@ const triggerGalleryUpload = () => {
   input.click()
 }
 
-// Helper functions moved to top of file (after onMounted)
+// Helper functions to get selected attribute names
+const getSelectedCpuNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const cpu = cpus.value.find(c => c.id === id)
+    return cpu ? cpu.tenCpu : ''
+  }).filter(name => name)
+}
+
+const getSelectedRamNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const ram = rams.value.find(r => r.id === id)
+    return ram ? ram.tenRam : ''
+  }).filter(name => name)
+}
+
+const getSelectedGpuNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const gpu = gpus.value.find(g => g.id === id)
+    return gpu ? gpu.tenGpu : ''
+  }).filter(name => name)
+}
+
+const getSelectedStorageNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const storage = storages.value.find(s => s.id === id)
+    return storage ? storage.dungLuong : ''
+  }).filter(name => name)
+}
+
+const getSelectedColorNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const color = colors.value.find(c => c.id === id)
+    return color ? color.tenMau : ''
+  }).filter(name => name)
+}
+
+const getSelectedDisplayNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const display = displays.value.find(d => d.id === id)
+    return display ? display.kichThuoc : ''
+  }).filter(name => name)
+}
+
+const getSelectedBatteryNames = (selectedIds) => {
+  return selectedIds.map(id => {
+    const battery = batteries.value.find(b => b.id === id)
+    return battery ? battery.dungLuongPin : ''
+  }).filter(name => name)
+}
 
 // Update product price range based on variants
 const updateProductPriceRange = () => {
@@ -1866,8 +1996,7 @@ const updateProductPriceRange = () => {
 
 // Update variant price function
 const updateVariantPrice = async (index, newPrice) => {
-  // ✅ FIX: Use displayVariants
-  const variant = displayVariants.value[index]
+  const variant = form.value.variants[index]
   if (!variant) {
     return
   }
@@ -1875,16 +2004,6 @@ const updateVariantPrice = async (index, newPrice) => {
   try {
     // Update local data
     variant.giaBan = newPrice
-    
-    // Also update in previewVariants if exists
-    if (previewVariants.value[index]) {
-      previewVariants.value[index].giaBan = newPrice
-    }
-    
-    // Also update in form.value.variants if exists
-    if (form.value.variants && form.value.variants[index]) {
-      form.value.variants[index].giaBan = newPrice
-    }
     
     // Update product price range
     updateProductPriceRange()
@@ -2092,10 +2211,8 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
-*/
-
-// Removed - Handled by SerialManagementModal  
-/* const importFromExcel = async (event) => {
+// Import from Excel function
+const importFromExcel = async (event) => {
   const file = event.target.files[0]
   if (!file) return
   
@@ -2173,10 +2290,8 @@ const formatPrice = (price) => {
   }
 }
 
-*/
-
-// Removed - Handled by SerialManagementModal
-/* const parseExcelFileLocally = (file) => {
+// Helper function to parse Excel/CSV file locally
+const parseExcelFileLocally = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     
@@ -2223,10 +2338,8 @@ const formatPrice = (price) => {
   })
 }
 
-*/
-
-// Removed - Handled by SerialManagementModal
-/* const downloadExcelTemplate = () => {
+// Download Excel template function
+const downloadExcelTemplate = () => {
   // Create a simple CSV template
   const csvContent = 'Serial Number\n123456\n789012\n'
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -2242,25 +2355,25 @@ const formatPrice = (price) => {
     document.body.removeChild(link)
   }
 }
-*/
 
-// OLD FUNCTIONS END - All serial management now handled by SerialManagementModal component
+// Test function to manually show modal (for debugging)
+const testShowModal = () => {
+  console.log('=== TEST SHOW MODAL ===')
+  showSerialModal.value = true
+  currentVariantIndex.value = 0
+  console.log('showSerialModal set to:', showSerialModal.value)
+}
 
-// Helper functions
-const getVariantConfig = (index) => {
-  const variant = displayVariants.value[index]
-  if (!variant) return ''
-  
-  const specs = []
-  if (variant.tenMauSac) specs.push(variant.tenMauSac)
-  if (variant.tenCpu) specs.push(variant.tenCpu)
-  if (variant.tenRam) specs.push(variant.tenRam)
-  if (variant.tenGpu) specs.push(variant.tenGpu)
-  if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
-  if (variant.kichThuocManHinh) specs.push(variant.kichThuocManHinh)
-  if (variant.dungLuongPin) specs.push(variant.dungLuongPin)
-  
-  return specs.join(' - ')
+// Make test function available globally for debugging
+if (typeof window !== 'undefined') {
+  window.testShowModal = testShowModal
+}
+
+// Helper function to count unsaved serials
+const getUnsavedSerialsCount = () => {
+  const variant = currentVariant.value
+  if (!variant?.serials) return 0
+  return variant.serials.filter(serial => !serial.id).length
 }
 </script>
 
@@ -2642,7 +2755,88 @@ textarea.form-control {
   display: block;
 }
 
-/* Serial modal styling - Now using SerialManagementModal component */
+/* Serial modal styling - Floating on top */
+.serial-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  backdrop-filter: blur(2px);
+}
+
+.serial-modal-wrapper {
+  width: 100% !important;
+  max-width: 700px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.serial-modal-dialog {
+  position: relative !important;
+}
+
+.serial-modal-content {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb;
+}
+
+.serial-modal-header {
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: #fff !important;
+  position: relative;
+}
+
+.serial-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.serial-modal-body {
+  padding: 24px !important;
+  background: #f9fafb !important;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.serial-modal-footer {
+  padding: 16px 24px !important;
+  border-top: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: sticky;
+  bottom: 0;
+  min-height: 60px;
+}
 
 .section-title {
   font-size: 14px;

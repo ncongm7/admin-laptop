@@ -403,14 +403,221 @@
         </div>
       </div>
     </div>
+  
+
+    <div v-if="showSerialModal">
+      <!-- Modal Backdrop -->
+      <div class="modal-backdrop fade show" @click="closeSerialModal"></div>
+      
+      <!-- Modal Dialog -->
+      <div class="modal fade show" id="serialModal" tabindex="-1" aria-labelledby="serialModalLabel" style="display: block;">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="serialModalLabel">
+              <i class="bi bi-list-ol me-2"></i>
+              Quản lý Serial - {{ currentVariant?.maCtsp }}
+            </h5>
+            <button type="button" class="btn-close" @click="closeSerialModal" aria-label="Close"></button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="serial-management-container">
+              <!-- Variant Info -->
+              <div class="variant-info-card mb-4">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="info-item">
+                      <strong>Mã biến thể:</strong> 
+                      <code class="ms-2">{{ currentVariant?.maCtsp }}</code>
+                    </div>
+                    <div class="info-item">
+                      <strong>Cấu hình:</strong> 
+                      <span class="ms-2">{{ getVariantSpecs(currentVariant) }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="info-item">
+                      <strong>Giá bán:</strong> 
+                      <span class="ms-2 text-success fw-bold">{{ formatCurrency(currentVariant?.giaBan) }}</span>
+                    </div>
+                    <div class="info-item">
+                      <strong>Số lượng tồn:</strong> 
+                      <span class="ms-2 badge bg-primary">{{ currentVariant?.soLuongTon || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add Serial Number -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Thêm Serial Number:</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': serialValidationError, 'is-valid': serialValidationSuccess }"
+                    v-model="serialInput"
+                    @input="validateSerialInput"
+                    placeholder="Nhập serial (VD: ABC1234, 9B2KX13)"
+                    maxlength="50"
+                  />
+                  <button type="button" class="btn btn-success" @click="addSerialNumbers">
+                    <i class="bi bi-plus-lg"></i> Thêm
+                  </button>
+                </div>
+                <div v-if="serialValidationError" class="text-warning small mt-1">
+                  <i class="bi bi-exclamation-triangle"></i> {{ serialValidationError }}
+                </div>
+                <small class="text-muted">
+                  Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;). Mỗi serial phải có đúng 7 ký tự gồm cả chữ và số.
+                </small>
+              </div>
+
+              <!-- Import from Excel -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Import từ Excel:</label>
+                <div class="d-flex gap-2">
+                  <input
+                    type="file"
+                    ref="excelFileInput"
+                    accept=".xlsx,.xls,.csv"
+                    class="d-none"
+                    @change="importFromExcel"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    @click="$refs.excelFileInput?.click()"
+                  >
+                    <i class="bi bi-file-earmark-arrow-up"></i> Chọn file
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-info btn-sm"
+                    @click="downloadExcelTemplate"
+                  >
+                    <i class="bi bi-download"></i> Tải mẫu
+                  </button>
+                </div>
+                <small class="text-muted">Hỗ trợ file .xlsx, .csv</small>
+              </div>
+
+              <!-- Serial Numbers List -->
+              <div class="serial-list-section">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="section-title mb-0">Danh sách Serial Numbers:</h6>
+                  <i
+                    class="bi bi-question-circle-fill text-info"
+                    style="cursor: pointer"
+                    title="Danh sách serial"
+                  ></i>
+                </div>
+
+                <div
+                  v-if="currentVariant?.serials?.length > 0"
+                  class="table-responsive"
+                  style="max-height: 250px"
+                >
+                  <table class="table table-hover serial-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 15%">STT</th>
+                        <th style="width: 40%">Serial Number</th>
+                        <th style="width: 20%">Trạng thái</th>
+                        <th style="width: 25%">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(serial, idx) in currentVariant.serials" :key="idx">
+                        <td>{{ idx + 1 }}</td>
+                        <td class="fw-medium">
+                          {{ serial.soSerial }}
+                          <i 
+                            v-if="!serial.id" 
+                            class="bi bi-circle-fill text-warning ms-1" 
+                            title="Chưa lưu vào database"
+                            style="font-size: 6px;"
+                          ></i>
+                          <i 
+                            v-else 
+                            class="bi bi-check-circle-fill text-success ms-1" 
+                            title="Đã lưu vào database"
+                            style="font-size: 10px;"
+                          ></i>
+                        </td>
+                        <td>
+                          <span 
+                            class="badge" 
+                            :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'"
+                          >
+                            {{ serial.trangThai === 1 ? 'Có sẵn' : 'Ẩn' }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="d-flex gap-1">
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-primary"
+                              @click="toggleSerialStatus(idx)"
+                              :title="serial.trangThai === 1 ? 'Chuyển sang Ẩn' : 'Chuyển sang Có sẵn'"
+                            >
+                              <i class="bi bi-pencil"></i>
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              @click="removeSerial(idx)"
+                              title="Xóa serial"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-else class="empty-state">
+                  <i class="bi bi-inbox"></i>
+                  <p>Chưa có serial number nào</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <div class="d-flex align-items-center me-auto" v-if="currentVariant?.serials?.length > 0">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                Tổng: {{ currentVariant.serials.length }} serial
+                <span v-if="getUnsavedSerialsCount() > 0" class="text-warning ms-2">
+                  ({{ getUnsavedSerialsCount() }} chưa lưu)
+                </span>
+              </small>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-secondary" @click="closeSerialModal">
+                <i class="bi bi-x-lg"></i> Hủy
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-success" 
+                @click="saveSerials"
+                :disabled="serialLoading"
+              >
+                <span v-if="serialLoading" class="spinner-border spinner-border-sm me-2"></span>
+                <i v-else class="bi bi-check-lg"></i> 
+                {{ getSaveButtonText() }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Serial Management Modal -->
-  <SerialManagementModal 
-    v-model="showSerialModal"
-    :variant="currentVariant"
-    @save="handleSerialSaved"
-  />
 
   <!-- Edit Variant Modal (Component) -->
   <VariantEditModal 
@@ -428,7 +635,6 @@ import { useAttributeStore } from '@/stores/attributeStore'
 import { formatCurrency } from '@/utils/formatters'
 import { getCTSPBySanPham, getHinhAnhByCtspId, getSerialsByCtspId, createSerialsBatch, updateSerial, updateSerialStatus, deleteSerial, importSerialsFromExcel, updateChiTietSanPham, deleteCTSP, deleteCTSPWithCascade} from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
-import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -497,10 +703,6 @@ const showDebug = ref(false) // Set to false in production
 const variantsLoading = ref(false)
 let filterDebounceTimer = null
 
-// Fetch data khi component mounted
-// ... existing code ...
-
-// ... existing code ...
 
 onMounted(async () => {
   loading.value = true
@@ -1676,30 +1878,8 @@ watch(
   { deep: true },
 )
 
-// ===== SERIAL MANAGEMENT FUNCTIONS =====
-// Now simplified to use SerialManagementModal component
-
-// Open serial management modal
-const openSerialModal = async (variant) => {
-  currentVariant.value = variant
-  showSerialModal.value = true
-}
-
-// Handle serial saved event from modal
-const handleSerialSaved = async ({ variantId, serials }) => {
-  // Count only active serials (trangThai = 1)
-  const activeSerialCount = serials.filter(s => s.trangThai === 1).length
-  console.log('Serials saved for variant:', variantId, 'Total:', serials.length, 'Active:', activeSerialCount)
-  
-  showSerialModal.value = false
-  currentVariant.value = {}
-  
-  // Reload variants to reflect updated stock (backend should return updated soLuongTon)
-  await fetchProductVariants(productId.value)
-}
-
 // OLD FUNCTIONS - NOW HANDLED BY SerialManagementModal
-/* const OLD_openSerialModal = async (variant) => {
+const OLD_openSerialModal = async (variant) => {
   try {
     console.log('Opening serial modal for variant:', variant)
     currentVariant.value = { ...variant, serials: [] }
@@ -1720,10 +1900,20 @@ const handleSerialSaved = async ({ variantId, serials }) => {
     alert('Không thể mở modal quản lý serial')
   }
 }
+// Close serial management modal
+const closeSerialModal = () => {
+  // Simply hide modal using Vue reactive state
+  showSerialModal.value = false
+  
+  // Remove modal-open class from body
+  document.body.classList.remove('modal-open')
+  
+  // Reset form
+  serialInput.value = ''
+  serialValidationError.value = ''
+  serialValidationSuccess.value = false
+  currentVariant.value = {}
 
-// Removed - handled by SerialManagementModal
-// const closeSerialModal = () => { ... }  
-  console.log('Serial modal closed')
 }
 
 // Load serials for a specific variant
@@ -1922,9 +2112,9 @@ const getSaveButtonText = () => {
   return 'Lưu'
 }
 
-// Removed - handled by SerialManagementModal
-// const saveSerials = async () => {
-/*
+// Save serials
+const saveSerials = async () => {
+
   if (!currentVariant.value.id) {
     alert('Không tìm thấy thông tin biến thể')
     return
@@ -2017,11 +2207,10 @@ const getSaveButtonText = () => {
   }
 }
 
-*/
 
-// Removed - handled by SerialManagementModal
-// const importFromExcel = async (event) => {
-/*
+// Import from Excel
+const importFromExcel = async (event) => {
+
   const file = event.target.files[0]
   if (!file) return
   
@@ -2072,11 +2261,10 @@ const getSaveButtonText = () => {
   }
 }
 
-*/
 
-// Removed - handled by SerialManagementModal
-// const downloadExcelTemplate = () => {
-/*
+// Download Excel template
+const downloadExcelTemplate = () => {
+
   // Create a simple CSV template
   const csvContent = 'Serial Number\nABC1234\nDEF5678\nGHI9012'
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -2092,9 +2280,7 @@ const getSaveButtonText = () => {
     document.body.removeChild(link)
   }
 }
-*/
 
-// OLD FUNCTIONS END - All serial management now handled by SerialManagementModal component
 
 // Sync stock quantity with active serials count
 const syncVariantStockWithActiveSerials = async () => {
