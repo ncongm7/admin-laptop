@@ -223,8 +223,10 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Khởi tạo auth store nếu chưa có (lần đầu load app)
-  if (authStore.token === null && localStorage.getItem('token')) {
+  // Khởi tạo auth store từ localStorage nếu chưa có (lần đầu load app)
+  // Điều này đảm bảo token được khôi phục ngay lập tức
+  if (!authStore.token && localStorage.getItem('token')) {
+    console.log('→ Khôi phục token từ localStorage trong router guard')
     authStore.initialize()
   }
 
@@ -234,9 +236,11 @@ router.beforeEach(async (to, from, next) => {
 
   console.log('Navigation Guard:', {
     to: to.path,
+    from: from.path,
     isAuthenticated,
     requiresAuth,
-    hideForAuth
+    hideForAuth,
+    hasToken: !!authStore.token
   })
 
   // Nếu route yêu cầu xác thực và user chưa đăng nhập
@@ -254,6 +258,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Cho phép tiếp tục
+  console.log('→ Cho phép truy cập:', to.path)
   next()
 })
 
