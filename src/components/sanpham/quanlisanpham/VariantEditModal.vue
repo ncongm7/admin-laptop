@@ -350,14 +350,21 @@ const closeModal = () => {
   // Close modal
   const modal = document.getElementById('variantEditModal')
   if (modal) {
-    // Try Bootstrap 5 first
-    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-      let bsModal = bootstrap.Modal.getInstance(modal)
-      if (bsModal) {
-        bsModal.hide()
-        // Dispose the modal instance to prevent issues
-        bsModal.dispose()
+    try {
+      // Try Bootstrap 5 first
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        let bsModal = bootstrap.Modal.getInstance(modal)
+        if (bsModal) {
+          bsModal.hide()
+          // Dispose the modal instance to prevent issues
+          bsModal.dispose()
+        }
+      } else if (typeof $ !== 'undefined') {
+        // Try jQuery Bootstrap
+        $(modal).modal('hide')
       }
+    } catch (error) {
+      console.error('Error closing modal with Bootstrap:', error)
     }
     
     // Always do manual cleanup to ensure everything is clean
@@ -370,8 +377,8 @@ const closeModal = () => {
     // Clean up body and backdrop
     document.body.classList.remove('modal-open')
     
-    // Remove all modal backdrops
-    const backdrops = document.querySelectorAll('.modal-backdrop')
+    // Remove all modal backdrops (including our custom one)
+    const backdrops = document.querySelectorAll('.modal-backdrop, #variantEditModalBackdrop')
     backdrops.forEach(backdrop => backdrop.remove())
     
     // Reset body styles that might be left over
@@ -454,10 +461,55 @@ const handleSubmit = async () => {
   }
 }
 
+// Method to open modal with variant data
+const openModal = (variant) => {
+  if (variant) {
+    loadVariantData(variant)
+  } else {
+    resetForm()
+  }
+  
+  // Show the modal using Bootstrap - try multiple approaches
+  const modalElement = document.getElementById('variantEditModal')
+  if (modalElement) {
+    try {
+      // Method 1: Use Bootstrap 5 Modal API
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement)
+        modal.show()
+      } else {
+        // Method 2: Use jQuery if Bootstrap is not available
+        if (typeof $ !== 'undefined') {
+          $(modalElement).modal('show')
+        } else {
+          // Method 3: Manual show using CSS classes
+          modalElement.classList.add('show')
+          modalElement.style.display = 'block'
+          modalElement.setAttribute('aria-modal', 'true')
+          modalElement.removeAttribute('aria-hidden')
+          
+          // Add backdrop
+          const backdrop = document.createElement('div')
+          backdrop.className = 'modal-backdrop fade show'
+          backdrop.id = 'variantEditModalBackdrop'
+          document.body.appendChild(backdrop)
+          document.body.classList.add('modal-open')
+        }
+      }
+    } catch (error) {
+      console.error('Error opening modal:', error)
+      // Fallback: manual show
+      modalElement.classList.add('show')
+      modalElement.style.display = 'block'
+    }
+  }
+}
+
 // Expose methods for parent component
 defineExpose({
   resetForm,
-  loadVariantData
+  loadVariantData,
+  openModal
 })
 </script>
 

@@ -1,20 +1,23 @@
 import axios from './axiosInstance'
-const BASE_URL = '/admin/san-pham'
 
-export const getAllCamera = async () => {
-  try {
-    const res = await axios.get(`${BASE_URL}/camera/hien-thi`)
-    console.log('getAllCamera:', res.data)
-    return res.data
-  } catch (error) {
-    console.error('Lỗi khi lấy dữ liệu camera:', error)
-    return null
-  }
-}
+// ✅ SỬA: Đổi BASE_URL để match với backend controllers
+// Backend đang dùng: /api/cpu, /api/gpu, /api/ram, v.v.
+
+// ⚠️ ĐANG TẮT: Backend chưa có Camera controller
+// export const getAllCamera = async () => {
+//   try {
+//     const res = await axios.get('/api/camera')
+//     console.log('getAllCamera:', res.data)
+//     return res.data
+//   } catch (error) {
+//     console.error('Lỗi khi lấy dữ liệu camera:', error)
+//     return null
+//   }
+// }
 
 export const getAllCpu = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/cpu/hien-thi`)
+    const res = await axios.get('/api/cpu')
     console.log(res)
     return res.data
   } catch (error) {
@@ -25,7 +28,7 @@ export const getAllCpu = async () => {
 
 export const getAllDungLuongPin = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/dung-luong-pin/hien-thi`)
+    const res = await axios.get('/api/pin')
     console.log(res)
     return res.data
   } catch (error) {
@@ -36,7 +39,7 @@ export const getAllDungLuongPin = async () => {
 
 export const getAllGpu = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/gpu/hien-thi`)
+    const res = await axios.get('/api/gpu')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu gpu:', error)
@@ -44,29 +47,11 @@ export const getAllGpu = async () => {
   }
 }
 
-export const getAllHang = async () => {
-  try {
-    const res = await axios.get(`${BASE_URL}/hang/hien-thi`)
-    return res.data
-  } catch (error) {
-    console.error('Lỗi khi lấy dữ liệu hãng:', error)
-    return null
-  }
-}
-
-export const getAllHeDieuHanh = async () => {
-  try {
-    const res = await axios.get(`${BASE_URL}/he-dieu-hanh/hien-thi`)
-    return res.data
-  } catch (error) {
-    console.error('Lỗi khi lấy dữ liệu hệ điều hành:', error)
-    return null
-  }
-}
 
 export const getAllKichThuocManHinh = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/kich-thuoc-man-hinh/hien-thi`)
+    // Backend có LoaiManHinh (có trường kichThuoc) - dùng endpoint đó
+    const res = await axios.get('/api/loai-man-hinh')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu kích thước màn hình:', error)
@@ -76,7 +61,7 @@ export const getAllKichThuocManHinh = async () => {
 
 export const getAllLoaiManHinh = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/loai-man-hinh/hien-thi`)
+    const res = await axios.get('/api/loai-man-hinh')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu loại màn hình:', error)
@@ -86,7 +71,7 @@ export const getAllLoaiManHinh = async () => {
 
 export const getAllMauSac = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/mau-sac/hien-thi`)
+    const res = await axios.get('/api/mau-sac')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu màu sắc:', error)
@@ -96,7 +81,7 @@ export const getAllMauSac = async () => {
 
 export const getAllOCung = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/o-cung/hien-thi`)
+    const res = await axios.get('/api/o-cung')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu ổ cứng:', error)
@@ -106,7 +91,7 @@ export const getAllOCung = async () => {
 
 export const getAllRam = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/ram/hien-thi`)
+    const res = await axios.get('/api/ram')
     return res.data
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu ram:', error)

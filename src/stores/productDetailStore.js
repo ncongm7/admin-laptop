@@ -197,7 +197,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
         ...variant,
         imeiCount: 0,
       }))
-      // Lấy số lượng IMEI cho từng biến thể
+      // Lấy số lượng Serial (IMEI) cho từng biến thể
       await Promise.all(
         variants.value.map(async (variant) => {
           const imeiResponse = await api.get(`/api/imei/count?ctsp_id=${variant.id}`)

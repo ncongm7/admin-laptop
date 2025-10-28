@@ -14,14 +14,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 import Header from './layout/Header.vue'
 import SideBar from './layout/SideBar.vue'
+
 const sidebarCollapsed = ref(false)
 const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value)
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')
+
+// Auth Store
+const authStore = useAuthStore()
+
+// Khởi tạo auth khi app load
+onMounted(async () => {
+  console.log('App mounted - Checking auth status...')
+  await authStore.checkAuthStatus()
+})
 </script>
 
 <style scoped>
