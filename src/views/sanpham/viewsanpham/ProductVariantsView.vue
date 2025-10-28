@@ -132,6 +132,7 @@
                 <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
               </th>
               <th width="30">STT</th>
+              <th width="60">ẢNH</th>
               <th width="100">SKU</th>
               <th width="60">MÀU</th>
               <th width="80">CPU</th>
@@ -150,14 +151,14 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="16" class="text-center py-5">
+              <td colspan="17" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
                   <span class="visually-hidden">Loading...</span>
                 </div>
               </td>
             </tr>
             <tr v-else-if="variantsList.length === 0">
-              <td colspan="16" class="text-center py-5 text-muted">
+              <td colspan="17" class="text-center py-5 text-muted">
                 <i class="bi bi-box-seam display-5"></i>
                 <p class="mt-3">Không có biến thể nào</p>
               </td>
@@ -167,6 +168,26 @@
                 <input type="checkbox" v-model="selectedVariants" :value="variant.id" />
               </td>
               <td>{{ (currentPage * pageSize) + index + 1 }}</td>
+              <td>
+                <div class="variant-image-cell">
+                  <img 
+                    v-if="getVariantImageUrl(variant)"
+                    :src="getVariantImageUrl(variant)"
+                    :alt="variant.maCtsp || 'Variant image'"
+                    class="variant-thumbnail"
+                    @error="handleImageError"
+                    loading="lazy"
+                  />
+                  <div v-else-if="variantImages.has(variant.id) && variantImages.get(variant.id) === null" class="no-image-placeholder">
+                    <i class="bi bi-image"></i>
+                  </div>
+                  <div v-else class="image-loading-placeholder">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
               <td>
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
@@ -209,12 +230,30 @@
               </td>
               <td>{{ formatDate(variant.createdAt) || 'N/A' }}</td>
               <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary btn-sm" @click="editVariant(variant)" title="Chỉnh sửa">
+              <td class="text-center actions-column">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-info btn-sm" 
+                    @click="openSerialModal(variant)" 
+                    title="Quản lý serial"
+                  >
+                    <i class="bi bi-list-ol"></i>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary btn-sm" 
+                    @click="editVariant(variant)" 
+                    title="Chỉnh sửa"
+                  >
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-outline-danger btn-sm" @click="deleteVariant(variant)" title="Xóa">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-danger btn-sm" 
+                    @click="deleteVariant(variant)" 
+                    title="Xóa biến thể"
+                  >
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -278,6 +317,13 @@
     @updated="handleVariantUpdated"
   />
 
+  <!-- Serial Management Modal -->
+  <SerialManagementModal 
+    v-model="showSerialModal"
+    :variant="currentVariant"
+    @save="handleSerialSaved"
+  />
+
   <!-- Simple Test Modal -->
   <div class="modal fade" id="testModal" tabindex="-1">
     <div class="modal-dialog">
@@ -304,7 +350,9 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
 import { useProductStore } from '@/stores/productStore'
+import { getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
+import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
 const productStore = useProductStore()
 
@@ -326,6 +374,10 @@ const maxPrice = ref(100000000) // Dynamic max price
 // Modal refs
 const editModal = ref(null)
 const selectedVariantForEdit = ref(null)
+
+// Serial modal state
+const showSerialModal = ref(false)
+const currentVariant = ref(null)
 
 const filters = ref({
   cpu: '',
@@ -378,6 +430,11 @@ const triggerFetch = () => {
 // Initialize variants when component mounts
 onMounted(async () => {
   try {
+    // Clear image cache on mount to ensure fresh data
+    console.log('🔄 Clearing image cache on component mount')
+    variantImages.value.clear()
+    loadingVariants.value.clear()
+    
     // Load attributes first
     await productStore.loadAttributes()
     if (showDebug.value) {
@@ -743,6 +800,357 @@ const getColorHex = (tenMau) => {
   }
   return colorMap[tenMau] || '#000000'
 }
+
+// Helper functions for variant display
+const getVariantSpecs = (variant) => {
+  if (!variant) return ''
+  const specs = []
+  if (variant.tenCpu) specs.push(variant.tenCpu)
+  if (variant.tenRam) specs.push(variant.tenRam)
+  if (variant.tenGpu) specs.push(variant.tenGpu)
+  if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
+  return specs.join(' | ') || 'N/A'
+}
+
+// Store for variant images to avoid repeated API calls
+const variantImages = ref(new Map())
+// Track loading state to prevent race conditions
+const loadingVariants = ref(new Set())
+
+const getVariantImageUrl = (variant) => {
+  if (!variant || !variant.id) {
+    return null
+  }
+  
+  // Check if we already have the image URL cached
+  if (variantImages.value.has(variant.id)) {
+    const cachedUrl = variantImages.value.get(variant.id)
+    console.log(`🎯 Using cached image for variant ${variant.id} (${variant.maCtsp}): ${cachedUrl}`)
+    return cachedUrl
+  }
+  
+  // Check multiple possible image fields in the variant data
+  // 1. Check anhDaiDien field (main image)
+  if (variant.anhDaiDien) {
+    variantImages.value.set(variant.id, variant.anhDaiDien)
+    return variant.anhDaiDien
+  }
+  
+  // 2. Check images array
+  if (variant.images && variant.images.length > 0) {
+    const firstImage = variant.images[0]
+    let imageUrl = null
+    if (typeof firstImage === 'string') {
+      imageUrl = firstImage
+    } else if (firstImage && firstImage.url) {
+      imageUrl = firstImage.url
+    } else if (firstImage && firstImage.uri) {
+      imageUrl = firstImage.uri
+    } else if (firstImage && firstImage.src) {
+      imageUrl = firstImage.src
+    }
+    if (imageUrl) {
+      variantImages.value.set(variant.id, imageUrl)
+      return imageUrl
+    }
+  }
+  
+  // 3. Check anhSanPhams array (product images)
+  if (variant.anhSanPhams && variant.anhSanPhams.length > 0) {
+    const firstImage = variant.anhSanPhams[0]
+    let imageUrl = null
+    if (typeof firstImage === 'string') {
+      imageUrl = firstImage
+    } else if (firstImage && firstImage.url) {
+      imageUrl = firstImage.url
+    } else if (firstImage && firstImage.uri) {
+      imageUrl = firstImage.uri
+    }
+    if (imageUrl) {
+      variantImages.value.set(variant.id, imageUrl)
+      return imageUrl
+    }
+  }
+  
+  // 4. Check hinhAnhs array (images)
+  if (variant.hinhAnhs && variant.hinhAnhs.length > 0) {
+    const firstImage = variant.hinhAnhs[0]
+    let imageUrl = null
+    if (typeof firstImage === 'string') {
+      imageUrl = firstImage
+    } else if (firstImage && firstImage.url) {
+      imageUrl = firstImage.url
+    } else if (firstImage && firstImage.uri) {
+      imageUrl = firstImage.uri
+    }
+    if (imageUrl) {
+      variantImages.value.set(variant.id, imageUrl)
+      return imageUrl
+    }
+  }
+  
+  // If no image found in variant data, try to fetch from API
+  // But only if not already loading to prevent race conditions
+  if (!loadingVariants.value.has(variant.id)) {
+    loadVariantImage(variant.id)
+  }
+  
+  return null
+}
+
+// Function to load variant image from API
+const loadVariantImage = async (variantId) => {
+  // Mark as loading to prevent race conditions
+  loadingVariants.value.add(variantId)
+  
+  try {
+    console.log(`🔍 Loading image for variant ID: ${variantId}`)
+    const response = await getHinhAnhByCtspId(variantId)
+    const images = response.data || []
+    
+    console.log(`📸 Variant ${variantId} has ${images.length} images:`, images)
+    
+    if (images.length > 0) {
+      // Try to find main image first, but if multiple images exist, prefer the first one
+      // This ensures each variant gets a unique image
+      let mainImage = null
+      
+      if (images.length === 1) {
+        // If only one image, use it regardless of anhChinhDaiDien flag
+        mainImage = images[0]
+      } else {
+        // If multiple images, prefer anhChinhDaiDien = true, but fallback to first image
+        mainImage = images.find(img => img.anhChinhDaiDien === true) || images[0]
+      }
+      
+      console.log(`🎯 Selected image for variant ${variantId} (${images.length} total):`, mainImage)
+      
+      // Try different possible URL fields
+      const imageUrl = mainImage.url || mainImage.uri || mainImage.src || mainImage.duongDan
+      
+      if (imageUrl) {
+        // Add timestamp to prevent browser caching issues
+        const finalImageUrl = imageUrl.includes('?') 
+          ? `${imageUrl}&t=${Date.now()}` 
+          : `${imageUrl}?t=${Date.now()}`
+        
+        console.log(`✅ Setting image URL for variant ${variantId}: ${finalImageUrl}`)
+        
+        // Don't overwrite if already cached with a different URL
+        if (variantImages.value.has(variantId)) {
+          const existingUrl = variantImages.value.get(variantId)
+          if (existingUrl && !existingUrl.includes(imageUrl)) {
+            console.warn(`⚠️ Overwriting existing image for variant ${variantId}: ${existingUrl} -> ${finalImageUrl}`)
+          }
+        }
+        
+        variantImages.value.set(variantId, finalImageUrl)
+        // Force reactivity update
+        variantImages.value = new Map(variantImages.value)
+      } else {
+        console.log(`❌ No valid URL found for variant ${variantId}`)
+        variantImages.value.set(variantId, null)
+      }
+    } else {
+      console.log(`📭 No images found for variant ${variantId}`)
+      variantImages.value.set(variantId, null)
+    }
+  } catch (error) {
+    console.warn(`Failed to load image for variant ${variantId}:`, error)
+    // Cache null to avoid repeated API calls
+    variantImages.value.set(variantId, null)
+  } finally {
+    // Remove from loading set
+    loadingVariants.value.delete(variantId)
+  }
+}
+
+// Batch load images for all visible variants
+const loadVisibleVariantImages = async () => {
+  if (!paginatedVariants.value || paginatedVariants.value.length === 0) return
+  
+  const variantsNeedingImages = paginatedVariants.value.filter(variant => {
+    return variant.id && !variantImages.value.has(variant.id) && 
+           !variant.anhDaiDien && !variant.images && !variant.anhSanPhams && !variant.hinhAnhs
+  })
+  
+  if (variantsNeedingImages.length === 0) return
+  
+  // Load images in parallel but limit concurrent requests
+  const batchSize = 5
+  for (let i = 0; i < variantsNeedingImages.length; i += batchSize) {
+    const batch = variantsNeedingImages.slice(i, i + batchSize)
+    await Promise.allSettled(
+      batch.map(variant => loadVariantImage(variant.id))
+    )
+  }
+}
+
+const handleImageError = (event) => {
+  console.log('🔴 Image failed to load:', event.target.src)
+  event.target.src = 'https://via.placeholder.com/50x50?text=No+Image&color=999&background=f0f0f0'
+}
+
+// Debug function to check variant data structure
+const debugVariantData = () => {
+  if (paginatedVariants.value && paginatedVariants.value.length > 0) {
+    console.log('🔍 Debugging variant data structure:')
+    
+    // Check first few variants to see if IDs are unique
+    const variantsToCheck = paginatedVariants.value.slice(0, Math.min(5, paginatedVariants.value.length))
+    
+    variantsToCheck.forEach((variant, index) => {
+      console.log(`📋 Variant ${index + 1}:`, {
+        id: variant.id,
+        maCtsp: variant.maCtsp,
+        tenCpu: variant.tenCpu,
+        tenRam: variant.tenRam,
+        mauSac: variant.mauSac?.tenMau,
+        anhDaiDien: variant.anhDaiDien,
+        images: variant.images,
+        anhSanPhams: variant.anhSanPhams,
+        hinhAnhs: variant.hinhAnhs
+      })
+    })
+    
+    // Check if IDs are unique
+    const ids = paginatedVariants.value.map(v => v.id)
+    const uniqueIds = [...new Set(ids)]
+    console.log(`🆔 Total variants: ${ids.length}, Unique IDs: ${uniqueIds.length}`)
+    
+    if (ids.length !== uniqueIds.length) {
+      console.warn('⚠️ WARNING: Duplicate variant IDs detected!')
+      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
+      console.log('🔄 Duplicate IDs:', duplicates)
+    }
+  }
+}
+
+// Function to debug current image cache
+const debugImageCache = () => {
+  console.log('🖼️ Current image cache:')
+  console.log(`Cache size: ${variantImages.value.size}`)
+  variantImages.value.forEach((url, variantId) => {
+    const variant = paginatedVariants.value.find(v => v.id === variantId)
+    console.log(`  Variant ${variantId} (${variant?.maCtsp || 'Unknown'}): ${url}`)
+  })
+}
+
+// Function to clear cache and reload
+const clearImageCache = () => {
+  console.log('🗑️ Clearing image cache')
+  variantImages.value.clear()
+  variantImages.value = new Map()
+  loadingVariants.value.clear()
+  
+  // Reload images
+  nextTick(() => {
+    loadVisibleVariantImages()
+  })
+}
+
+// Function to force reload all variant images
+const forceReloadAllImages = async () => {
+  if (!paginatedVariants.value || paginatedVariants.value.length === 0) return
+  
+  console.log('🔄 Force reloading all variant images')
+  
+  // Clear cache first
+  variantImages.value.clear()
+  loadingVariants.value.clear()
+  
+  // Load images for all visible variants one by one
+  for (const variant of paginatedVariants.value) {
+    if (variant.id) {
+      console.log(`🔄 Force loading image for variant ${variant.id} (${variant.maCtsp})`)
+      await loadVariantImage(variant.id)
+    }
+  }
+  
+  console.log('✅ Finished force reloading all images')
+  debugImageCache()
+}
+
+// Function to test API for specific variants
+const testVariantImageAPI = async () => {
+  if (!paginatedVariants.value || paginatedVariants.value.length === 0) {
+    console.log('❌ No variants to test')
+    return
+  }
+  
+  const testVariants = paginatedVariants.value.slice(0, 3) // Test first 3 variants
+  
+  console.log('🧪 Testing API for variants:')
+  for (const variant of testVariants) {
+    console.log(`\n🔍 Testing variant ${variant.id} (${variant.maCtsp})`)
+    try {
+      const response = await getHinhAnhByCtspId(variant.id)
+      const images = response.data || []
+      console.log(`📸 API Response:`, {
+        variantId: variant.id,
+        variantCode: variant.maCtsp,
+        totalImages: images.length,
+        images: images.map(img => ({
+          id: img.id,
+          url: img.url,
+          uri: img.uri,
+          src: img.src,
+          duongDan: img.duongDan,
+          anhChinhDaiDien: img.anhChinhDaiDien
+        }))
+      })
+    } catch (error) {
+      console.error(`❌ API Error for variant ${variant.id}:`, error)
+    }
+  }
+}
+
+// Make functions available globally for console testing
+if (typeof window !== 'undefined') {
+  window.debugImageCache = debugImageCache
+  window.clearImageCache = clearImageCache
+  window.testVariantImageAPI = testVariantImageAPI
+  window.forceReloadAllImages = forceReloadAllImages
+}
+
+// Call debug function when variants are loaded and load images
+watch(paginatedVariants, (newVariants) => {
+  if (newVariants && newVariants.length > 0) {
+    debugVariantData()
+    // Load images for visible variants
+    nextTick(() => {
+      loadVisibleVariantImages()
+      // Debug cache after loading
+      setTimeout(() => {
+        debugImageCache()
+      }, 2000) // Wait 2 seconds for API calls to complete
+    })
+  }
+}, { immediate: true })
+
+// Serial Management Functions
+const openSerialModal = async (variant) => {
+  console.log('🔵 Opening serial modal for variant:', variant)
+  currentVariant.value = variant
+  showSerialModal.value = true
+}
+
+const handleSerialSaved = async ({ variantId, serials }) => {
+  console.log('🔵 handleSerialSaved called:', { variantId, serials })
+  
+  // ✅ FIX: Handle case where serials might be undefined or null
+  const serialsArray = serials || []
+  
+  // Count only active serials (trangThai = 1)
+  const activeSerialCount = serialsArray.filter(s => s.trangThai === 1).length
+  console.log('Serials saved for variant:', variantId, 'Total:', serialsArray.length, 'Active:', activeSerialCount)
+  
+  showSerialModal.value = false
+  currentVariant.value = null
+  
+  // Reload variants list to reflect updated stock (backend should return updated soLuongTon)
+  await triggerFetch()
+}
 </script>
 
 <style scoped>
@@ -1057,5 +1465,87 @@ input[type='checkbox']:checked {
 input[type='checkbox']:focus {
   border-color: #86efac;
   box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+}
+
+input[type='checkbox']:checked {
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+/* Variant Image Styles */
+.variant-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.variant-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.variant-thumbnail:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.no-image-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.no-image-placeholder:hover {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  color: #6b7280;
+}
+
+.no-image-placeholder::after {
+  content: 'No Image';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.image-loading-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+}
+
+/* Actions column */
+.actions-column {
+  min-width: 120px !important;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
 }
 </style>

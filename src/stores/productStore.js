@@ -22,7 +22,10 @@ import {
   deleteCTSPWithCascade,
   searchSanPhamChiTiet,
   updateChiTietSanPham,
-  getHinhAnhByCtspId
+  getHinhAnhByCtspId,
+  getSerialsByCtspId,
+  importSerialsFromExcel,
+  createSerialsBatch
 } from '@/service/sanpham/SanPhamService'
 // import client from '@/utils/api'
 export const useProductStore = defineStore('products', () => {
@@ -665,6 +668,46 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
+  // Serial Management Methods
+  const getSerialsByVariantId = async (variantId) => {
+    try {
+      const response = await getSerialsByCtspId(variantId)
+      return response
+    } catch (err) {
+      console.error('Error fetching serials:', err)
+      throw err
+    }
+  }
+
+  const saveVariantSerials = async (variantId, serials) => {
+    try {
+      const serialRequests = serials.map(serial => ({
+        ctspId: variantId,
+        serialNo: serial.soSerial,
+        trangThai: serial.trangThai || 1
+      }))
+      
+      const response = await createSerialsBatch(serialRequests)
+      return response
+    } catch (err) {
+      console.error('Error saving serials:', err)
+      throw err
+    }
+  }
+
+  const importSerialsFromExcelFile = async (formData) => {
+    try {
+      const ctspId = formData.get('ctspId')
+      const file = formData.get('file')
+      
+      const response = await importSerialsFromExcel(ctspId, file)
+      return response
+    } catch (err) {
+      console.error('Error importing serials from Excel:', err)
+      throw err
+    }
+  }
+
   return {
     products,
     variants,
@@ -699,5 +742,8 @@ export const useProductStore = defineStore('products', () => {
     loadAttributes,
     advancedSearchProducts,
     advancedSearchProductsPage,
+    getSerialsByVariantId,
+    saveVariantSerials,
+    importSerialsFromExcel: importSerialsFromExcelFile,
   }
 })

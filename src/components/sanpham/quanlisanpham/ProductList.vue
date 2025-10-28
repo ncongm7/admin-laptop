@@ -186,7 +186,16 @@
     </div>
   </div>
 
-  <!-- Add Variant Modal -->
+  <!-- Add Variant Modal (using ProductFormModal component) -->
+  <ProductFormModal
+    v-if="showVariantModal"
+    :product="selectedProduct"
+    mode="add-variants-only"
+    @close="handleVariantModalClose"
+    @save="handleVariantModalSave"
+  />
+
+  <!-- Old Add Variant Modal (deprecated, can be removed later) -->
   <div class="modal fade" id="addVariantModal" tabindex="-1" aria-labelledby="addVariantModalLabel" aria-hidden="true" data-bs-backdrop="false" style="z-index: 1050;">
     <div class="modal-dialog modal-xl" style="margin-left: 250px; margin-right: 20px;">
       <div class="modal-content">
@@ -437,7 +446,7 @@
                   <div class="d-flex justify-content-start mb-4">
                     <div class="alert alert-success d-flex align-items-center" v-if="calculateTotalCombinations > 0">
                       <i class="bi bi-check-circle me-2"></i>
-                      <span><strong>Sẽ tạo {{ calculateTotalCombinations }} biến thể</strong> từ các thuộc tính đã chọn. Click "Thêm biến thể" để tạo ngay.</span>
+                      <span><strong>Sẽ tạo {{ calculateTotalCombinations }} biến thể</strong> từ các thuộc tính đã chọn.</span>
                     </div>
                     <div class="alert alert-secondary d-flex align-items-center" v-else>
                       <i class="bi bi-lightbulb me-2"></i>
@@ -773,6 +782,7 @@ import { formatDate } from '@/utils/dateUtils'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { taoBienTheSanPham, getCPUList, getGPUList, getRamList, getOCungList, getMauSacList, getLoaiManHinhList, getPinList } from '@/service/sanpham/SanPhamService'
 import { Modal } from 'bootstrap'
+import ProductFormModal from '@/components/sanpham/quanlisanpham/ProductFormModal.vue'
 
 
 
@@ -791,6 +801,7 @@ const emit = defineEmits(['edit', 'view', 'bulk-delete', 'selection-change', 'va
 
 // Variant creation state
 const selectedProduct = ref(null)
+const showVariantModal = ref(false)
 const variantLoading = ref(false)
 const attributeLoading = ref(false)
 const attributeError = ref('')
@@ -1108,15 +1119,21 @@ const loadAttributes = async () => {
 // Handle add variant button click
 const handleAddVariant = (product) => {
   selectedProduct.value = product
-  resetVariantConfig()
-  loadAttributes()
-  
-  // Show modal without backdrop
-  const modal = new Modal(document.getElementById('addVariantModal'), {
-    backdrop: false,
-    keyboard: true
-  })
-  modal.show()
+  showVariantModal.value = true
+}
+
+// Handle variant modal close
+const handleVariantModalClose = () => {
+  showVariantModal.value = false
+  selectedProduct.value = null
+}
+
+// Handle variant modal save
+const handleVariantModalSave = () => {
+  showVariantModal.value = false
+  emit('variant-added')
+  // Optionally reload product list or show success message
+  alert('Đã thêm biến thể thành công!')
 }
 
 // Reset variant configuration

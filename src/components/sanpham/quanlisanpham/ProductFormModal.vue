@@ -3,23 +3,39 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">{{ isEditMode ? 'Chỉnh sửa' : 'Thêm mới' }} sản phẩm</h5>
+          <h5 class="modal-title">
+            <span v-if="isAddVariantsMode">
+              <i class="bi bi-plus-circle me-2"></i>Thêm biến thể cho: {{ form.tenSanPham }}
+            </span>
+            <span v-else>{{ isEditMode ? 'Chỉnh sửa' : 'Thêm mới' }} sản phẩm</span>
+          </h5>
           <button type="button" class="btn-close btn-close-white" @click="close"></button>
         </div>
 
         <div class="modal-body">
           <form @submit.prevent="save">
             <!-- Header -->
-            <div class="d-flex align-items-center gap-2 mb-3">
+            <div v-if="!isAddVariantsMode" class="d-flex align-items-center gap-2 mb-3">
               <i class="bi bi-plus-circle text-success"></i>
               <span class="fw-semibold text-muted">{{ isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới' }}</span>
+            </div>
+            
+            <!-- Product Info for add-variants-only mode -->
+            <div v-if="isAddVariantsMode" class="alert alert-info mb-3">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>
+                  <strong>Sản phẩm:</strong> {{ form.tenSanPham }}
+                  <span v-if="form.maSanPham" class="ms-2">(Mã: {{ form.maSanPham }})</span>
+                </div>
+              </div>
             </div>
             
             <div class="row g-4">
               <!-- Full Width Column -->
               <div class="col-md-12">
-                <!-- Basic Info -->
-                <div class="card mb-4">
+                <!-- Basic Info - Hidden in add-variants-only mode -->
+                <div v-if="!isAddVariantsMode" class="card mb-4">
                   <div class="card-header bg-light">
                     <h6 class="mb-0">Thông tin cơ bản</h6>
                   </div>
@@ -467,12 +483,13 @@
           <button 
             type="button" 
             class="btn btn-primary" 
-            @click="saveProduct" 
+            @click="isAddVariantsMode ? saveAndCreateVariants() : saveProduct()" 
             :disabled="loading"
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
             <i v-else class="bi bi-check-lg me-1"></i>
-            {{ form.variants && form.variants.length > 0 ? 'Tạo sản phẩm & biến thể' : 'Tạo sản phẩm' }}
+            <span v-if="isAddVariantsMode">Tạo biến thể</span>
+            <span v-else>{{ form.variants && form.variants.length > 0 ? 'Tạo sản phẩm & biến thể' : 'Tạo sản phẩm' }}</span>
           </button>
         </div>
       </div>
@@ -729,11 +746,17 @@ onMounted(async () => {
 
 const props = defineProps({
   product: Object,
+  mode: {
+    type: String,
+    default: 'create', // 'create', 'edit', 'add-variants-only'
+    validator: (value) => ['create', 'edit', 'add-variants-only'].includes(value)
+  }
 })
 
 const emit = defineEmits(['close', 'save'])
 
-const isEditMode = computed(() => !!props.product)
+const isEditMode = computed(() => !!props.product && props.mode === 'edit')
+const isAddVariantsMode = computed(() => props.mode === 'add-variants-only')
 
 const form = ref({
   id: null,
@@ -772,6 +795,32 @@ const currentVariant = computed(() => {
   return null
 })
 
+// Watch product prop to load data when mode is 'add-variants-only'
+watch(() => props.product, (newProduct) => {
+  if (newProduct && isAddVariantsMode.value) {
+    console.log('Loading product data for add-variants-only mode:', newProduct)
+    form.value.id = newProduct.id
+    form.value.tenSanPham = newProduct.tenSanPham
+    form.value.maSanPham = newProduct.maSanPham || ''
+    form.value.moTaChiTiet = newProduct.moTaChiTiet || ''
+    form.value.trangThai = newProduct.trangThai?.toString() || '1'
+    form.value.anhDaiDien = newProduct.anhDaiDien || null
+    form.value.variants = []
+    
+    // Reset variant config
+    variantConfig.value = {
+      selectedCpuIds: [],
+      selectedGpuIds: [],
+      selectedRamIds: [],
+      selectedOCungIds: [],
+      selectedMauSacIds: [],
+      selectedLoaiManHinhIds: [],
+      selectedPinIds: [],
+      trangThai: 1
+    }
+  }
+}, { immediate: true })
+
 const calculateTotalCombinations = computed(() => {
     const config = variantConfig.value
     let total = 1
@@ -798,7 +847,11 @@ const calculateTotalCombinations = computed(() => {
 })
 
 const displayVariants = computed(() => {
-  // Show preview variants or actual created variants
+  // Show preview variants first, then actual created variants
+  // This ensures serials imported during preview are preserved
+  if (previewVariants.value && previewVariants.value.length > 0) {
+    return previewVariants.value
+  }
   return form.value.variants || []
 })
 
@@ -939,7 +992,12 @@ const saveProduct = async () => {
       giaCaoNhat: giaCaoNhat
     }
 
-    console.log('Creating product with payload:', productPayload)
+    // For add-variants-only mode, skip product creation if product ID exists
+    if (isAddVariantsMode.value && form.value.id) {
+      console.log('Skipping product creation - using existing product ID:', form.value.id)
+    } else {
+      console.log('Creating product with payload:', productPayload)
+    }
 
     // For new products, check if we have variants to create
     const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 && 
@@ -993,6 +1051,12 @@ const saveProduct = async () => {
 
       console.log('Creating product with variants and serials:', variantConfigs)
       console.log('Preview variants data:', form.value.variants)
+
+      // If add-variants-only mode with existing product ID, pass it directly
+      if (isAddVariantsMode.value && form.value.id) {
+        // Create a fake product response to use existing ID
+        productPayload.id = form.value.id
+      }
 
       const result = await createProductWithVariantsAndSerials(productPayload, variantConfigs, form.value.variants)
       
@@ -1210,7 +1274,7 @@ const saveAndCreateVariants = async () => {
       return
     }
 
-    // Step 1: Save product first
+    // Prepare payload (always needed for emit)
     const payload = {
       tenSanPham: form.value.tenSanPham,
       maSanPham: form.value.maSanPham || '',
@@ -1220,29 +1284,42 @@ const saveAndCreateVariants = async () => {
       images: form.value.images || []
     }
 
-    console.log('Creating product with payload:', payload)
+    // Step 1: Save product first (skip if add-variants-only mode and product ID already exists)
+    if (!isAddVariantsMode.value || !form.value.id) {
+      console.log('Creating/updating product with payload:', payload)
 
-    if (isEditMode.value) {
-      // Update existing product
-      const response = await updateSanPham(form.value.id, payload)
-      form.value.id = response.data.id
+      if (isEditMode.value) {
+        // Update existing product
+        const response = await updateSanPham(form.value.id, payload)
+        form.value.id = response.data.id
+      } else {
+        // Create new product
+        const response = await createSanPham(payload)
+        form.value.id = response.data.id
+      }
     } else {
-      // Create new product
-      const response = await createSanPham(payload)
-      form.value.id = response.data.id
+      console.log('Skipping product creation - using existing product ID:', form.value.id)
     }
 
-    // Step 2: Create variants if preview variants exist
-    if (previewVariants.value.length > 0) {
+      // Step 2: Create variants if preview variants exist
+      const variantsToCreate = form.value.variants || previewVariants.value || []
+      console.log('Variants to create:', variantsToCreate.length, variantsToCreate)
+      console.log('Serials in each variant:', variantsToCreate.map(v => ({
+        id: v.id,
+        serials: v.serials?.length || 0,
+        serialDetails: v.serials
+      })))
+    
+    if (variantsToCreate.length > 0) {
       const config = variantConfig.value
       
       const variantPayload = {
         idSanPham: form.value.id,
-        giaBan: config.giaBan,
+        giaBan: config.giaBan || (variantsToCreate[0]?.giaBan || 0),
         ghiChu: '',
         soLuongTon: 0,
         soLuongTamGiu: 0,
-        trangThai: config.trangThai,
+        trangThai: config.trangThai || 1,
         selectedCpuIds: config.selectedCpuIds,
         selectedGpuIds: config.selectedGpuIds,
         selectedRamIds: config.selectedRamIds,
@@ -1252,14 +1329,115 @@ const saveAndCreateVariants = async () => {
         selectedPinIds: config.selectedPinIds
       }
 
+      console.log('Creating variants with payload:', variantPayload)
       const variantResponse = await taoBienTheSanPham(variantPayload)
       const createdVariants = variantResponse.data || []
+      console.log('Created variants:', createdVariants)
+      
+      // Update prices, save images and serials for each variant based on preview data
+      if (variantsToCreate.length > 0 && createdVariants.length > 0) {
+        console.log('Updating prices and saving images/serials for variants...')
+        
+        for (let i = 0; i < createdVariants.length && i < variantsToCreate.length; i++) {
+          const createdVariant = createdVariants[i]
+          const previewVariant = variantsToCreate[i]
+          
+          // Update price if different
+          const targetPrice = parseFloat(previewVariant.giaBan) || 0
+          const currentPrice = parseFloat(createdVariant.giaBan) || 0
+          
+          if (targetPrice !== currentPrice && targetPrice > 0) {
+            try {
+              const updatePayload = {
+                idSanPham: form.value.id,
+                maCtsp: createdVariant.maCtsp,
+                giaBan: targetPrice,
+                ghiChu: createdVariant.ghiChu || '',
+                soLuongTon: createdVariant.soLuongTon || 0,
+                soLuongTamGiu: createdVariant.soLuongTamGiu || 0,
+                trangThai: createdVariant.trangThai,
+                idCpu: createdVariant.idCpu,
+                idGpu: createdVariant.idGpu,
+                idRam: createdVariant.idRam,
+                idOCung: createdVariant.idOCung,
+                idMauSac: createdVariant.idMauSac,
+                idLoaiManHinh: createdVariant.idLoaiManHinh,
+                idPin: createdVariant.idPin
+              }
+              console.log(`Updating variant ${createdVariant.id} price from ${currentPrice} to ${targetPrice}`)
+              const updatedVariant = await updateChiTietSanPham(createdVariant.id, updatePayload)
+              createdVariants[i] = updatedVariant.data
+              console.log(`✅ Updated variant ${createdVariant.id} price to ${targetPrice}`)
+            } catch (priceErr) {
+              console.warn(`❌ Failed to update price for variant ${createdVariant.id}:`, priceErr)
+              createdVariants[i].giaBan = targetPrice // Update locally even if API fails
+            }
+          }
+          
+          // Save image if exists
+          if (previewVariant.anhDaiDien) {
+            try {
+              const imageRequest = {
+                idSpct: createdVariant.id,
+                url: previewVariant.anhDaiDien,
+                anhChinhDaiDien: true
+              }
+              await createHinhAnhBatch([imageRequest])
+              console.log(`✅ Saved image for variant ${createdVariant.id}`)
+            } catch (imgErr) {
+              console.warn(`❌ Failed to save image for variant ${createdVariant.id}:`, imgErr)
+            }
+          }
+          
+          // Save serials if exists
+          if (previewVariant.serials && previewVariant.serials.length > 0) {
+            try {
+              const serialRequests = previewVariant.serials.map(serial => ({
+                ctspId: createdVariant.id,
+                serialNo: serial.soSerial || serial,
+                trangThai: serial.trangThai || 1
+              }))
+              await createSerialsBatch(serialRequests)
+              console.log(`✅ Saved ${serialRequests.length} serials for variant ${createdVariant.id}`)
+              
+              // Update soLuongTon based on number of serials
+              try {
+                const updateStockPayload = {
+                  idSanPham: form.value.id,
+                  maCtsp: createdVariant.maCtsp,
+                  giaBan: createdVariant.giaBan,
+                  ghiChu: createdVariant.ghiChu || '',
+                  soLuongTon: serialRequests.length, // ✅ Update stock from serials
+                  soLuongTamGiu: createdVariant.soLuongTamGiu || 0,
+                  trangThai: createdVariant.trangThai,
+                  idCpu: createdVariant.idCpu,
+                  idGpu: createdVariant.idGpu,
+                  idRam: createdVariant.idRam,
+                  idOCung: createdVariant.idOCung,
+                  idMauSac: createdVariant.idMauSac,
+                  idLoaiManHinh: createdVariant.idLoaiManHinh,
+                  idPin: createdVariant.idPin
+                }
+                await updateChiTietSanPham(createdVariant.id, updateStockPayload)
+                createdVariants[i].soLuongTon = serialRequests.length
+                console.log(`✅ Updated soLuongTon to ${serialRequests.length} for variant ${createdVariant.id}`)
+              } catch (stockErr) {
+                console.warn(`❌ Failed to update stock for variant ${createdVariant.id}:`, stockErr)
+                // Update locally even if API fails
+                createdVariants[i].soLuongTon = serialRequests.length
+              }
+            } catch (serialErr) {
+              console.warn(`❌ Failed to save serials for variant ${createdVariant.id}:`, serialErr)
+            }
+          }
+        }
+      }
       
       // Map the response to include necessary fields and attribute names
       form.value.variants = createdVariants.map(variant => ({
         ...variant,
         serials: [],
-        soLuongTon: 0,
+        // Keep soLuongTon from updated variant (don't override to 0)
         anhDaiDien: null,
         // Add attribute names for display
         tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
@@ -1273,6 +1451,13 @@ const saveAndCreateVariants = async () => {
       
       // Clear preview variants since we now have real variants
       previewVariants.value = []
+      
+      // For add-variants-only mode, emit save and close modal
+      if (isAddVariantsMode.value) {
+        alert(`Đã tạo thành công ${form.value.variants.length} biến thể!`)
+        emit('save')
+        return
+      }
       
       alert(`Đã tạo thành công sản phẩm và ${form.value.variants.length} biến thể! Bây giờ bạn có thể quản lý Serial Numbers cho từng biến thể.`)
       // Don't emit save event - keep modal open for serial management
@@ -1301,6 +1486,12 @@ const save = async () => {
   try {
     loading.value = true
     error.value = null
+
+    // For add-variants-only mode, skip product creation and go straight to variant creation
+    if (isAddVariantsMode.value) {
+      await saveAndCreateVariants()
+      return
+    }
 
     if (!form.value.tenSanPham.trim()) {
       alert('Vui lòng nhập tên sản phẩm')
@@ -1902,7 +2093,12 @@ const toggleSerialStatus = (serialIndex) => {
   
   if (confirm(`Bạn có chắc chắn muốn chuyển trạng thái serial "${serial.soSerial}" thành "${statusText}"?`)) {
     serial.trangThai = newStatus
-    console.log(`Đã chuyển trạng thái serial ${serial.soSerial} thành ${statusText}`)
+    
+    // Update stock count (only count available serials - trangThai = 1)
+    const availableSerials = variant.serials.filter(s => s.trangThai === 1)
+    variant.soLuongTon = availableSerials.length
+    
+    console.log(`Đã chuyển trạng thái serial ${serial.soSerial} thành ${statusText}. Stock count: ${variant.soLuongTon}`)
   }
 }
 
@@ -1914,8 +2110,12 @@ const removeSerial = (serialIndex) => {
   const serial = variant.serials[serialIndex]
   if (confirm(`Bạn có chắc chắn muốn xóa serial "${serial.soSerial}"?`)) {
     variant.serials.splice(serialIndex, 1)
-    variant.soLuongTon = variant.serials.length
-    console.log(`Đã xóa serial ${serial.soSerial}`)
+    
+    // Update stock count (only count available serials - trangThai = 1)
+    const availableSerials = variant.serials.filter(s => s.trangThai === 1)
+    variant.soLuongTon = availableSerials.length
+    
+    console.log(`Đã xóa serial ${serial.soSerial}. Stock count: ${variant.soLuongTon}`)
   }
 }
 
@@ -2025,48 +2225,129 @@ const importFromExcel = async (event) => {
   const file = event.target.files[0]
   if (!file) return
   
-  if (!currentVariant.value?.id) {
-    alert('Vui lòng lưu biến thể trước khi import serial')
-    return
-  }
-  
   try {
     loading.value = true
     
-    // Call API to import serials from Excel
-    const response = await importSerialsFromExcel(currentVariant.value.id, file)
-    const importedSerials = response.data || []
-    
-    if (importedSerials.length === 0) {
-      alert('Không có serial number nào được import')
-      return
-    }
-    
-    // Update local serials list
-    currentVariant.value.serials = currentVariant.value.serials || []
-    importedSerials.forEach(serialResponse => {
-      currentVariant.value.serials.push({
-        id: serialResponse.id,
-        soSerial: serialResponse.serialNo,
-        trangThai: serialResponse.trangThai || 1
+    // Check if variant has ID (saved to DB) or is preview
+    if (!currentVariant.value?.id) {
+      // Preview mode - parse file locally without calling API
+      console.log('Preview mode: Parsing Excel/CSV file locally...')
+      
+      const serials = await parseExcelFileLocally(file)
+      
+      if (serials.length === 0) {
+        alert('Không có serial number nào được tìm thấy trong file')
+        event.target.value = ''
+        return
+      }
+      
+      // Add to local serials list
+      currentVariant.value.serials = currentVariant.value.serials || []
+      serials.forEach(serial => {
+        if (!currentVariant.value.serials.find(s => s.soSerial === serial)) {
+          currentVariant.value.serials.push({
+            id: null,
+            soSerial: serial,
+            trangThai: 1
+          })
+        }
       })
-    })
-    
-    // Update stock count
-    currentVariant.value.soLuongTon = currentVariant.value.serials.length
-    
-    alert(`Đã import thành công ${importedSerials.length} serial number!`)
-    
-    // Clear file input
-    event.target.value = ''
+      
+      // Update stock count (only count available serials - trangThai = 1)
+      const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
+      currentVariant.value.soLuongTon = availableSerials.length
+      console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon} for preview variant (${availableSerials.length} available out of ${currentVariant.value.serials.length} total)`)
+      
+      alert(`Đã import thành công ${serials.length} serial number! Vui lòng lưu biến thể để lưu vào database.`)
+      event.target.value = ''
+      
+    } else {
+      // Saved variant - call API
+      console.log('Saved variant: Calling API to import serials...')
+      
+      const response = await importSerialsFromExcel(currentVariant.value.id, file)
+      const importedSerials = response.data || []
+      
+      if (importedSerials.length === 0) {
+        alert('Không có serial number nào được import')
+        event.target.value = ''
+        return
+      }
+      
+      // Update local serials list
+      currentVariant.value.serials = currentVariant.value.serials || []
+      importedSerials.forEach(serialResponse => {
+        currentVariant.value.serials.push({
+          id: serialResponse.id,
+          soSerial: serialResponse.serialNo,
+          trangThai: serialResponse.trangThai || 1
+        })
+      })
+      
+      // Update stock count (only count available serials - trangThai = 1)
+      const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
+      currentVariant.value.soLuongTon = availableSerials.length
+      console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon} for saved variant (${availableSerials.length} available out of ${currentVariant.value.serials.length} total)`)
+      
+      alert(`Đã import thành công ${importedSerials.length} serial number!`)
+      event.target.value = ''
+    }
     
   } catch (error) {
     console.error('Error importing serials:', error)
-    const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi import serial'
+    const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi import serial'
     alert(errorMessage)
   } finally {
     loading.value = false
   }
+}
+
+// Helper function to parse Excel/CSV file locally
+const parseExcelFileLocally = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result
+        const serials = []
+        
+        // Split by lines
+        const lines = text.split(/\r?\n/).filter(line => line.trim())
+        
+        // Skip header row if exists
+        const startIndex = lines[0].toLowerCase().includes('serial') ? 1 : 0
+        
+        for (let i = startIndex; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line) continue
+          
+          // Split by comma, tab, or semicolon
+          const parts = line.split(/[,;\t]/).map(p => p.trim()).filter(p => p)
+          
+          if (parts.length > 0) {
+            const serial = parts[0]
+            
+            // Validate serial: 7 characters, alphanumeric
+            if (serial.length === 7 && /^[A-Za-z0-9]+$/.test(serial)) {
+              serials.push(serial)
+            }
+          }
+        }
+        
+        resolve(serials)
+      } catch (error) {
+        reject(error)
+      }
+    }
+    
+    reader.onerror = () => {
+      reject(new Error('Không thể đọc file'))
+    }
+    
+    // Read as text for CSV/Excel saved as CSV
+    reader.readAsText(file)
+  })
 }
 
 // Download Excel template function

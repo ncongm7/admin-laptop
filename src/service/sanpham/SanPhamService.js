@@ -351,8 +351,7 @@ export const importSerialsFromExcel = (ctspId, file) => {
   return client.post(`${SERIAL_ROUTE}/import-excel/${ctspId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
-    },
-    withCredentials: true,
+    }
   })
 }
 
@@ -416,9 +415,16 @@ export const deleteAllImagesByCtspId = (ctspId) => {
 // ===== COMPREHENSIVE PRODUCT CREATION =====
 export const createProductWithVariantsAndSerials = async (productData, variantConfigs, previewVariants = []) => {
   try {
-    // Step 1: Create product
-    const productResponse = await createSanPham(productData)
-    const product = productResponse.data
+    // Step 1: Create product (skip if product ID already exists - for add-variants-only mode)
+    let product
+    if (productData.id) {
+      console.log('Using existing product ID:', productData.id)
+      product = { id: productData.id, ...productData }
+    } else {
+      console.log('Creating new product...')
+      const productResponse = await createSanPham(productData)
+      product = productResponse.data
+    }
     
     if (!variantConfigs || variantConfigs.length === 0) {
       return { product, variants: [], serials: [] }
