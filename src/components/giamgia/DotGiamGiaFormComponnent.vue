@@ -10,7 +10,15 @@
 
       <div class="col-md-6">
         <label class="form-label">Giá trị (VND) *</label>
-        <input type="number" class="form-control" v-model.number="form.giaTri" :disabled="isDetail" />
+        <input
+          type="number"
+          class="form-control"
+          v-model.number="form.giaTri"
+          :min="0"
+          :step="1000"
+          :disabled="isDetail"
+        />
+        <small class="text-muted">{{ vndFormat(+form.giaTri || 0) }}</small>
       </div>
 
       <div class="col-md-6">
@@ -28,6 +36,14 @@
         <textarea class="form-control" rows="3" v-model="form.moTa" :disabled="isDetail"></textarea>
       </div>
 
+      <div class="col-md-6">
+        <label class="form-label">Hoạt động</label>
+        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
+        </select>
+      </div>
+
       <div class="col-12 mt-2">
         <button v-if="!isDetail" type="submit" class="btn btn-success me-2">Lưu</button>
         <button type="button" class="btn btn-secondary" @click="back">Quay lại</button>
@@ -41,6 +57,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getDotGiamGiaById, addDotGiamGia, updateDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
 
+const vndFormat = (n) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n)
+
 const route = useRoute()
 const router = useRouter()
 
@@ -52,7 +71,8 @@ const form = ref({
   giaTri: 0,
   moTa: '',
   ngayBatDau: '', // 'yyyy-MM-ddTHH:mm'
-  ngayKetThuc: ''
+  ngayKetThuc: '',
+  trangThai: 1   // mặc định Bật
 })
 
 /** =======================
@@ -89,7 +109,8 @@ onMounted(async () => {
       giaTri: data.giaTri,
       moTa: data.moTa,
       ngayBatDau: instantToLocalInput(data.ngayBatDau),
-      ngayKetThuc: instantToLocalInput(data.ngayKetThuc)
+      ngayKetThuc: instantToLocalInput(data.ngayKetThuc),
+      trangThai: data.trangThai ?? 1
     }
   }
 })
@@ -107,11 +128,20 @@ function normalizedPayload() {
     giaTri: Number(form.value.giaTri),
     ngayBatDau: toInstantISOString(form.value.ngayBatDau),
     ngayKetThuc: toInstantISOString(form.value.ngayKetThuc),
+    trangThai: Number(form.value.trangThai ?? 1)
   }
+}
+
+function precheck () {
+  if (!form.value.tenKm?.trim()) { alert('Thiếu tên khuyến mãi'); return false }
+  if (form.value.giaTri == null || +form.value.giaTri < 0) { alert('Giá trị phải >= 0'); return false }
+  if (!form.value.ngayBatDau || !form.value.ngayKetThuc) { alert('Thiếu thời gian'); return false }
+  return true
 }
 
 const save = async () => {
   try {
+    if (!precheck()) return
     const payload = normalizedPayload()
     if (mode.value === 'add') {
       await addDotGiamGia(payload)
@@ -120,7 +150,7 @@ const save = async () => {
       await updateDotGiamGia(payload, id)
       alert('Cập nhật thành công!')
     }
-    router.push('/quan-li-giam-gia')
+    router.push('/dot-giam-gia')
   } catch (e) {
     console.error(e)
   }

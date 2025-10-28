@@ -6,10 +6,15 @@
       <div class="d-flex gap-2">
         <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
         <select v-model="status" class="form-select" style="max-width: 160px">
-          <option value="">Tất cả trạng thái</option>
+          <option value="">Tất cả hiệu lực</option>
           <option :value="0">Sắp diễn ra</option>
           <option :value="1">Đang hiệu lực</option>
           <option :value="2">Hết hạn</option>
+        </select>
+        <select v-model="active" class="form-select" style="max-width: 140px">
+          <option value="">Tất cả hoạt động</option>
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
@@ -24,7 +29,8 @@
       <th>Mô tả</th>
       <th>Bắt đầu</th>
       <th>Kết thúc</th>
-      <th>Trạng thái</th>
+      <th>Hiệu lực</th>
+      <th>Hoạt động</th>
       <!-- Đồng bộ width 220px như bên Phiếu Giảm Giá -->
       <th style="width: 220px">Hành động</th>
     </tr>
@@ -33,11 +39,21 @@
     <tr v-for="(it, idx) in paged" :key="it.id">
       <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
       <td>{{ it.tenKm }}</td>
-      <td>{{ it.giaTri }}</td>
+      <td>{{ showCurrency(it.giaTri) }}</td>
       <td>{{ it.moTa }}</td>
       <td>{{ showDate(it.ngayBatDau) }}</td>
       <td>{{ showDate(it.ngayKetThuc) }}</td>
-      <td>{{ showTrangThai(it.trangThai) }}</td>
+      <!-- Hiệu lực theo thời gian (FE tính) -->
+      <td>
+        <span v-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 0">Sắp diễn ra</span>
+        <span v-else-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 1">Đang hiệu lực</span>
+        <span v-else>Hết hạn</span>
+      </td>
+      <!-- Hoạt động (công tắc quản trị: 1=Bật, khác=Tắt) -->
+      <td>
+        <span v-if="it.trangThai === 1">Bật</span>
+        <span v-else>Tắt</span>
+      </td>
       <!-- Đồng bộ bố cục nút: d-flex gap-2, cùng kiểu class và thứ tự -->
       <td class="d-flex gap-2">
         <button class="btn btn-info" @click="viewProducts(it.id)">Chi tiết</button>
@@ -46,7 +62,7 @@
       </td>
     </tr>
     <tr v-if="paged.length === 0">
-      <td colspan="8" class="text-center text-muted">Không có dữ liệu</td>
+      <td colspan="9" class="text-center text-muted">Không có dữ liệu</td>
     </tr>
   </tbody>
 </table>
@@ -68,14 +84,32 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDotGiamGias, deleteDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
 
-// ... (phần script không đổi)
+// Tính hiệu lực theo thời gian: 0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn
+const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
+  const s = Date.parse(startIso)
+  const e = Date.parse(endIso)
+  if (isNaN(s) || isNaN(e)) return null
+  return nowMs < s ? 0 : nowMs > e ? 2 : 1
+}
+
+// Định dạng số/tiền theo vi-VN
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const n = parseFloat(v)
+  if (isNaN(n)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(n)
+}
+
 const router = useRouter()
 const list = ref([])
 const q = ref('')
+const nowMs = ref(Date.now())
+let timerId
+let serverOffsetMs = 0 // nếu không dùng giờ server, để 0
 
 // --- state phân trang ---
 const page = ref(1)
@@ -85,27 +119,50 @@ const fetchList = async () => {
   try {
     const res = await getDotGiamGias()
     list.value = res?.data ?? res ?? []
-    page.value = 1
   } catch (e) {
     console.error(e)
   }
 }
 
+function scheduleTick() {
+  clearTimeout(timerId)
+  const now = Date.now() - serverOffsetMs
+
+  const deltas = []
+  for (const x of list.value) {
+    const s = Date.parse(x.ngayBatDau)
+    const e = Date.parse(x.ngayKetThuc)
+    if (!isNaN(s) && s > now) deltas.push(s - now)
+    if (!isNaN(e) && e > now) deltas.push(e - now)
+  }
+
+  const nextDelta = deltas.length ? Math.min(...deltas) : 30000
+  const wait = Math.max(50, Math.min(nextDelta + 20, 30000))
+  timerId = setTimeout(() => {
+    nowMs.value = Date.now() - serverOffsetMs
+    scheduleTick()
+  }, wait)
+}
+
 //
-const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+const status = ref('') // '' | 0 | 1 | 2 (Hiệu lực)
+const active = ref('') // '' | 1 (Bật) | 0 (Tắt)
 
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
   return list.value.filter(x => {
-    // text
-    const textOk =
-      !s ||
-      (x. tenKm|| '').toLowerCase().includes(s)
+    const textOk = !s || (x.tenKm || '').toLowerCase().includes(s)
 
-    const cur = Number(x.trangThai)
-    const statusOk = status.value === '' || cur === Number(status.value)
+    // hiệu lực theo thời gian (FE)
+    const stTime = calcTrangThaiTinh(x.ngayBatDau, x.ngayKetThuc, nowMs.value)
+    const statusOk = status.value === '' || stTime === Number(status.value)
 
-    return textOk && statusOk
+    // hoạt động theo công tắc quản trị
+    const activeOk =
+      active.value === '' ||
+      (Number(active.value) === 1 ? x.trangThai === 1 : x.trangThai !== 1)
+
+    return textOk && statusOk && activeOk
   })
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
@@ -117,7 +174,11 @@ const paged = computed(() => {
 const prevPage = () => { if (page.value > 1) page.value-- }
 const nextPage = () => { if (page.value < totalPages.value) page.value++ }
 
-watch(q, () => { page.value = 1 })
+watch([q, status, active], () => { page.value = 1 })
+
+watch(totalPages, (tp) => {
+  if (page.value > tp) page.value = tp || 1
+})
 
 // Điều hướng
 const goToAdd = () => router.push('/dot-giam-gia/add')
@@ -129,15 +190,12 @@ const remove = async (id) => {
     await deleteDotGiamGia(id)
     alert('Xóa thành công!')
     await fetchList()
-    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
   }
 }
 
 //Định dạng hiển thị
-const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
-
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
@@ -146,7 +204,14 @@ const showDate = (v) => {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-onMounted(fetchList)
+onMounted(async () => {
+  await fetchList()
+  scheduleTick()
+})
+
+onUnmounted(() => { clearTimeout(timerId) })
+
+watch(list, () => scheduleTick())
 </script>
 
 <style scoped>
