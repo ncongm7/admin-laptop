@@ -430,11 +430,6 @@ const triggerFetch = () => {
 // Initialize variants when component mounts
 onMounted(async () => {
   try {
-    // Clear image cache on mount to ensure fresh data
-    console.log('🔄 Clearing image cache on component mount')
-    variantImages.value.clear()
-    loadingVariants.value.clear()
-    
     // Load attributes first
     await productStore.loadAttributes()
     if (showDebug.value) {
@@ -814,8 +809,6 @@ const getVariantSpecs = (variant) => {
 
 // Store for variant images to avoid repeated API calls
 const variantImages = ref(new Map())
-// Track loading state to prevent race conditions
-const loadingVariants = ref(new Set())
 
 const getVariantImageUrl = (variant) => {
   if (!variant || !variant.id) {
@@ -824,9 +817,7 @@ const getVariantImageUrl = (variant) => {
   
   // Check if we already have the image URL cached
   if (variantImages.value.has(variant.id)) {
-    const cachedUrl = variantImages.value.get(variant.id)
-    console.log(`🎯 Using cached image for variant ${variant.id} (${variant.maCtsp}): ${cachedUrl}`)
-    return cachedUrl
+    return variantImages.value.get(variant.id)
   }
   
   // Check multiple possible image fields in the variant data
@@ -890,78 +881,36 @@ const getVariantImageUrl = (variant) => {
   }
   
   // If no image found in variant data, try to fetch from API
-  // But only if not already loading to prevent race conditions
-  if (!loadingVariants.value.has(variant.id)) {
-    loadVariantImage(variant.id)
-  }
+  loadVariantImage(variant.id)
   
   return null
 }
 
 // Function to load variant image from API
 const loadVariantImage = async (variantId) => {
-  // Mark as loading to prevent race conditions
-  loadingVariants.value.add(variantId)
-  
   try {
-    console.log(`🔍 Loading image for variant ID: ${variantId}`)
     const response = await getHinhAnhByCtspId(variantId)
     const images = response.data || []
     
-    console.log(`📸 Variant ${variantId} has ${images.length} images:`, images)
-    
     if (images.length > 0) {
-      // Try to find main image first, but if multiple images exist, prefer the first one
-      // This ensures each variant gets a unique image
-      let mainImage = null
-      
-      if (images.length === 1) {
-        // If only one image, use it regardless of anhChinhDaiDien flag
-        mainImage = images[0]
-      } else {
-        // If multiple images, prefer anhChinhDaiDien = true, but fallback to first image
-        mainImage = images.find(img => img.anhChinhDaiDien === true) || images[0]
-      }
-      
-      console.log(`🎯 Selected image for variant ${variantId} (${images.length} total):`, mainImage)
-      
-      // Try different possible URL fields
-      const imageUrl = mainImage.url || mainImage.uri || mainImage.src || mainImage.duongDan
+      // Find the main image (anhChinhDaiDien = true) or use the first image
+      const mainImage = images.find(img => img.anhChinhDaiDien) || images[0]
+      const imageUrl = mainImage.url || mainImage.uri || mainImage.src
       
       if (imageUrl) {
-        // Add timestamp to prevent browser caching issues
-        const finalImageUrl = imageUrl.includes('?') 
-          ? `${imageUrl}&t=${Date.now()}` 
-          : `${imageUrl}?t=${Date.now()}`
-        
-        console.log(`✅ Setting image URL for variant ${variantId}: ${finalImageUrl}`)
-        
-        // Don't overwrite if already cached with a different URL
-        if (variantImages.value.has(variantId)) {
-          const existingUrl = variantImages.value.get(variantId)
-          if (existingUrl && !existingUrl.includes(imageUrl)) {
-            console.warn(`⚠️ Overwriting existing image for variant ${variantId}: ${existingUrl} -> ${finalImageUrl}`)
-          }
-        }
-        
-        variantImages.value.set(variantId, finalImageUrl)
+        variantImages.value.set(variantId, imageUrl)
         // Force reactivity update
         variantImages.value = new Map(variantImages.value)
       } else {
-        console.log(`❌ No valid URL found for variant ${variantId}`)
         variantImages.value.set(variantId, null)
       }
     } else {
-      console.log(`📭 No images found for variant ${variantId}`)
       variantImages.value.set(variantId, null)
     }
   } catch (error) {
     console.warn(`Failed to load image for variant ${variantId}:`, error)
     // Cache null to avoid repeated API calls
     variantImages.value.set(variantId, null)
-  } finally {
-    // Remove from loading set
-    loadingVariants.value.delete(variantId)
   }
 }
 
@@ -994,123 +943,17 @@ const handleImageError = (event) => {
 // Debug function to check variant data structure
 const debugVariantData = () => {
   if (paginatedVariants.value && paginatedVariants.value.length > 0) {
-    console.log('🔍 Debugging variant data structure:')
-    
-    // Check first few variants to see if IDs are unique
-    const variantsToCheck = paginatedVariants.value.slice(0, Math.min(5, paginatedVariants.value.length))
-    
-    variantsToCheck.forEach((variant, index) => {
-      console.log(`📋 Variant ${index + 1}:`, {
-        id: variant.id,
-        maCtsp: variant.maCtsp,
-        tenCpu: variant.tenCpu,
-        tenRam: variant.tenRam,
-        mauSac: variant.mauSac?.tenMau,
-        anhDaiDien: variant.anhDaiDien,
-        images: variant.images,
-        anhSanPhams: variant.anhSanPhams,
-        hinhAnhs: variant.hinhAnhs
-      })
+    const firstVariant = paginatedVariants.value[0]
+    console.log('🔍 Sample variant data structure:', {
+      id: firstVariant.id,
+      maCtsp: firstVariant.maCtsp,
+      anhDaiDien: firstVariant.anhDaiDien,
+      images: firstVariant.images,
+      anhSanPhams: firstVariant.anhSanPhams,
+      hinhAnhs: firstVariant.hinhAnhs,
+      allKeys: Object.keys(firstVariant)
     })
-    
-    // Check if IDs are unique
-    const ids = paginatedVariants.value.map(v => v.id)
-    const uniqueIds = [...new Set(ids)]
-    console.log(`🆔 Total variants: ${ids.length}, Unique IDs: ${uniqueIds.length}`)
-    
-    if (ids.length !== uniqueIds.length) {
-      console.warn('⚠️ WARNING: Duplicate variant IDs detected!')
-      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-      console.log('🔄 Duplicate IDs:', duplicates)
-    }
   }
-}
-
-// Function to debug current image cache
-const debugImageCache = () => {
-  console.log('🖼️ Current image cache:')
-  console.log(`Cache size: ${variantImages.value.size}`)
-  variantImages.value.forEach((url, variantId) => {
-    const variant = paginatedVariants.value.find(v => v.id === variantId)
-    console.log(`  Variant ${variantId} (${variant?.maCtsp || 'Unknown'}): ${url}`)
-  })
-}
-
-// Function to clear cache and reload
-const clearImageCache = () => {
-  console.log('🗑️ Clearing image cache')
-  variantImages.value.clear()
-  variantImages.value = new Map()
-  loadingVariants.value.clear()
-  
-  // Reload images
-  nextTick(() => {
-    loadVisibleVariantImages()
-  })
-}
-
-// Function to force reload all variant images
-const forceReloadAllImages = async () => {
-  if (!paginatedVariants.value || paginatedVariants.value.length === 0) return
-  
-  console.log('🔄 Force reloading all variant images')
-  
-  // Clear cache first
-  variantImages.value.clear()
-  loadingVariants.value.clear()
-  
-  // Load images for all visible variants one by one
-  for (const variant of paginatedVariants.value) {
-    if (variant.id) {
-      console.log(`🔄 Force loading image for variant ${variant.id} (${variant.maCtsp})`)
-      await loadVariantImage(variant.id)
-    }
-  }
-  
-  console.log('✅ Finished force reloading all images')
-  debugImageCache()
-}
-
-// Function to test API for specific variants
-const testVariantImageAPI = async () => {
-  if (!paginatedVariants.value || paginatedVariants.value.length === 0) {
-    console.log('❌ No variants to test')
-    return
-  }
-  
-  const testVariants = paginatedVariants.value.slice(0, 3) // Test first 3 variants
-  
-  console.log('🧪 Testing API for variants:')
-  for (const variant of testVariants) {
-    console.log(`\n🔍 Testing variant ${variant.id} (${variant.maCtsp})`)
-    try {
-      const response = await getHinhAnhByCtspId(variant.id)
-      const images = response.data || []
-      console.log(`📸 API Response:`, {
-        variantId: variant.id,
-        variantCode: variant.maCtsp,
-        totalImages: images.length,
-        images: images.map(img => ({
-          id: img.id,
-          url: img.url,
-          uri: img.uri,
-          src: img.src,
-          duongDan: img.duongDan,
-          anhChinhDaiDien: img.anhChinhDaiDien
-        }))
-      })
-    } catch (error) {
-      console.error(`❌ API Error for variant ${variant.id}:`, error)
-    }
-  }
-}
-
-// Make functions available globally for console testing
-if (typeof window !== 'undefined') {
-  window.debugImageCache = debugImageCache
-  window.clearImageCache = clearImageCache
-  window.testVariantImageAPI = testVariantImageAPI
-  window.forceReloadAllImages = forceReloadAllImages
 }
 
 // Call debug function when variants are loaded and load images
@@ -1120,10 +963,6 @@ watch(paginatedVariants, (newVariants) => {
     // Load images for visible variants
     nextTick(() => {
       loadVisibleVariantImages()
-      // Debug cache after loading
-      setTimeout(() => {
-        debugImageCache()
-      }, 2000) // Wait 2 seconds for API calls to complete
     })
   }
 }, { immediate: true })
