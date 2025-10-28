@@ -20,7 +20,8 @@ export const useProductDetailStore = defineStore('productDetail', () => {
       }
       loading.value = true
       console.log('Fetching variants for productId:', productId)
-      const response = await api.get(`/ctsp?san_pham_id=${productId}`)
+      // ✅ SỬA: Đổi endpoint từ /ctsp sang /chi-tiet-san-pham để match backend
+      const response = await api.get(`/chi-tiet-san-pham/san-pham/${productId}`)
       console.log('API response:', response.data)
       variants.value = response.data.map((variant) => {
         console.log('Processing variant:', variant)
@@ -31,14 +32,16 @@ export const useProductDetailStore = defineStore('productDetail', () => {
       })
       console.log('Processed variants:', variants.value)
 
-      // Lấy số lượng IMEI cho từng biến thể
+      // Lấy số lượng Serial (IMEI) cho từng biến thể
       await Promise.all(
         variants.value.map(async (variant) => {
           try {
-            const imeiResponse = await api.get(`/imei/count?ctsp_id=${variant.id}`)
-            variant.imeiCount = imeiResponse.data.count
+            // ✅ SỬA: Backend dùng /api/serial thay vì /imei
+            // Lấy danh sách serial và đếm số lượng
+            const serialResponse = await api.get(`/serial/ctsp/${variant.id}`)
+            variant.imeiCount = serialResponse.data?.length || 0
           } catch (e) {
-            console.error('Error fetching IMEI count for variant:', variant.id, e)
+            console.error('Error fetching Serial count for variant:', variant.id, e)
             variant.imeiCount = 0
           }
         }),
@@ -68,16 +71,18 @@ export const useProductDetailStore = defineStore('productDetail', () => {
       }
 
       console.log('Sending add data:', transformedData)
-      const response = await api.post('/ctsp', transformedData)
+      // ✅ SỬA: Đổi endpoint từ /ctsp sang /chi-tiet-san-pham
+      const response = await api.post('/chi-tiet-san-pham', transformedData)
 
       // Thêm ảnh nếu có
       if (variantData.images && variantData.images.length > 0) {
         await Promise.all(
           variantData.images.map(async (image) => {
-            await api.post('/anh-san-pham', {
-              ctspId: response.data.id,
-              uri: image.uri,
-              isDefault: image.is_default,
+            // ✅ SỬA: Backend dùng /api/hinh-anh, và field là idSpct, url, anhChinhDaiDien
+            await api.post('/hinh-anh', {
+              idSpct: response.data.id,
+              url: image.uri,
+              anhChinhDaiDien: image.is_default || false,
             })
           }),
         )
@@ -119,20 +124,23 @@ export const useProductDetailStore = defineStore('productDetail', () => {
       console.log('variantData.san_pham_id:', variantData.san_pham_id)
 
       console.log('Sending update data:', transformedData)
-      const response = await api.put(`/ctsp/${variantData.id}`, transformedData)
+      // ✅ SỬA: Đổi endpoint từ /ctsp sang /chi-tiet-san-pham
+      const response = await api.put(`/chi-tiet-san-pham/${variantData.id}`, transformedData)
 
       // Xử lý ảnh - đây là logic đơn giản, thực tế cần phức tạp hơn
       if (variantData.images) {
         // Xóa ảnh cũ (trong thực tế cần kiểm tra ảnh nào thay đổi)
-        await api.delete(`/anh-san-pham?ctsp_id=${variantData.id}`)
+        // ✅ SỬA: Backend dùng /api/hinh-anh/ctsp/{ctspId}
+        await api.delete(`/hinh-anh/ctsp/${variantData.id}`)
 
         // Thêm ảnh mới
         await Promise.all(
           variantData.images.map(async (image) => {
-            await api.post('/anh-san-pham', {
-              ctspId: variantData.id,
-              uri: image.uri,
-              isDefault: image.is_default,
+            // ✅ SỬA: Backend dùng /api/hinh-anh với field idSpct, url, anhChinhDaiDien
+            await api.post('/hinh-anh', {
+              idSpct: variantData.id,
+              url: image.uri,
+              anhChinhDaiDien: image.is_default || false,
             })
           }),
         )
@@ -155,7 +163,8 @@ export const useProductDetailStore = defineStore('productDetail', () => {
   const deleteVariant = async (variantId) => {
     try {
       loading.value = true
-      await api.delete(`/ctsp/${variantId}`)
+      // ✅ SỬA: Đổi endpoint từ /ctsp sang /chi-tiet-san-pham
+      await api.delete(`/chi-tiet-san-pham/${variantId}`)
 
       // Làm mới danh sách
       const productId = variants.value.find((v) => v.id === variantId)?.san_pham_id || productIdGlobal.value
@@ -175,16 +184,23 @@ export const useProductDetailStore = defineStore('productDetail', () => {
   const fetchAllVariants = async () => {
     try {
       loading.value = true
-      const response = await api.get('/ctsp')
+      // ✅ SỬA: Đổi endpoint từ /ctsp sang /chi-tiet-san-pham
+      const response = await api.get('/chi-tiet-san-pham')
       variants.value = response.data.map((variant) => ({
         ...variant,
         imeiCount: 0,
       }))
-      // Lấy số lượng IMEI cho từng biến thể
+      // Lấy số lượng Serial (IMEI) cho từng biến thể
       await Promise.all(
         variants.value.map(async (variant) => {
-          const imeiResponse = await api.get(`/imei/count?ctsp_id=${variant.id}`)
-          variant.imeiCount = imeiResponse.data.count
+          try {
+            // ✅ SỬA: Backend dùng /api/serial/ctsp/{ctspId}
+            const serialResponse = await api.get(`/serial/ctsp/${variant.id}`)
+            variant.imeiCount = serialResponse.data?.length || 0
+          } catch (e) {
+            console.error('Error fetching Serial count:', e)
+            variant.imeiCount = 0
+          }
         }),
       )
     } catch (err) {

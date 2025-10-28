@@ -50,8 +50,8 @@
                                     </select>
                                 </div>
 
-                                <!-- Brand Filter -->
-                                <div class="col-md-2">
+                                <!-- ❌ XÓA: Brand Filter - Backend chưa có Hang controller -->
+                                <!-- <div class="col-md-2">
                                     <label class="form-label">Hãng</label>
                                     <select v-model="filters.brandId" class="form-select">
                                         <option value="">Tất cả hãng</option>
@@ -60,7 +60,7 @@
                                             {{ brand.tenHang }}
                                         </option>
                                     </select>
-                                </div>
+                                </div> -->
 
                                 <!-- Price Range -->
                                 <div class="col-md-3">

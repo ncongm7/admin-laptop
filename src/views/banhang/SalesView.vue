@@ -3,48 +3,40 @@
         <!-- Header -->
         <div class="sales-header">
             <h2 class="page-title">
-                <i class="bi bi-cart3"></i> Bán hàng tại quầy
+                <i class="bi bi-shop"></i> Bán hàng tại quầy
             </h2>
             <div class="header-actions">
-                <button class="btn btn-success" @click="taoHoaDonMoi" :disabled="isLoading">
-                    <i class="bi bi-plus-circle"></i> Tạo hóa đơn mới
+                <button class="btn btn-success btn-lg" @click="taoHoaDonMoi" :disabled="isLoading">
+                    <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
                 </button>
             </div>
         </div>
 
-        <!-- Danh sách hóa đơn chờ -->
-        <PendingBillsBar :bills="danhSachHoaDonCho" :selectedBillId="hoaDonHienTai?.id" @select-bill="chonHoaDon"
-            @remove-bill="xoaHoaDonCho" />
-
-        <!-- Main Content -->
+        <!-- Main Content - Layout 3 Cột -->
         <div class="sales-content" v-if="hoaDonHienTai">
             <div class="row g-3">
-                <!-- Left Panel: Tìm kiếm & Chi tiết hóa đơn -->
-                <div class="col-lg-8">
-                    <!-- Tìm kiếm sản phẩm -->
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <TimKiemSanPham @product-selected="handleProductSelected" />
-                        </div>
-                    </div>
+                <!-- CỘT 1: Quản lý Giao dịch (25%) -->
+                <div class="col-lg-3">
+                    <!-- Danh sách Hóa đơn chờ -->
+                    <TransactionTabs :bills="danhSachHoaDonCho" :selectedBillId="hoaDonHienTai?.id"
+                        @select-bill="chonHoaDon" @remove-bill="xoaHoaDonCho" @create-new="taoHoaDonMoi" />
 
-                    <!-- Chi tiết hóa đơn -->
-                    <ChiTietHoaDon :hoaDon="hoaDonHienTai" @delete-item="handleDeleteItem" />
-                </div>
-
-                <!-- Right Panel: Thông tin khách hàng & Thanh toán -->
-                <div class="col-lg-4">
-                    <!-- Thông tin khách hàng -->
+                    <!-- Thông tin Khách hàng -->
                     <CustomerInfo :customer="hoaDonHienTai.khachHang" @update:customer="handleUpdateCustomer"
                         @search-customer="handleSearchCustomer" @create-customer="handleCreateCustomer" />
+                </div>
 
-                    <!-- Thông tin hóa đơn -->
-                    <BillInfo :subtotal="hoaDonHienTai.tongTien || 0" :discount="hoaDonHienTai.tienDuocGiam || 0"
-                        @apply-voucher="handleApplyVoucher" />
+                <!-- CỘT 2: Danh mục & Tìm kiếm Sản phẩm (45%) -->
+                <div class="col-lg-5">
+                    <ProductSearch @product-selected="handleProductSelected" @scan-imei="handleScanImei" />
+                </div>
 
-                    <!-- Thanh toán -->
-                    <PaymentSection :total="hoaDonHienTai.tongTienSauGiam || hoaDonHienTai.tongTien || 0"
-                        @complete-payment="openPaymentModal" />
+                <!-- CỘT 3: Chi tiết Hóa đơn hiện tại (30%) -->
+                <div class="col-lg-4">
+                    <InvoiceDetails :hoaDon="hoaDonHienTai" @delete-item="handleDeleteItem"
+                        @apply-voucher="handleApplyVoucher" @use-points="handleUsePoints"
+                        @complete-payment="openPaymentModal" @save-draft="handleSaveDraft"
+                        @cancel-bill="handleCancelBill" />
                 </div>
             </div>
         </div>
@@ -53,9 +45,9 @@
         <div v-else class="empty-state">
             <i class="bi bi-receipt"></i>
             <h4>Chưa có hóa đơn nào</h4>
-            <p>Nhấn "Tạo hóa đơn mới" để bắt đầu bán hàng</p>
+            <p>Nhấn "Tạo Đơn Mới" để bắt đầu bán hàng</p>
             <button class="btn btn-primary btn-lg" @click="taoHoaDonMoi">
-                <i class="bi bi-plus-circle"></i> Tạo hóa đơn mới
+                <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
             </button>
         </div>
 
@@ -111,12 +103,10 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import PendingBillsBar from '@/components/sales/PendingBillsBar.vue'
-import TimKiemSanPham from '@/components/banhang/TimKiemSanPham.vue'
-import ChiTietHoaDon from '@/components/banhang/ChiTietHoaDon.vue'
-import CustomerInfo from '@/components/sales/CustomerInfo.vue'
-import BillInfo from '@/components/sales/BillInfo.vue'
-import PaymentSection from '@/components/sales/PaymentSection.vue'
+import TransactionTabs from '@/components/banhang/TransactionTabs.vue'
+import ProductSearch from '@/components/banhang/ProductSearch.vue'
+import InvoiceDetails from '@/components/banhang/InvoiceDetails.vue'
+import CustomerInfo from '@/components/banhang/CustomerInfo.vue'
 import ModalThanhToan from '@/components/banhang/ModalThanhToan.vue'
 
 import {
@@ -315,6 +305,8 @@ const handleDeleteItem = async (idHoaDonChiTiet) => {
 const handleUpdateCustomer = (customer) => {
     if (hoaDonHienTai.value) {
         hoaDonHienTai.value.khachHang = customer
+        // TODO: Gọi API cập nhật khách hàng cho hóa đơn
+        console.log('Cập nhật khách hàng:', customer)
     }
 }
 
@@ -328,11 +320,63 @@ const handleCreateCustomer = () => {
     console.log('Tạo khách hàng mới')
 }
 
-// ==================== QUẢN LÝ VOUCHER ====================
+// ==================== QUẢN LÝ VOUCHER & ĐIỂM TÍCH LŨY ====================
 
-const handleApplyVoucher = (voucherCode) => {
+const handleApplyVoucher = async (voucherCode) => {
     // TODO: Implement apply voucher logic
     console.log('Áp dụng voucher:', voucherCode)
+    try {
+        // const response = await apDungVoucher(hoaDonHienTai.value.id, voucherCode)
+        // Cập nhật hóa đơn với thông tin voucher
+        alert('Chức năng áp dụng voucher đang được phát triển')
+    } catch (error) {
+        console.error('Lỗi khi áp dụng voucher:', error)
+    }
+}
+
+const handleUsePoints = (points) => {
+    // TODO: Implement use points logic
+    console.log('Sử dụng điểm:', points)
+    try {
+        // const response = await suDungDiem(hoaDonHienTai.value.id, points)
+        // Cập nhật hóa đơn với thông tin điểm
+        alert('Chức năng sử dụng điểm tích lũy đang được phát triển')
+    } catch (error) {
+        console.error('Lỗi khi sử dụng điểm:', error)
+    }
+}
+
+// ==================== QUÉT MÃ IMEI/BARCODE ====================
+
+const handleScanImei = async (imeiCode) => {
+    console.log('Quét mã IMEI/Barcode:', imeiCode)
+    // TODO: Implement scan IMEI logic
+    // 1. Tìm sản phẩm theo IMEI
+    // 2. Tự động thêm vào hóa đơn
+    try {
+        // const product = await timSanPhamTheoImei(imeiCode)
+        // if (product) {
+        //     await confirmAddProduct()
+        // }
+        alert('Chức năng quét mã đang được phát triển')
+    } catch (error) {
+        console.error('Lỗi khi quét mã:', error)
+    }
+}
+
+// ==================== LƯU TẠM & HỦY HÓA ĐƠN ====================
+
+const handleSaveDraft = () => {
+    console.log('Lưu tạm hóa đơn')
+    // Hóa đơn đã tự động lưu tạm khi tạo mới (trang_thai = 0)
+    alert('Hóa đơn đã được lưu tạm!')
+}
+
+const handleCancelBill = () => {
+    if (confirm('Bạn có chắc muốn hủy hóa đơn này?')) {
+        xoaHoaDonCho(hoaDonHienTai.value.id)
+        // TODO: Gọi API cập nhật trạng thái hóa đơn = 1 (Đã hủy)
+    }
 }
 
 // ==================== THANH TOÁN ====================

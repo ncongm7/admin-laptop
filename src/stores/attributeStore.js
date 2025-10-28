@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
-    getAllHang,
+    // ❌ XÓA: getAllHang, getAllHeDieuHanh, getAllCamera - Backend chưa có controller
     getAllCpu,
     getAllRam,
     getAllGpu,
@@ -9,15 +9,13 @@ import {
     getAllMauSac,
     getAllKichThuocManHinh,
     getAllLoaiManHinh,
-    getAllHeDieuHanh,
-    getAllDungLuongPin,
-    getAllCamera
+    getAllDungLuongPin
 } from '@/service/apiAttributeOfProduct'
 
 export const useAttributeStore = defineStore('attribute', () => {
     // State
     const attributes = ref({
-        brands: [],
+        // ❌ XÓA: brands, oses, cameras - Backend chưa có controller
         cpus: [],
         rams: [],
         gpus: [],
@@ -25,16 +23,14 @@ export const useAttributeStore = defineStore('attribute', () => {
         colors: [],
         screens: [],
         displays: [],
-        oses: [],
-        batteries: [],
-        cameras: []
+        batteries: []
     })
 
     const loading = ref(false)
     const error = ref(null)
 
     // Getters
-    const getBrands = computed(() => attributes.value.brands)
+    // ❌ XÓA: getBrands, getOses, getCameras
     const getCpus = computed(() => attributes.value.cpus)
     const getRams = computed(() => attributes.value.rams)
     const getGpus = computed(() => attributes.value.gpus)
@@ -42,17 +38,15 @@ export const useAttributeStore = defineStore('attribute', () => {
     const getColors = computed(() => attributes.value.colors)
     const getScreens = computed(() => attributes.value.screens)
     const getDisplays = computed(() => attributes.value.displays)
-    const getOses = computed(() => attributes.value.oses)
     const getBatteries = computed(() => attributes.value.batteries)
-    const getCameras = computed(() => attributes.value.cameras)
 
     // Actions
     const fetchAttributes = async () => {
         loading.value = true
         error.value = null
         try {
+            // ❌ XÓA: getAllHang, getAllHeDieuHanh, getAllCamera
             const [
-                brands,
                 cpus,
                 rams,
                 gpus,
@@ -60,11 +54,8 @@ export const useAttributeStore = defineStore('attribute', () => {
                 colors,
                 screens,
                 displays,
-                oses,
-                batteries,
-                cameras
+                batteries
             ] = await Promise.all([
-                getAllHang(),
                 getAllCpu(),
                 getAllRam(),
                 getAllGpu(),
@@ -72,12 +63,9 @@ export const useAttributeStore = defineStore('attribute', () => {
                 getAllMauSac(),
                 getAllKichThuocManHinh(),
                 getAllLoaiManHinh(),
-                getAllHeDieuHanh(),
-                getAllDungLuongPin(),
-                getAllCamera()
+                getAllDungLuongPin()
             ])
             attributes.value = {
-                brands: brands || [],
                 cpus: cpus || [],
                 rams: rams || [],
                 gpus: gpus || [],
@@ -85,9 +73,7 @@ export const useAttributeStore = defineStore('attribute', () => {
                 colors: colors || [],
                 screens: screens || [],
                 displays: displays || [],
-                oses: oses || [],
-                batteries: batteries || [],
-                cameras: cameras || []
+                batteries: batteries || []
             }
         } catch (err) {
             error.value = err.message || 'Có lỗi xảy ra khi tải thuộc tính'
@@ -166,7 +152,7 @@ export const useAttributeStore = defineStore('attribute', () => {
         error,
 
         // Getters
-        getBrands,
+        // ❌ XÓA: getBrands, getOses, getCameras
         getCpus,
         getRams,
         getGpus,
@@ -174,9 +160,7 @@ export const useAttributeStore = defineStore('attribute', () => {
         getColors,
         getScreens,
         getDisplays,
-        getOses,
         getBatteries,
-        getCameras,
 
         // Actions
         fetchAttributes,
