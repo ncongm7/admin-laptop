@@ -706,7 +706,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
-import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
+import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham, getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
 
 const productStore = useProductStore()
@@ -1276,6 +1276,32 @@ const matchVariantsByAttributes = (previewVariant, createdVariant) => {
   )
 }
 
+// Helper function to check if variant with same attributes already exists in product
+const checkVariantAttributesMatch = (variant1, variant2) => {
+  // Compare all attribute IDs - null/undefined are considered equal
+  const attr1 = {
+    idCpu: variant1.idCpu || null,
+    idGpu: variant1.idGpu || null,
+    idRam: variant1.idRam || null,
+    idOCung: variant1.idOCung || null,
+    idMauSac: variant1.idMauSac || null,
+    idLoaiManHinh: variant1.idLoaiManHinh || null,
+    idPin: variant1.idPin || null
+  }
+  
+  const attr2 = {
+    idCpu: variant2.idCpu || null,
+    idGpu: variant2.idGpu || null,
+    idRam: variant2.idRam || null,
+    idOCung: variant2.idOCung || null,
+    idMauSac: variant2.idMauSac || null,
+    idLoaiManHinh: variant2.idLoaiManHinh || null,
+    idPin: variant2.idPin || null
+  }
+  
+  return JSON.stringify(attr1) === JSON.stringify(attr2)
+}
+
 // Combined save product and create variants function (kept for compatibility)
 const saveAndCreateVariants = async () => {
   try {
@@ -1342,18 +1368,147 @@ const saveAndCreateVariants = async () => {
         selectedPinIds: config.selectedPinIds
       }
 
-      console.log('Creating variants with payload:', variantPayload)
-      const variantResponse = await taoBienTheSanPham(variantPayload)
-      const createdVariants = variantResponse.data || []
-      console.log('Created variants:', createdVariants)
+      // Step 2.1: Load existing variants to check for duplicates
+      let existingVariants = []
+      try {
+        const existingResponse = await getCTSPBySanPham(form.value.id)
+        existingVariants = existingResponse.data || []
+        console.log('Existing variants loaded:', existingVariants.length)
+      } catch (err) {
+        console.warn('Could not load existing variants:', err)
+      }
+      
+      // Step 2.2: Separate variants to create vs existing variants to update
+      const variantsToAggregate = [] // Variants that match existing ones and have serials to add
+      const newVariantsToCreate = [] // New variants that don't match existing ones
+      const previewVariantsList = form.value.variants || [] // Get preview variants from form
+      
+      for (const previewVariant of previewVariantsList) {
+        // Find matching existing variant
+        const matchingExisting = existingVariants.find(existing => 
+          checkVariantAttributesMatch(previewVariant, existing)
+        )
+        
+        if (matchingExisting && previewVariant.serials && previewVariant.serials.length > 0) {
+          // Duplicate found with new serials - aggregate instead of creating
+          console.log('🔄 Found duplicate variant, will aggregate serials:', matchingExisting.maCtsp)
+          variantsToAggregate.push({
+            existingVariant: matchingExisting,
+            previewVariant: previewVariant,
+            newSerials: previewVariant.serials
+          })
+        } else if (!matchingExisting) {
+          // No match found - create new variant
+          newVariantsToCreate.push(previewVariant)
+        } else {
+          // Match found but no new serials - skip
+          console.log('⚠️ Variant already exists, no new serials to add:', matchingExisting.maCtsp)
+        }
+      }
+      
+      console.log('Variants to aggregate:', variantsToAggregate.length)
+      console.log('New variants to create:', newVariantsToCreate.length)
+      
+      // Step 2.3: Create only new variants that don't exist
+      let createdVariants = []
+      if (newVariantsToCreate.length > 0) {
+        // Need to create a new payload that only includes attribute IDs for new variants
+        // Extract unique attribute IDs from newVariantsToCreate
+        const newCpuIds = [...new Set(newVariantsToCreate.map(v => v.idCpu).filter(Boolean))]
+        const newGpuIds = [...new Set(newVariantsToCreate.map(v => v.idGpu).filter(Boolean))]
+        const newRamIds = [...new Set(newVariantsToCreate.map(v => v.idRam).filter(Boolean))]
+        const newOCungIds = [...new Set(newVariantsToCreate.map(v => v.idOCung).filter(Boolean))]
+        const newMauSacIds = [...new Set(newVariantsToCreate.map(v => v.idMauSac).filter(Boolean))]
+        const newLoaiManHinhIds = [...new Set(newVariantsToCreate.map(v => v.idLoaiManHinh).filter(Boolean))]
+        const newPinIds = [...new Set(newVariantsToCreate.map(v => v.idPin).filter(Boolean))]
+        
+        const newVariantPayload = {
+          idSanPham: form.value.id,
+          giaBan: config.giaBan || (newVariantsToCreate[0]?.giaBan || 0),
+          ghiChu: '',
+          soLuongTon: 0,
+          soLuongTamGiu: 0,
+          trangThai: config.trangThai || 1,
+          selectedCpuIds: newCpuIds,
+          selectedGpuIds: newGpuIds,
+          selectedRamIds: newRamIds,
+          selectedOCungIds: newOCungIds,
+          selectedMauSacIds: newMauSacIds,
+          selectedLoaiManHinhIds: newLoaiManHinhIds,
+          selectedPinIds: newPinIds
+        }
+        
+        console.log('Creating new variants with payload:', newVariantPayload)
+        const variantResponse = await taoBienTheSanPham(newVariantPayload)
+        createdVariants = variantResponse.data || []
+        console.log('Created new variants:', createdVariants.length)
+      }
+      
+      // Step 2.4: Handle variants that need serial aggregation
+      for (const aggregateInfo of variantsToAggregate) {
+        const { existingVariant, previewVariant, newSerials } = aggregateInfo
+        
+        try {
+          console.log(`📦 Aggregating ${newSerials.length} serials to existing variant ${existingVariant.id}`)
+          
+          // Add serials to existing variant
+          if (newSerials.length > 0) {
+            const serialRequests = newSerials.map(serial => ({
+              ctspId: existingVariant.id,
+              serialNo: serial.soSerial || serial,
+              trangThai: serial.trangThai || 1
+            }))
+            
+            await createSerialsBatch(serialRequests)
+            console.log(`✅ Added ${serialRequests.length} serials to variant ${existingVariant.maCtsp}`)
+            
+            // Update stock count
+            const activeSerialCount = serialRequests.filter(s => s.trangThai === 1).length
+            const newStockCount = (existingVariant.soLuongTon || 0) + activeSerialCount
+            
+            // Update variant with new stock count
+            const updatePayload = {
+              idSanPham: form.value.id,
+              maCtsp: existingVariant.maCtsp,
+              giaBan: previewVariant.giaBan || existingVariant.giaBan,
+              ghiChu: existingVariant.ghiChu || '',
+              soLuongTon: newStockCount,
+              soLuongTamGiu: existingVariant.soLuongTamGiu || 0,
+              trangThai: existingVariant.trangThai,
+              idCpu: existingVariant.idCpu,
+              idGpu: existingVariant.idGpu,
+              idRam: existingVariant.idRam,
+              idOCung: existingVariant.idOCung,
+              idMauSac: existingVariant.idMauSac,
+              idLoaiManHinh: existingVariant.idLoaiManHinh,
+              idPin: existingVariant.idPin
+            }
+            
+            await updateChiTietSanPham(existingVariant.id, updatePayload)
+            console.log(`✅ Updated stock count to ${newStockCount} for variant ${existingVariant.maCtsp}`)
+            
+            // Add to createdVariants array for display (treat as "created" for UI purposes)
+            createdVariants.push({
+              ...existingVariant,
+              soLuongTon: newStockCount,
+              giaBan: previewVariant.giaBan || existingVariant.giaBan
+            })
+          }
+        } catch (aggregateErr) {
+          console.error(`❌ Failed to aggregate serials for variant ${existingVariant.id}:`, aggregateErr)
+          alert(`Lỗi khi thêm serial vào biến thể ${existingVariant.maCtsp}: ${aggregateErr.message}`)
+        }
+      }
+      
+      console.log('Final variants (created + aggregated):', createdVariants.length)
       
       // Update prices, save images and serials for each variant based on preview data
-      if (variantsToCreate.length > 0 && createdVariants.length > 0) {
-        console.log('Updating prices and saving images/serials for variants...')
+      if (newVariantsToCreate.length > 0 && createdVariants.length > 0) {
+        console.log('Updating prices and saving images/serials for newly created variants...')
         
         for (const createdVariant of createdVariants) {
           // Find matching preview variant by attribute IDs instead of array index
-          const previewVariant = variantsToCreate.find(pv => matchVariantsByAttributes(pv, createdVariant))
+          const previewVariant = newVariantsToCreate.find(pv => matchVariantsByAttributes(pv, createdVariant))
           
           if (!previewVariant) {
             console.warn(`No matching preview variant found for created variant ${createdVariant.id}`)
@@ -1468,17 +1623,39 @@ const saveAndCreateVariants = async () => {
         dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null
       }))
       
+      // Add a summary message for aggregated variants
+      if (variantsToAggregate.length > 0) {
+        const aggregatedDetails = variantsToAggregate.map(agg => 
+          `${agg.existingVariant.maCtsp}: +${agg.newSerials.length} serial`
+        ).join(', ')
+        console.log('✅ Serial aggregation summary:', aggregatedDetails)
+      }
+      
       // Clear preview variants since we now have real variants
       previewVariants.value = []
       
       // For add-variants-only mode, emit save and close modal
       if (isAddVariantsMode.value) {
-        alert(`Đã tạo thành công ${form.value.variants.length} biến thể!`)
+        const totalMessage = []
+        if (newVariantsToCreate.length > 0) {
+          totalMessage.push(`${newVariantsToCreate.length} biến thể mới`)
+        }
+        if (variantsToAggregate.length > 0) {
+          const totalSerials = variantsToAggregate.reduce((sum, agg) => sum + agg.newSerials.length, 0)
+          totalMessage.push(`${totalSerials} serial được thêm vào ${variantsToAggregate.length} biến thể đã tồn tại`)
+        }
+        
+        if (totalMessage.length > 0) {
+          alert(`Đã hoàn thành: ${totalMessage.join(' và ')}!`)
+        } else {
+          alert('Không có thay đổi nào được thực hiện')
+        }
         emit('save')
         return
       }
       
-      alert(`Đã tạo thành công sản phẩm và ${form.value.variants.length} biến thể! Bây giờ bạn có thể quản lý Serial Numbers cho từng biến thể.`)
+      const totalCreated = newVariantsToCreate.length + variantsToAggregate.length
+      alert(`Đã tạo thành công sản phẩm và ${totalCreated} biến thể! Bây giờ bạn có thể quản lý Serial Numbers cho từng biến thể.`)
       // Don't emit save event - keep modal open for serial management
       return
     } else {
