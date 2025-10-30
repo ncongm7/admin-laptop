@@ -152,7 +152,7 @@
                   <tr>
                     <th width="30">STT</th>
                     <th width="100">SKU</th>
-                    <th width="60">MÀU</th>
+                    <th width="100">MÀU SẮC</th>
                     <th width="80">CPU</th>
                     <th width="60">RAM</th>
                     <th width="70">GPU</th>
@@ -183,7 +183,21 @@
                     <td>
                       <code class="sku-code">{{ variant.maCtsp }}</code>
                     </td>
-                    <td>{{ variant.tenMauSac || 'N/A' }}</td>
+                    <td>
+                      <div class="color-display" v-if="variant.mauSac">
+                        <div class="d-flex align-items-center">
+                          <span 
+                            v-if="variant.mauSac.hexCode" 
+                            class="color-preview me-2" 
+                            :style="{ backgroundColor: variant.mauSac.hexCode }"
+                            :title="variant.mauSac.hexCode"
+                          ></span>
+                          <span class="text-truncate" :title="variant.mauSac.tenMau">{{ variant.mauSac.tenMau }}</span>
+                        </div>
+                      </div>
+                      <span v-else-if="variant.tenMauSac" class="text-truncate" :title="variant.tenMauSac">{{ variant.tenMauSac }}</span>
+                      <span v-else class="text-muted">N/A</span>
+                    </td>
                     <td>{{ variant.tenCpu || 'N/A' }}</td>
                     <td>{{ variant.tenRam || 'N/A' }}</td>
                     <td>{{ variant.tenGpu || 'N/A' }}</td>
@@ -337,15 +351,32 @@ const fetchProductVariants = async (productId) => {
           console.warn(`Failed to load images for variant ${variant.id}`)
         }
         
+        // Get color info from productStore if available
+        let colorInfo = null
+        if (variant.idMauSac) {
+          const color = productStore.colors.find(c => c.id === variant.idMauSac)
+          if (color) {
+            colorInfo = {
+              tenMau: color.tenMau,
+              hexCode: color.hexCode || '#000000',
+              id: color.id
+            }
+          }
+        }
+        
+        // Fallback to variant data if not found in store
+        if (!colorInfo && variant.tenMauSac) {
+          colorInfo = {
+            tenMau: variant.tenMauSac,
+            hexCode: variant.hexCodeMauSac || '#cccccc',
+            id: variant.idMauSac
+          }
+        }
+        
         return {
           ...variant,
           images: images,
-          // Map flat fields to nested objects for consistency
-          mauSac: variant.tenMauSac ? {
-            tenMau: variant.tenMauSac,
-            hexCode: variant.hexCodeMauSac || '#000000',
-            id: variant.idMauSac
-          } : null,
+          mauSac: colorInfo
         }
       }))
       
@@ -658,5 +689,32 @@ const goBack = () => {
 .btn-group-sm .btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+}
+
+/* Color display styles */
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.color-display {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.color-display .d-flex {
+  max-width: 100%;
+}
+
+.color-display .text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 </style>

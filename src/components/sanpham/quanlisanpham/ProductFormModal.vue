@@ -1263,6 +1263,19 @@ const generateVariants = async () => {
   }
 }
 
+// Helper function to match variants by their attribute IDs
+const matchVariantsByAttributes = (previewVariant, createdVariant) => {
+  return (
+    (previewVariant.idCpu === createdVariant.idCpu || (!previewVariant.idCpu && !createdVariant.idCpu)) &&
+    (previewVariant.idGpu === createdVariant.idGpu || (!previewVariant.idGpu && !createdVariant.idGpu)) &&
+    (previewVariant.idRam === createdVariant.idRam || (!previewVariant.idRam && !createdVariant.idRam)) &&
+    (previewVariant.idOCung === createdVariant.idOCung || (!previewVariant.idOCung && !createdVariant.idOCung)) &&
+    (previewVariant.idMauSac === createdVariant.idMauSac || (!previewVariant.idMauSac && !createdVariant.idMauSac)) &&
+    (previewVariant.idLoaiManHinh === createdVariant.idLoaiManHinh || (!previewVariant.idLoaiManHinh && !createdVariant.idLoaiManHinh)) &&
+    (previewVariant.idPin === createdVariant.idPin || (!previewVariant.idPin && !createdVariant.idPin))
+  )
+}
+
 // Combined save product and create variants function (kept for compatibility)
 const saveAndCreateVariants = async () => {
   try {
@@ -1338,9 +1351,14 @@ const saveAndCreateVariants = async () => {
       if (variantsToCreate.length > 0 && createdVariants.length > 0) {
         console.log('Updating prices and saving images/serials for variants...')
         
-        for (let i = 0; i < createdVariants.length && i < variantsToCreate.length; i++) {
-          const createdVariant = createdVariants[i]
-          const previewVariant = variantsToCreate[i]
+        for (const createdVariant of createdVariants) {
+          // Find matching preview variant by attribute IDs instead of array index
+          const previewVariant = variantsToCreate.find(pv => matchVariantsByAttributes(pv, createdVariant))
+          
+          if (!previewVariant) {
+            console.warn(`No matching preview variant found for created variant ${createdVariant.id}`)
+            continue
+          }
           
           // Update price if different
           const targetPrice = parseFloat(previewVariant.giaBan) || 0
@@ -1366,11 +1384,12 @@ const saveAndCreateVariants = async () => {
               }
               console.log(`Updating variant ${createdVariant.id} price from ${currentPrice} to ${targetPrice}`)
               const updatedVariant = await updateChiTietSanPham(createdVariant.id, updatePayload)
-              createdVariants[i] = updatedVariant.data
+              // Update the createdVariant reference with new data
+              Object.assign(createdVariant, updatedVariant.data)
               console.log(`✅ Updated variant ${createdVariant.id} price to ${targetPrice}`)
             } catch (priceErr) {
               console.warn(`❌ Failed to update price for variant ${createdVariant.id}:`, priceErr)
-              createdVariants[i].giaBan = targetPrice // Update locally even if API fails
+              createdVariant.giaBan = targetPrice // Update locally even if API fails
             }
           }
           
@@ -1419,12 +1438,12 @@ const saveAndCreateVariants = async () => {
                   idPin: createdVariant.idPin
                 }
                 await updateChiTietSanPham(createdVariant.id, updateStockPayload)
-                createdVariants[i].soLuongTon = serialRequests.length
+                createdVariant.soLuongTon = serialRequests.length
                 console.log(`✅ Updated soLuongTon to ${serialRequests.length} for variant ${createdVariant.id}`)
               } catch (stockErr) {
                 console.warn(`❌ Failed to update stock for variant ${createdVariant.id}:`, stockErr)
                 // Update locally even if API fails
-                createdVariants[i].soLuongTon = serialRequests.length
+                createdVariant.soLuongTon = serialRequests.length
               }
             } catch (serialErr) {
               console.warn(`❌ Failed to save serials for variant ${createdVariant.id}:`, serialErr)
