@@ -10,6 +10,12 @@
     <main v-else class="login-main">
       <router-view />
     </main>
+    
+    <!-- Toast Container -->
+    <ToastContainer />
+    
+    <!-- Confirm Dialog -->
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -19,6 +25,8 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import Header from './layout/Header.vue'
 import SideBar from './layout/SideBar.vue'
+import ToastContainer from './components/common/ToastContainer.vue'
+import ConfirmDialog from './components/common/ConfirmDialog.vue'
 
 const sidebarCollapsed = ref(false)
 const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value)

@@ -1,251 +1,147 @@
 <template>
-  <Teleport to="body">
-    <div v-if="isVisible" class="confirm-overlay" @click="handleOverlayClick">
-      <div class="confirm-dialog" @click.stop>
-        <div class="confirm-icon">
-          <i :class="iconClass"></i>
+    <div v-if="confirmState.show" class="modal fade show d-block" tabindex="-1" role="dialog"
+        style="background-color: rgba(0, 0, 0, 0.5); z-index: 10000;" @click.self="handleCancel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content shadow-lg">
+                <div :class="['modal-header', `bg-${getHeaderClass()}`, 'text-white']">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i :class="getIcon()" class="me-2"></i>
+                        {{ confirmState.title }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @click="handleCancel"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" style="font-size: 1.05rem; line-height: 1.6;">
+                        {{ displayMessage }}
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="handleCancel">
+                        {{ confirmState.cancelText }}
+                    </button>
+                    <button type="button" :class="['btn', `btn-${getButtonClass()}`]" @click="handleConfirm">
+                        {{ confirmState.confirmText }}
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="confirm-content">
-          <h3 class="confirm-title">{{ title }}</h3>
-          <p class="confirm-message">{{ message }}</p>
-        </div>
-        <div class="confirm-actions">
-          <button 
-            class="btn btn-cancel" 
-            @click="handleCancel"
-            :disabled="loading"
-          >
-            {{ cancelText }}
-          </button>
-          <button 
-            :class="['btn', 'btn-confirm', `btn-${type}`]" 
-            @click="handleConfirm"
-            :disabled="loading"
-          >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            {{ confirmText }}
-          </button>
-        </div>
-      </div>
     </div>
-  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 
-const props = defineProps({
-  type: {
-    type: String,
-    default: 'danger',
-    validator: (value) => ['danger', 'warning', 'info', 'success'].includes(value)
-  },
-  title: {
-    type: String,
-    default: 'Xác nhận'
-  },
-  message: {
-    type: String,
-    default: 'Bạn có chắc chắn muốn thực hiện hành động này?'
-  },
-  confirmText: {
-    type: String,
-    default: 'Xác nhận'
-  },
-  cancelText: {
-    type: String,
-    default: 'Hủy'
-  }
+const { confirmState } = useConfirm()
+
+// Computed để đảm bảo message luôn là string
+const displayMessage = computed(() => {
+    const msg = confirmState.value?.message
+
+    // Nếu null hoặc undefined, trả về chuỗi rỗng
+    if (!msg) {
+        return ''
+    }
+
+    // Nếu là string, trả về trực tiếp
+    if (typeof msg === 'string') {
+        return msg
+    }
+
+    // Nếu là số hoặc boolean, convert sang string
+    if (typeof msg === 'number' || typeof msg === 'boolean') {
+        return String(msg)
+    }
+
+    // Nếu là object, log lỗi và cố gắng extract message
+    if (typeof msg === 'object') {
+        console.error('⚠️ ConfirmDialog: message is an object instead of string:', msg)
+        console.error('⚠️ Full confirmState:', JSON.stringify(confirmState.value, null, 2))
+
+        // Nếu object có thuộc tính 'message', lấy nó
+        if (msg.message && typeof msg.message === 'string') {
+            return msg.message
+        }
+
+        // Nếu không, trả về thông báo lỗi
+        return 'Có lỗi xảy ra khi hiển thị thông báo'
+    }
+
+    // Fallback: convert sang string
+    return String(msg)
 })
 
-const emit = defineEmits(['confirm', 'cancel'])
-
-const isVisible = ref(false)
-const loading = ref(false)
-
-const iconClass = computed(() => {
-  const icons = {
-    danger: 'bi bi-exclamation-triangle-fill text-danger',
-    warning: 'bi bi-exclamation-circle-fill text-warning',
-    info: 'bi bi-info-circle-fill text-info',
-    success: 'bi bi-check-circle-fill text-success'
-  }
-  return icons[props.type]
-})
-
-const show = () => {
-  isVisible.value = true
-  loading.value = false
+const getHeaderClass = () => {
+    const classes = {
+        warning: 'warning',
+        danger: 'danger',
+        info: 'info'
+    }
+    return classes[confirmState.value.type] || 'warning'
 }
 
-const hide = () => {
-  isVisible.value = false
-  loading.value = false
+const getButtonClass = () => {
+    const classes = {
+        warning: 'warning',
+        danger: 'danger',
+        info: 'primary'
+    }
+    return classes[confirmState.value.type] || 'warning'
 }
 
-const handleOverlayClick = () => {
-  if (!loading.value) {
-    handleCancel()
-  }
+const getIcon = () => {
+    const icons = {
+        warning: 'bi bi-exclamation-triangle-fill',
+        danger: 'bi bi-exclamation-circle-fill',
+        info: 'bi bi-info-circle-fill'
+    }
+    return icons[confirmState.value.type] || icons.warning
+}
+
+
+const handleConfirm = () => {
+    if (confirmState.value.onConfirm) {
+        confirmState.value.onConfirm()
+    }
 }
 
 const handleCancel = () => {
-  if (!loading.value) {
-    hide()
-    emit('cancel')
-  }
+    if (confirmState.value.onCancel) {
+        confirmState.value.onCancel()
+    }
 }
-
-const handleConfirm = async () => {
-  loading.value = true
-  try {
-    await emit('confirm')
-    hide()
-  } catch (error) {
-    loading.value = false
-    // Keep dialog open on error
-  }
-}
-
-defineExpose({
-  show,
-  hide
-})
 </script>
 
 <style scoped>
-.confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  animation: fadeIn 0.2s ease-out;
+.modal-content {
+    border-radius: 0.5rem;
+    overflow: hidden;
 }
 
-.confirm-dialog {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 400px;
-  width: 90%;
-  padding: 24px;
-  text-align: center;
-  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.modal-header {
+    border-bottom: none;
+    padding: 1.25rem 1.5rem;
 }
 
-.confirm-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+.modal-body {
+    padding: 1.5rem;
 }
 
-.confirm-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 8px;
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
 }
 
-.confirm-message {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
-  margin-bottom: 24px;
+.bg-warning {
+    background-color: #ffc107 !important;
 }
 
-.confirm-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
+.bg-danger {
+    background-color: #dc3545 !important;
 }
 
-.btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-cancel {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
-.btn-confirm {
-  color: white;
-}
-
-.btn-danger {
-  background: #ef4444;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-warning {
-  background: #f59e0b;
-}
-
-.btn-warning:hover:not(:disabled) {
-  background: #d97706;
-}
-
-.btn-info {
-  background: #3b82f6;
-}
-
-.btn-info:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-success {
-  background: #10b981;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideIn {
-  from { 
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.spinner-border-sm {
-  width: 1rem;
-  height: 1rem;
+.bg-info {
+    background-color: #17a2b8 !important;
 }
 </style>
