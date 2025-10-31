@@ -1,26 +1,27 @@
 <template>
   <div class="customer-detail">
     <!-- 🔸 Breadcrumb -->
-    <div class="card mb-3">
+    <div class="card mb-2">
       <div class="card-body py-2">
-        <h5 class="fw-bold text-success mb-1">Thêm Địa Chỉ</h5>
+        <h6 class="fw-bold text-success mb-0">Thêm Địa Chỉ</h6>
       </div>
     </div>
 
     <!-- 🔸 Form Địa Chỉ -->
-    <div class="card mb-4">
+    <div class="card mb-3">
       <div class="card-body">
-        <div class="row g-3 mb-3">
+        <div class="row g-2 mb-2">
           <div class="col-md-6">
             <label class="form-label">Mã khách hàng <span class="text-danger">*</span></label>
             <div class="input-group">
               <input
                 type="text"
-                class="form-control"
+                class="form-control form-control-sm"
                 :class="{ 'is-invalid': errors.maKhachHang }"
                 placeholder="Nhập mã khách hàng"
                 v-model="form.maKhachHang"
-                @blur="validateMaKhachHang"
+                @blur="handleMaKhachHangBlur"
+                @input="handleMaKhachHangChange"
                 :readonly="!!maKhachHang"
               />
             </div>
@@ -33,7 +34,7 @@
             <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
             <input
               type="text"
-              class="form-control"
+              class="form-control form-control-sm"
               :class="{ 'is-invalid': errors.hoTen }"
               placeholder="Nhập họ và tên"
               v-model="form.hoTen"
@@ -48,7 +49,7 @@
             <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
             <input
               type="text"
-              class="form-control"
+              class="form-control form-control-sm"
               :class="{ 'is-invalid': errors.sdt }"
               placeholder="Nhập số điện thoại"
               v-model="form.sdt"
@@ -60,38 +61,79 @@
           </div>
 
           <div class="col-md-6">
-            <label class="form-label">Địa chỉ chi tiết <span class="text-danger">*</span></label>
+            <label class="form-label">Địa chỉ chi tiết</label>
             <input
               type="text"
-              class="form-control"
-              :class="{ 'is-invalid': errors.diaChi }"
+              class="form-control form-control-sm"
               placeholder="Nhập địa chỉ chi tiết"
               v-model="form.diaChi"
-              @blur="validateDiaChi"
-            />
-            <div v-if="errors.diaChi" class="invalid-feedback d-block">
-              {{ errors.diaChi }}
-            </div>
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label">Xã/Phường</label>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Nhập xã/phường"
-              v-model="form.xa"
             />
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Tỉnh/Thành phố</label>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Nhập tỉnh/thành phố"
-              v-model="form.tinh"
-            />
+            <div class="position-relative">
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Chọn hoặc tìm kiếm tỉnh/thành phố"
+                v-model="searchTinh"
+                @input="filterTinhList"
+                @focus="showTinhDropdown = true"
+                @blur="handleBlurTinh"
+                autocomplete="off"
+              />
+              <ul
+                v-if="showTinhDropdown && filteredTinhList.length > 0"
+                class="list-group position-absolute w-100 mt-1"
+                style="z-index: 1000; max-height: 200px; overflow-y: auto"
+              >
+                <li
+                  v-for="tinh in filteredTinhList"
+                  :key="tinh.id"
+                  class="list-group-item list-group-item-action"
+                  @click="selectTinh(tinh)"
+                  style="cursor: pointer"
+                >
+                  {{ tinh.name }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Xã/Phường</label>
+            <div class="position-relative">
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Chọn hoặc tìm kiếm xã/phường"
+                :disabled="!form.tinhId"
+                v-model="searchXa"
+                @input="filterXaList"
+                @focus="showXaDropdown = true"
+                @blur="handleBlurXa"
+                autocomplete="off"
+              />
+              <ul
+                v-if="showXaDropdown && filteredXaList.length > 0 && form.tinhId"
+                class="list-group position-absolute w-100 mt-1"
+                style="z-index: 1000; max-height: 200px; overflow-y: auto"
+              >
+                <li
+                  v-for="xa in filteredXaList"
+                  :key="xa.id"
+                  class="list-group-item list-group-item-action"
+                  @click="selectXa(xa)"
+                  style="cursor: pointer"
+                >
+                  {{ xa.name }}
+                </li>
+              </ul>
+              <div v-if="!form.tinhId" class="form-text text-muted">
+                Vui lòng chọn tỉnh/thành phố trước
+              </div>
+            </div>
           </div>
 
           <div class="col-md-12">
@@ -122,15 +164,15 @@
     </div>
 
     <!-- 🔹 Thanh nút chức năng -->
-    <div class="d-flex justify-content-between align-items-center mb-4 py-3">
-      <div class="d-flex justify-content-center gap-3 mx-auto" style="width: 300px">
-        <button class="btn btn-primary" @click="handleSave">
+    <div class="d-flex justify-content-between align-items-center mb-2 py-2">
+      <div class="d-flex justify-content-center gap-2 mx-auto">
+        <button class="btn btn-primary btn-sm" @click="handleSave">
           <i class="fas fa-save me-1"></i> Lưu
         </button>
-        <button class="btn btn-success" @click="handleReset">
+        <button class="btn btn-success btn-sm" @click="handleReset">
           <i class="fas fa-plus me-1"></i> Thêm mới
         </button>
-        <button class="btn btn-secondary" @click="$emit('close')">
+        <button class="btn btn-secondary btn-sm" @click="$emit('close')">
           <i class="fas fa-times me-1"></i> Đóng
         </button>
       </div>
@@ -140,6 +182,8 @@
 
 <script>
 import DiaChiService from '@/service/taikhoan/diaChiService'
+import XaPhuongService from '@/service/taikhoan/xaPhuongService'
+import KhachHangService from '@/service/taikhoan/khachHangService'
 
 export default {
   name: 'DiaChiForm',
@@ -158,24 +202,76 @@ export default {
         diaChi: '',
         xa: '',
         tinh: '',
+        tinhId: null,
+        xaId: null,
         macDinh: false,
       },
       errors: {},
+      // Tỉnh/Thành phố
+      tinhList: [],
+      filteredTinhList: [],
+      searchTinh: '',
+      showTinhDropdown: false,
+      selectedTinh: null,
+      // Xã/Phường
+      xaList: [],
+      filteredXaList: [],
+      searchXa: '',
+      showXaDropdown: false,
+      selectedXa: null,
     }
   },
-  mounted() {
+  async mounted() {
     if (this.maKhachHang) {
       this.form.maKhachHang = this.maKhachHang
+      // Tự động load thông tin khách hàng nếu đã có mã
+      await this.loadCustomerInfo()
     }
+    this.loadTinhList()
   },
   watch: {
-    maKhachHang(newVal) {
+    async maKhachHang(newVal) {
       if (newVal) {
         this.form.maKhachHang = newVal
+        // Tự động load thông tin khách hàng khi props thay đổi
+        await this.loadCustomerInfo()
       }
     },
   },
   methods: {
+    async handleMaKhachHangChange() {
+      // Reset thông tin khi mã khách hàng thay đổi
+      if (!this.form.maKhachHang || this.form.maKhachHang.trim() === '') {
+        this.form.hoTen = ''
+        this.form.sdt = ''
+      }
+    },
+    async handleMaKhachHangBlur() {
+      // Validate mã khách hàng
+      if (!this.validateMaKhachHang()) {
+        return
+      }
+
+      // Tự động load thông tin khách hàng
+      if (this.form.maKhachHang && this.form.maKhachHang.trim() !== '') {
+        await this.loadCustomerInfo()
+      }
+    },
+    async loadCustomerInfo() {
+      try {
+        const response = await KhachHangService.getByMaKhachHang(this.form.maKhachHang)
+        const customer = response.data
+
+        if (customer) {
+          // Auto-fill thông tin khách hàng (người dùng vẫn có thể sửa)
+          this.form.hoTen = customer.hoTen || ''
+          this.form.sdt = customer.soDienThoai || ''
+        }
+      } catch {
+        console.log('Không tìm thấy khách hàng với mã:', this.form.maKhachHang)
+        // Không hiển thị lỗi vì người dùng có thể tự nhập
+      }
+    },
     validateMaKhachHang() {
       if (!this.form.maKhachHang || this.form.maKhachHang.trim() === '') {
         this.errors.maKhachHang = 'Mã khách hàng không được để trống'
@@ -212,12 +308,20 @@ export default {
       delete this.errors.diaChi
       return true
     },
+    validateTinh() {
+      if (!this.form.tinhId) {
+        this.errors.tinh = 'Vui lòng chọn tỉnh/thành phố'
+        return false
+      }
+      delete this.errors.tinh
+      return true
+    },
     validateForm() {
       let isValid = true
       isValid = this.validateMaKhachHang() && isValid
       isValid = this.validateHoTen() && isValid
       isValid = this.validateSDT() && isValid
-      isValid = this.validateDiaChi() && isValid
+      // Địa chỉ chi tiết và Tỉnh/Thành phố không bắt buộc
       return isValid
     },
     handleReset() {
@@ -228,9 +332,18 @@ export default {
         diaChi: '',
         xa: '',
         tinh: '',
+        tinhId: null,
+        xaId: null,
         macDinh: false,
       }
       this.errors = {}
+      this.searchTinh = ''
+      this.searchXa = ''
+      this.selectedTinh = null
+      this.selectedXa = null
+      this.xaList = []
+      this.filteredTinhList = this.tinhList
+      this.filteredXaList = []
     },
     async handleSave() {
       if (!this.validateForm()) {
@@ -249,13 +362,91 @@ export default {
         alert('Có lỗi xảy ra khi thêm địa chỉ: ' + (error.response?.data?.message || error.message))
       }
     },
+    // Load danh sách tỉnh/thành phố
+    async loadTinhList() {
+      try {
+        const response = await XaPhuongService.getAllTinh()
+        this.tinhList = response.data
+        this.filteredTinhList = this.tinhList
+      } catch (error) {
+        console.error('Error loading tinh list:', error)
+      }
+    },
+    // Filter tỉnh list khi search
+    filterTinhList() {
+      const searchTerm = this.searchTinh.toLowerCase()
+      this.filteredTinhList = this.tinhList.filter((tinh) =>
+        tinh.name.toLowerCase().includes(searchTerm),
+      )
+    },
+    // Select tỉnh
+    async selectTinh(tinh) {
+      this.selectedTinh = tinh
+      this.form.tinh = tinh.name
+      this.form.tinhId = tinh.id
+      this.searchTinh = tinh.name
+      this.showTinhDropdown = false
+      // Load danh sách xã/phường của tỉnh này
+      await this.loadXaList(tinh.id)
+      // Reset xã/phường
+      this.form.xa = ''
+      this.form.xaId = null
+      this.searchXa = ''
+      this.selectedXa = null
+    },
+    // Handle blur tỉnh
+    handleBlurTinh() {
+      setTimeout(() => {
+        this.showTinhDropdown = false
+      }, 200)
+    },
+    // Load danh sách xã/phường theo tỉnh
+    async loadXaList(tinhId) {
+      try {
+        const response = await XaPhuongService.getXaPhuongByTinh(tinhId)
+        this.xaList = response.data
+        this.filteredXaList = this.xaList
+      } catch (error) {
+        console.error('Error loading xa list:', error)
+        this.xaList = []
+        this.filteredXaList = []
+      }
+    },
+    // Filter xã list khi search
+    filterXaList() {
+      const searchTerm = this.searchXa.toLowerCase()
+      this.filteredXaList = this.xaList.filter((xa) => xa.name.toLowerCase().includes(searchTerm))
+    },
+    // Select xã
+    selectXa(xa) {
+      this.selectedXa = xa
+      this.form.xa = xa.name
+      this.form.xaId = xa.id
+      this.searchXa = xa.name
+      this.showXaDropdown = false
+    },
+    // Handle blur xã
+    handleBlurXa() {
+      setTimeout(() => {
+        this.showXaDropdown = false
+      }, 200)
+    },
   },
 }
 </script>
 
 <style scoped>
 .customer-detail {
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
+}
+
+.card {
+  border-radius: 8px;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
 }
 </style>
