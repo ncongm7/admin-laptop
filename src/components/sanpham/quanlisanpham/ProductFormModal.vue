@@ -2441,7 +2441,7 @@ const importFromExcel = async (event) => {
   try {
     loading.value = true
     
-    // Parse file locally first
+    // Parse file locally first to check for duplicates
     console.log('Parsing Excel/CSV file locally...')
     const serials = await parseExcelFileLocally(file)
     
@@ -2513,30 +2513,24 @@ const importFromExcel = async (event) => {
       event.target.value = ''
       
     } else {
-      // ✅ Saved variant - Call API (backend will also check duplicates)
-      console.log('Saved variant: Calling API to import serials...')
+      // ✅ Saved variant - Create only NEW serials via API
+      console.log('Saved variant: Creating only new serials via API...')
       
-      const response = await importSerialsFromExcel(currentVariant.value.id, file)
-      
-      // Handle response - could be array or object with data property
-      let importedSerials = []
-      let importCount = 0
-      
-      if (response.data?.success) {
-        // New structured response format
-        importedSerials = response.data.data || []
-        importCount = response.data.count || importedSerials.length
-      } else if (Array.isArray(response.data)) {
-        // Old format - direct array
-        importedSerials = response.data
-        importCount = importedSerials.length
-      }
-      
-      console.log(`✅ API response - imported count: ${importCount}`)
-      
-      // Reload serials from backend to get fresh data
-      if (currentVariant.value.id) {
+      // If there are new serials, create them via batch API
+      if (newSerials.length > 0) {
         try {
+          // Prepare serial batch for API
+          const serialRequests = newSerials.map(serial => ({
+            ctspId: currentVariant.value.id,
+            serialNo: serial.toUpperCase(),
+            trangThai: 1
+          }))
+          
+          console.log(`Creating ${newSerials.length} new serials...`)
+          const response = await createSerialsBatch(serialRequests)
+          console.log('✅ Serials created successfully:', response)
+          
+          // Reload serials from backend to get fresh data with IDs
           const serialsResponse = await getSerialsByCtspId(currentVariant.value.id)
           const backendSerials = serialsResponse.data || []
           
@@ -2551,21 +2545,23 @@ const importFromExcel = async (event) => {
           currentVariant.value.soLuongTon = availableSerials.length
           
           console.log(`✅ Reloaded ${currentVariant.value.serials.length} serials from backend`)
+          
+          // Show appropriate message
+          if (duplicateSerials.length === 0) {
+            // All imported successfully
+            alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới.\n\n💡 Tổng serial: ${currentVariant.value.serials.length}`)
+          } else {
+            // Partial success
+            const duplicateList = duplicateSerials.slice(0, 10).join('\n')
+            const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
+            alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}`)
+          }
         } catch (error) {
-          console.error('Error reloading serials:', error)
+          console.error('Error creating serials:', error)
+          throw error // Re-throw to be caught by outer try-catch
         }
-      }
-      
-      // Show appropriate message
-      if (importCount > 0 && duplicateSerials.length === 0) {
-        // All imported successfully
-        alert(`✅ Import thành công!\n\n🟢 Đã thêm ${importCount} serial mới.\n\n💡 Tổng serial: ${currentVariant.value.serials.length}`)
-      } else if (importCount > 0 && duplicateSerials.length > 0) {
-        // Partial success
-        const duplicateList = duplicateSerials.slice(0, 10).join('\n')
-        const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
-        alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${importCount} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}`)
-      } else if (importCount === 0) {
+      } else {
+        // No new serials to add
         alert('⚠️ Không có serial mới nào được thêm.\n\n💡 Tất cả serial trong file đã tồn tại.')
       }
       
