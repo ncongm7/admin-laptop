@@ -2054,29 +2054,50 @@ const addSerialNumbers = () => {
     currentVariant.value.serials = []
   }
   
-  // Check for duplicates with existing serials
-  const existingSerials = currentVariant.value.serials.map(s => s.soSerial)
-  const validSerials = []
+  // ✅ Validate format first (7 characters, alphanumeric)
+  const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
+  if (invalidSerials.length > 0) {
+    alert(`❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`)
+    return
+  }
+  
+  // ✅ Check for duplicates with existing serials (case-insensitive)
+  const existingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
   const duplicateSerials = []
+  const newSerials = []
   
   serials.forEach(serial => {
     if (existingSerials.includes(serial)) {
       duplicateSerials.push(serial)
     } else {
-      validSerials.push(serial)
+      newSerials.push(serial)
     }
   })
   
-  if (duplicateSerials.length > 0) {
-    alert(`Các serial sau đã tồn tại và sẽ bị bỏ qua: ${duplicateSerials.join(', ')}`)
-  }
+  // Clear input and validation state
+  serialInput.value = ''
+  serialValidationError.value = ''
+  serialValidationSuccess.value = ''
   
-  if (validSerials.length === 0) {
+  // ✅ Show detailed results
+  if (newSerials.length === 0 && duplicateSerials.length > 0) {
+    // All duplicates
+    const duplicateList = duplicateSerials.slice(0, 10).join(', ')
+    const moreCount = duplicateSerials.length > 10 ? ` và ${duplicateSerials.length - 10} serial khác` : ''
+    alert(`❌ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreCount}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
     return
+  } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
+    // Mixed: some new, some duplicates
+    const duplicateList = duplicateSerials.slice(0, 5).join(', ')
+    const moreCount = duplicateSerials.length > 5 ? ` và ${duplicateSerials.length - 5} serial khác` : ''
+    alert(`⚠️ Thêm một phần thành công!\n\n✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng: ${duplicateList}${moreCount}\n\n💡 Serial trùng đã bỏ qua, chỉ thêm serial mới.`)
+  } else if (newSerials.length > 0) {
+    // All new
+    alert(`✅ Thành công!\n\nĐã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`)
   }
   
-  // Add serials to local list
-  validSerials.forEach(serial => {
+  // Add only new serials to local list
+  newSerials.forEach(serial => {
     currentVariant.value.serials.push({
       id: null, // Local serial, no ID yet
       soSerial: serial,
@@ -2084,17 +2105,11 @@ const addSerialNumbers = () => {
     })
   })
   
-  // Update stock count
-  currentVariant.value.soLuongTon = currentVariant.value.serials.length
+  // Update stock count (only count available serials - trangThai = 1)
+  const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
+  currentVariant.value.soLuongTon = availableSerials.length
   
-  // Clear input
-  serialInput.value = ''
-  
-  // Clear validation messages
-  serialValidationError.value = ''
-  serialValidationSuccess.value = ''
-  
-  console.log(`Đã thêm ${validSerials.length} serial vào danh sách local`)
+  console.log(`✅ Added ${newSerials.length} serial(s). Total: ${currentVariant.value.serials.length}, Stock: ${currentVariant.value.soLuongTon}`)
 }
 
 // Note: removeVariantSerial functionality is handled by removeSerial function above
@@ -2426,75 +2441,141 @@ const importFromExcel = async (event) => {
   try {
     loading.value = true
     
+    // Parse file locally first
+    console.log('Parsing Excel/CSV file locally...')
+    const serials = await parseExcelFileLocally(file)
+    
+    if (serials.length === 0) {
+      alert('Không có serial number nào được tìm thấy trong file.\n\nVui lòng đảm bảo:\n• File CSV hoặc Excel\n• Có cột "Serial Number" hoặc serial ở cột đầu tiên\n• Mỗi serial có đúng 7 ký tự gồm chữ và số\n• Ví dụ: ABC1234, DEF5678')
+      event.target.value = ''
+      return
+    }
+    
+    // Initialize serials array if needed
+    currentVariant.value.serials = currentVariant.value.serials || []
+    
+    // ✅ CHECK DUPLICATE - Compare with existing serials (case-insensitive)
+    const existingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
+    const duplicateSerials = []
+    const newSerials = []
+    
+    serials.forEach(serial => {
+      const serialUpper = serial.toUpperCase()
+      if (existingSerials.includes(serialUpper)) {
+        duplicateSerials.push(serial)
+      } else {
+        // Check if not duplicate within the same import batch
+        if (!newSerials.map(s => s.toUpperCase()).includes(serialUpper)) {
+          newSerials.push(serial)
+        }
+      }
+    })
+    
+    console.log(`📊 Import check: ${newSerials.length} new, ${duplicateSerials.length} duplicates`)
+    
+    // If ALL are duplicates, stop here
+    if (newSerials.length === 0 && duplicateSerials.length > 0) {
+      const duplicateList = duplicateSerials.slice(0, 15).join('\n')
+      const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
+      alert(`❌ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
+      event.target.value = ''
+      loading.value = false
+      return
+    }
+    
     // Check if variant has ID (saved to DB) or is preview
     if (!currentVariant.value?.id) {
-      // Preview mode - parse file locally without calling API
-      console.log('Preview mode: Parsing Excel/CSV file locally...')
+      // ✅ Preview mode - Add only new serials to local list
+      console.log('Preview mode: Adding new serials to local list...')
       
-      const serials = await parseExcelFileLocally(file)
-      
-      if (serials.length === 0) {
-        alert('Không có serial number nào được tìm thấy trong file')
-        event.target.value = ''
-        return
-      }
-      
-      // Add to local serials list
-      currentVariant.value.serials = currentVariant.value.serials || []
-      serials.forEach(serial => {
-        if (!currentVariant.value.serials.find(s => s.soSerial === serial)) {
-          currentVariant.value.serials.push({
-            id: null,
-            soSerial: serial,
-            trangThai: 1
-          })
-        }
-      })
-      
-      // Update stock count (only count available serials - trangThai = 1)
-      const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
-      currentVariant.value.soLuongTon = availableSerials.length
-      console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon} for preview variant (${availableSerials.length} available out of ${currentVariant.value.serials.length} total)`)
-      
-      alert(`Đã import thành công ${serials.length} serial number! Vui lòng lưu biến thể để lưu vào database.`)
-      event.target.value = ''
-      
-    } else {
-      // Saved variant - call API
-      console.log('Saved variant: Calling API to import serials...')
-      
-      const response = await importSerialsFromExcel(currentVariant.value.id, file)
-      const importedSerials = response.data || []
-      
-      if (importedSerials.length === 0) {
-        alert('Không có serial number nào được import')
-        event.target.value = ''
-        return
-      }
-      
-      // Update local serials list
-      currentVariant.value.serials = currentVariant.value.serials || []
-      importedSerials.forEach(serialResponse => {
+      newSerials.forEach(serial => {
         currentVariant.value.serials.push({
-          id: serialResponse.id,
-          soSerial: serialResponse.serialNo,
-          trangThai: serialResponse.trangThai || 1
+          id: null,
+          soSerial: serial.toUpperCase(),
+          trangThai: 1
         })
       })
       
       // Update stock count (only count available serials - trangThai = 1)
       const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
       currentVariant.value.soLuongTon = availableSerials.length
-      console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon} for saved variant (${availableSerials.length} available out of ${currentVariant.value.serials.length} total)`)
+      console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon}`)
       
-      alert(`Đã import thành công ${importedSerials.length} serial number!`)
+      // Show detailed message
+      if (duplicateSerials.length === 0) {
+        alert(`✅ Thành công!\n\n🟢 Đã thêm ${newSerials.length} serial vào preview.\n\n💡 Lưu sản phẩm để lưu serial vào database.`)
+      } else {
+        const duplicateList = duplicateSerials.slice(0, 10).join('\n')
+        const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
+        alert(`⚠️ Import một phần thành công!\n\n🟢 Thêm mới: ${newSerials.length} serial\n🔴 Bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial trùng:\n${duplicateList}${moreText}\n\n💡 Lưu sản phẩm để lưu ${newSerials.length} serial mới.`)
+      }
+      
+      event.target.value = ''
+      
+    } else {
+      // ✅ Saved variant - Call API (backend will also check duplicates)
+      console.log('Saved variant: Calling API to import serials...')
+      
+      const response = await importSerialsFromExcel(currentVariant.value.id, file)
+      
+      // Handle response - could be array or object with data property
+      let importedSerials = []
+      let importCount = 0
+      
+      if (response.data?.success) {
+        // New structured response format
+        importedSerials = response.data.data || []
+        importCount = response.data.count || importedSerials.length
+      } else if (Array.isArray(response.data)) {
+        // Old format - direct array
+        importedSerials = response.data
+        importCount = importedSerials.length
+      }
+      
+      console.log(`✅ API response - imported count: ${importCount}`)
+      
+      // Reload serials from backend to get fresh data
+      if (currentVariant.value.id) {
+        try {
+          const serialsResponse = await getSerialsByCtspId(currentVariant.value.id)
+          const backendSerials = serialsResponse.data || []
+          
+          currentVariant.value.serials = backendSerials.map(serial => ({
+            id: serial.id,
+            soSerial: serial.serialNo || serial.soSerial,
+            trangThai: serial.trangThai
+          }))
+          
+          // Update stock count
+          const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
+          currentVariant.value.soLuongTon = availableSerials.length
+          
+          console.log(`✅ Reloaded ${currentVariant.value.serials.length} serials from backend`)
+        } catch (error) {
+          console.error('Error reloading serials:', error)
+        }
+      }
+      
+      // Show appropriate message
+      if (importCount > 0 && duplicateSerials.length === 0) {
+        // All imported successfully
+        alert(`✅ Import thành công!\n\n🟢 Đã thêm ${importCount} serial mới.\n\n💡 Tổng serial: ${currentVariant.value.serials.length}`)
+      } else if (importCount > 0 && duplicateSerials.length > 0) {
+        // Partial success
+        const duplicateList = duplicateSerials.slice(0, 10).join('\n')
+        const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
+        alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${importCount} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}`)
+      } else if (importCount === 0) {
+        alert('⚠️ Không có serial mới nào được thêm.\n\n💡 Tất cả serial trong file đã tồn tại.')
+      }
+      
       event.target.value = ''
     }
     
   } catch (error) {
     console.error('Error importing serials:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi import serial'
-    alert(errorMessage)
+    alert(`❌ Import thất bại!\n\n🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng kiểm tra file và thử lại.`)
   } finally {
     loading.value = false
   }
