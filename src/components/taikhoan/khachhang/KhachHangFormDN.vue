@@ -169,15 +169,13 @@
                 </div>
                 <div class="mb-1"><i class="fas fa-phone me-2"></i>{{ address.sdt }}</div>
                 <div class="mb-1">
-                  <i class="fas fa-map-marker-alt me-2"></i>{{ address.diaChi }}
-                </div>
-                <div v-if="address.xa || address.tinh" class="text-muted small">
-                  {{ [address.xa, address.tinh].filter(Boolean).join(', ') }}
+                  <i class="fas fa-map-marker-alt me-2"></i>
+                  {{ [address.diaChi, address.xa, address.tinh].filter(Boolean).join(', ') }}
                 </div>
               </div>
               <div class="btn-group btn-group-sm">
                 <button class="btn btn-outline-danger" @click="deleteAddress(address.id)">
-                  <i class="fas fa-trash me-1"></i> Xóa
+                  <i class="fas fa-trash">Xoá</i>
                 </button>
               </div>
             </div>

@@ -48,65 +48,27 @@
           <label class="form-label">Email</label>
           <input type="email" class="form-control" placeholder="Email" v-model="form.email" />
         </div>
-
-        <!-- Quản lý địa chỉ -->
-        <div class="mb-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0">
-                  <i class="fas fa-map-marker-alt me-1 text-success"></i> Quản lý địa chỉ
-                  <span class="badge bg-light text-dark ms-2"
-                    >{{ addressList.length }} địa chỉ</span
-                  >
-                </h6>
-                <button class="btn btn-success btn-sm" @click="showAddAddressModal">
-                  <i class="fas fa-plus me-1"></i> Thêm địa chỉ
-                </button>
+        <!-- Modal thêm địa chỉ -->
+        <div
+          class="modal fade"
+          :class="{ 'show d-block': showAddressModal }"
+          tabindex="-1"
+          style="background-color: rgba(0, 0, 0, 0.5)"
+        >
+          <div
+            class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-wide"
+          >
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Thêm Địa Chỉ</h5>
+                <button type="button" class="btn-close" @click="closeAddressModal"></button>
               </div>
-              <!-- Danh sách địa chỉ -->
-              <div
-                v-if="addressList.length === 0"
-                class="border rounded p-4 text-center text-muted"
-                style="border-style: dashed"
-              >
-                <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
-                <p class="mb-2">Chưa có địa chỉ nào</p>
-                <button class="btn btn-success btn-sm" @click="showAddAddressModal">
-                  Thêm địa chỉ ngay
-                </button>
-              </div>
-
-              <!-- Hiển thị danh sách địa chỉ -->
-              <div v-else class="list-group">
-                <div v-for="address in addressList" :key="address.id" class="list-group-item">
-                  <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                      <div class="fw-bold mb-1">
-                        <i class="fas fa-user me-2"></i>{{ address.hoTen }}
-                        <span v-if="address.macDinh" class="badge bg-success ms-2">Mặc định</span>
-                      </div>
-                      <div class="mb-1"><i class="fas fa-phone me-2"></i>{{ address.sdt }}</div>
-                      <div class="mb-1">
-                        <i class="fas fa-map-marker-alt me-2"></i>{{ address.diaChi }}
-                      </div>
-                      <div v-if="address.xa || address.tinh" class="text-muted small">
-                        {{ [address.xa, address.tinh].filter(Boolean).join(', ') }}
-                      </div>
-                    </div>
-                    <div class="btn-group btn-group-sm">
-                      <button
-                        class="btn btn-outline-primary"
-                        @click="setDefaultAddress(address.id)"
-                      >
-                        <i class="fas fa-star"></i>
-                      </button>
-                      <button class="btn btn-outline-danger" @click="deleteAddress(address.id)">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div class="modal-body">
+                <DiaChiForm
+                  :maKhachHang="form.maKhachHang"
+                  @close="closeAddressModal"
+                  @success="handleAddressSuccess"
+                />
               </div>
             </div>
           </div>
@@ -146,32 +108,64 @@
           <input type="date" class="form-control" v-model="form.ngaySinh" />
         </div>
 
-        <div class="mb-3">
+        <!-- <div class="mb-3">
           <label class="form-label">Ghi chú</label>
           <textarea class="form-control" rows="2" v-model="form.note"></textarea>
-        </div>
+        </div> -->
       </div>
-    </div>
 
-    <!-- Modal thêm địa chỉ -->
-    <div
-      class="modal fade"
-      :class="{ 'show d-block': showAddressModal }"
-      tabindex="-1"
-      style="background-color: rgba(0, 0, 0, 0.5)"
-    >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Thêm Địa Chỉ</h5>
-            <button type="button" class="btn-close" @click="closeAddressModal"></button>
-          </div>
-          <div class="modal-body">
-            <DiaChiForm
-              :maKhachHang="form.maKhachHang"
-              @close="closeAddressModal"
-              @success="handleAddressSuccess"
-            />
+      <!-- Quản lý địa chỉ - full width dưới 2 cột -->
+      <div class="col-12 mt-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0">
+                <i class="fas fa-map-marker-alt me-1 text-success"></i> Quản lý địa chỉ
+                <span class="badge bg-light text-dark ms-2">{{ addressList.length }} địa chỉ</span>
+              </h6>
+              <button class="btn btn-success btn-sm" @click="showAddAddressModal">
+                <i class="fas fa-plus me-1"></i> Thêm địa chỉ
+              </button>
+            </div>
+            <!-- Danh sách địa chỉ -->
+            <div
+              v-if="addressList.length === 0"
+              class="border rounded p-4 text-center text-muted"
+              style="border-style: dashed"
+            >
+              <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+              <p class="mb-2">Chưa có địa chỉ nào</p>
+              <button class="btn btn-success btn-sm" @click="showAddAddressModal">
+                Thêm địa chỉ ngay
+              </button>
+            </div>
+
+            <!-- Hiển thị danh sách địa chỉ -->
+            <div v-else class="list-group">
+              <div v-for="address in addressList" :key="address.id" class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <div class="fw-bold mb-1">
+                      <i class="fas fa-user me-2"></i>{{ address.hoTen }}
+                      <span v-if="address.macDinh" class="badge bg-success ms-2">Mặc định</span>
+                    </div>
+                    <div class="mb-1"><i class="fas fa-phone me-2"></i>{{ address.sdt }}</div>
+                    <div class="mb-1">
+                      <i class="fas fa-map-marker-alt me-2"></i>
+                      {{ [address.diaChi, address.xa, address.tinh].filter(Boolean).join(', ') }}
+                    </div>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" @click="setDefaultAddress(address.id)">
+                      <i class="fas fa-star">Để mặc định</i>
+                    </button>
+                    <button class="btn btn-outline-danger" @click="deleteAddress(address.id)">
+                      <i class="fas fa-trash">Xoá</i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -381,5 +375,15 @@ export default {
 
 .modal {
   z-index: 1050;
+}
+
+/* Mở rộng modal gần bằng form cha */
+.modal-wide {
+  max-width: 95vw;
+  width: 95vw;
+}
+
+.modal-wide .modal-content {
+  width: 100%;
 }
 </style>
