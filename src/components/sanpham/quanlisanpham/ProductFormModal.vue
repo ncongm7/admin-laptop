@@ -54,7 +54,7 @@
                       </div>
 
                       <div class="col-md-12">
-                        <label class="form-label">Mã sản phẩm</label>
+                        <label class="form-label">Mã sản phẩm <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" v-model="form.maSanPham"/>
                       </div>
 
@@ -1050,9 +1050,13 @@ const saveProduct = async () => {
         }
       })
       variantConfigs[0].serials = allSerials
+      
+      // Track the number of serials user tried to add (for better error messaging)
+      const inputSerialCount = allSerials.length
 
       console.log('Creating product with variants and serials:', variantConfigs)
       console.log('Preview variants data:', form.value.variants)
+      console.log('User input serial count:', inputSerialCount)
 
       // If add-variants-only mode with existing product ID, pass it directly
       if (isAddVariantsMode.value && form.value.id) {
@@ -1117,7 +1121,34 @@ const saveProduct = async () => {
       }))
 
 
-      alert(`Tạo thành công sản phẩm với ${result.variants.length} biến thể và ${result.serials.length} serial!`)
+      // Show success message with clear information
+      const serialCount = result.serials.length
+      const variantCount = result.variants.length
+      
+      let successMessage = `✅ Tạo thành công!\n\n🟢 Sản phẩm: ${form.value.tenSanPham}\n🔧 Biến thể: ${variantCount}`
+      
+      // Check if user tried to add serials
+      if (inputSerialCount > 0) {
+        if (serialCount > 0) {
+          // Some or all serials were added successfully
+          successMessage += `\n📋 Serial mới: ${serialCount}`
+          
+          // Check if some serials were duplicates
+          const duplicateCount = inputSerialCount - serialCount
+          if (duplicateCount > 0) {
+            successMessage += `\n⚠️ Serial trùng: ${duplicateCount} (đã tồn tại trong hệ thống)`
+          }
+        } else {
+          // All serials were duplicates - 0 created
+          successMessage += `\n\n⚠️ Serial: 0 (serial đã tồn tại trong hệ thống)`
+          successMessage += `\n\n💡 Tất cả ${inputSerialCount} serial bạn nhập đã được thêm vào trước đó.\nBạn có thể:\n- Kiểm tra lại danh sách serial trong quản lý biến thể\n- Thêm serial mới khác\n- Hoặc import từ file Excel với serial chưa tồn tại`
+        }
+      } else {
+        // No serials were provided by user
+        successMessage += `\n\n💡 Bạn có thể thêm serial cho các biến thể sau bằng cách:\n- Nhấn vào nút quản lý serial của từng biến thể\n- Hoặc import từ file Excel`
+      }
+      
+      alert(successMessage)
     } else {
       // Create product only
       const response = await createSanPham(productPayload)
@@ -1639,18 +1670,54 @@ const saveAndCreateVariants = async () => {
       // For add-variants-only mode, emit save and close modal
       if (isAddVariantsMode.value) {
         const totalMessage = []
+        const detailMessages = []
+        
         if (newVariantsToCreate.length > 0) {
           totalMessage.push(`${newVariantsToCreate.length} biến thể mới`)
+          detailMessages.push(`✅ Đã tạo: ${newVariantsToCreate.length} biến thể mới`)
         }
+        
         if (variantsToAggregate.length > 0) {
           const totalSerials = variantsToAggregate.reduce((sum, agg) => sum + agg.newSerials.length, 0)
-          totalMessage.push(`${totalSerials} serial được thêm vào ${variantsToAggregate.length} biến thể đã tồn tại`)
+          
+          if (totalSerials > 0) {
+            totalMessage.push(`${totalSerials} serial được thêm vào ${variantsToAggregate.length} biến thể đã tồn tại`)
+            
+            // Build detailed message
+            const aggregateDetails = variantsToAggregate.map(agg => {
+              const configParts = []
+              if (agg.existingVariant.tenCpu) configParts.push(agg.existingVariant.tenCpu)
+              if (agg.existingVariant.tenRam) configParts.push(agg.existingVariant.tenRam)
+              if (agg.existingVariant.tenMauSac) configParts.push(agg.existingVariant.tenMauSac)
+              const config = configParts.join(' | ') || agg.existingVariant.maCtsp
+              return `  • ${config}: +${agg.newSerials.length} serial`
+            }).join('\n')
+            
+            detailMessages.push(`📦 Đã thêm serial vào biến thể đã tồn tại:\n${aggregateDetails}`)
+          } else {
+            // All serials were duplicates - show detailed error
+            const duplicateDetails = variantsToAggregate.map(agg => {
+              const configParts = []
+              if (agg.existingVariant.tenCpu) configParts.push(agg.existingVariant.tenCpu)
+              if (agg.existingVariant.tenRam) configParts.push(agg.existingVariant.tenRam)
+              if (agg.existingVariant.tenMauSac) configParts.push(agg.existingVariant.tenMauSac)
+              const config = configParts.join(' | ') || agg.existingVariant.maCtsp
+              return `  • ${config}`
+            }).join('\n')
+            
+            alert(`❌ Không thể tạo biến thể!\n\n🔴 Lý do: Tất cả ${variantsToAggregate.length} biến thể đã tồn tại và không có serial mới để thêm.\n\nBiến thể trùng:\n${duplicateDetails}\n\n💡 Giải pháp:\n- Kiểm tra lại cấu hình biến thể\n- Hoặc thêm serial mới cho các biến thể này\n- Hoặc chọn cấu hình khác để tạo biến thể mới`)
+            emit('save')
+            return
+          }
         }
         
         if (totalMessage.length > 0) {
-          alert(`Đã hoàn thành: ${totalMessage.join(' và ')}!`)
+          const fullMessage = detailMessages.length > 0 
+            ? `✅ Hoàn thành!\n\n${detailMessages.join('\n\n')}\n\n💡 Tổng cộng: ${totalMessage.join(' và ')}`
+            : `✅ Đã hoàn thành: ${totalMessage.join(' và ')}!`
+          alert(fullMessage)
         } else {
-          alert('Không có thay đổi nào được thực hiện')
+          alert('⚠️ Không có thay đổi nào được thực hiện.\n\n💡 Vui lòng kiểm tra:\n- Biến thể đã tồn tại chưa?\n- Serial đã được thêm chưa?\n- Cấu hình có đúng không?')
         }
         emit('save')
         return

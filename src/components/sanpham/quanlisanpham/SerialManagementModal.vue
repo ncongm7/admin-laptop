@@ -573,115 +573,34 @@ const importFromExcel = async (event) => {
     if (newSerials.length === 0 && duplicateSerials.length > 0) {
       const duplicateList = duplicateSerials.slice(0, 15).join('\n')
       const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-      alert(`✖ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
+      alert(`✖ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n📝 Lưu ý: Serial sẽ chỉ được lưu vào database khi bạn nhấn nút "Lưu".`)
       event.target.value = ''
       loading.value = false
       return // ⛔ STOP - Don't add anything to table
     }
     
-    // If variant is saved to DB, also save serials to backend
-    if (props.variant?.id) {
-      try {
-        console.log('Saving serials to backend using import API...')
-        
-        // Use the import API for better handling
-        const response = await importSerialsFromExcel(props.variant.id, file)
-        console.log('✅ Import API response:', response)
-        
-        // Handle both old and new response formats
-        let importedSerials = []
-        let importCount = 0
-        
-        if (response.data?.success) {
-          // New structured response format
-          importedSerials = response.data.data || []
-          importCount = response.data.count || importedSerials.length
-          console.log('✅ New format - imported count:', importCount)
-        } else if (Array.isArray(response.data)) {
-          // Old format - direct array
-          importedSerials = response.data
-          importCount = importedSerials.length
-          console.log('✅ Old format - imported count:', importCount)
-        }
-        
-        // Always reload from backend to ensure consistency
-        await loadSerials()
-        console.log('✅ Reloaded serials from backend after import')
-        
-        // Show clear success message and emit only if successful
-        if (importCount > 0 && duplicateSerials.length === 0) {
-          // All imported successfully
-          alert(`✅ Import thành công!\n\n🟢 Đã thêm ${importCount} serial mới.\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
-          
-          // ✅ Emit to close modal and refresh parent
-          emit('save', {
-            variantId: props.variant.id,
-            serials: localSerials.value
-          })
-        } else if (importCount > 0 && duplicateSerials.length > 0) {
-          // Partial success - had duplicates
-          const duplicateList = duplicateSerials.slice(0, 15).join('\n')
-          const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-          alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${importCount} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
-          
-          // ✅ Emit even with partial success to update parent
-          emit('save', {
-            variantId: props.variant.id,
-            serials: localSerials.value
-          })
-        } else if (importCount === 0 && duplicateSerials.length > 0) {
-          // All duplicates - DON'T emit, keep modal open
-          const duplicateList = duplicateSerials.slice(0, 15).join('\n')
-          const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-          alert(`✖ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
-          // ⛔ DON'T emit - keep modal open for user to add more serials
-          console.log('⚠️ All duplicates - modal stays open')
-        } else {
-          alert('⚠️ Không tìm thấy serial mới trong file.\n\n💡 Vui lòng kiểm tra file có đúng format.')
-          // ⛔ No new serials - keep modal open
-        }
-        
-      } catch (error) {
-        console.error('❌ Error using import API:', error)
-        
-        // Extract error message from response
-        let errorMessage = 'Có lỗi khi import serial'
-        if (error.response?.data?.message) {
-          errorMessage = error.response.data.message
-        } else if (error.response?.data?.error) {
-          errorMessage = error.response.data.error
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-        
-        alert(`✖ Import thất bại!\n\n🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng kiểm tra file và thử lại.`)
-        // ⛔ DON'T emit on error - keep modal open
-        // ⛔ DON'T add to localSerials - keep table clean
-      }
-    }
-    
-    // Preview mode - variant not saved yet
-    // ONLY add to localSerials if there are new serials
-    if (!props.variant?.id && newSerials.length > 0) {
-      // Add new serials to local list for preview
-      newSerials.forEach(serial => {
-        localSerials.value.push({
-          id: null,
-          soSerial: serial,
-          trangThai: 1
-        })
+    // ✅ NEW LOGIC: Always add to preview table first, don't auto-save to DB
+    // Add new serials to local list for preview
+    newSerials.forEach(serial => {
+      localSerials.value.push({
+        id: null, // No ID means not saved to DB yet
+        soSerial: serial,
+        trangThai: 1
       })
-      
-      // Force trigger reactivity
-      localSerials.value = [...localSerials.value]
-      
-      if (duplicateSerials.length === 0) {
-        alert(`✅ Thành công!\n\n🟢 Đã thêm ${newSerials.length} serial vào preview.\n\n💡 Lưu sản phẩm để lưu serial vào database.`)
-      } else {
-        const duplicateList = duplicateSerials.slice(0, 10).join('\n')
-        const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
-        alert(`⚠️ Thêm một phần thành công!\n\n🟢 Thêm mới: ${newSerials.length} serial\n🔴 Bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial trùng:\n${duplicateList}${moreText}\n\n💡 Lưu sản phẩm để lưu ${newSerials.length} serial mới.`)
-      }
+    })
+    
+    // Force trigger reactivity
+    localSerials.value = [...localSerials.value]
+    
+    // Show appropriate success message
+    if (duplicateSerials.length === 0) {
+      // All new serials
+      alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`)
+    } else {
+      // Mixed: some new, some duplicates
+      const duplicateList = duplicateSerials.slice(0, 10).join('\n')
+      const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
+      alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`)
     }
     
     event.target.value = ''
@@ -921,13 +840,16 @@ const handleSave = async () => {
           })
         }
         
-        alert(`Lưu thành công ${newSerials.length} serial mới!`)
+        // Reload from backend to ensure consistency
+        await loadSerials()
+        
+        alert(`✅ Lưu thành công!\n\n🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã được cập nhật.\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
       } else {
-        alert('Không có serial mới để lưu!')
+        alert('⚠️ Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.')
       }
     }
     
-    // Emit save event with updated serials
+    // Emit save event with updated serials to refresh parent component
     emit('save', {
       variantId: props.variant.id,
       serials: localSerials.value
@@ -937,7 +859,8 @@ const handleSave = async () => {
     
   } catch (error) {
     console.error('Error saving serials:', error)
-    alert('Có lỗi khi lưu serial')
+    const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
+    alert(`❌ Lưu thất bại!\n\n🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng thử lại hoặc liên hệ quản trị viên.`)
   } finally {
     loading.value = false
   }
