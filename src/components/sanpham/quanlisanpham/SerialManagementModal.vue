@@ -210,7 +210,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { getSerialsByCtspId, createSerialsBatch, importSerialsFromExcel, updateSerial, updateSerialStatus, deleteSerial } from '@/service/sanpham/SanPhamService'
+import { getSerialsByCtspId, createSerialsBatch, importSerialsFromExcel, updateSerial, updateSerialStatus, deleteSerial, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
 
 const props = defineProps({
   modelValue: {
@@ -573,34 +573,36 @@ const importFromExcel = async (event) => {
     if (newSerials.length === 0 && duplicateSerials.length > 0) {
       const duplicateList = duplicateSerials.slice(0, 15).join('\n')
       const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-      alert(`✖ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n📝 Lưu ý: Serial sẽ chỉ được lưu vào database khi bạn nhấn nút "Lưu".`)
+      alert(`❌ Import thất bại!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n📝 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`)
       event.target.value = ''
       loading.value = false
       return // ⛔ STOP - Don't add anything to table
     }
     
-    // ✅ NEW LOGIC: Always add to preview table first, don't auto-save to DB
-    // Add new serials to local list for preview
-    newSerials.forEach(serial => {
-      localSerials.value.push({
-        id: null, // No ID means not saved to DB yet
-        soSerial: serial,
-        trangThai: 1
+    // Only proceed if there are new serials to add
+    if (newSerials.length > 0) {
+      // Add new serials to local list for preview
+      newSerials.forEach(serial => {
+        localSerials.value.push({
+          id: null, // No ID means not saved to DB yet
+          soSerial: serial,
+          trangThai: 1
+        })
       })
-    })
-    
-    // Force trigger reactivity
-    localSerials.value = [...localSerials.value]
-    
-    // Show appropriate success message
-    if (duplicateSerials.length === 0) {
-      // All new serials
-      alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`)
-    } else {
-      // Mixed: some new, some duplicates
-      const duplicateList = duplicateSerials.slice(0, 10).join('\n')
-      const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
-      alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`)
+      
+      // Force trigger reactivity
+      localSerials.value = [...localSerials.value]
+      
+      // Show appropriate success message
+      if (duplicateSerials.length === 0) {
+        // All new serials
+        alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`)
+      } else {
+        // Mixed: some new, some duplicates
+        const duplicateList = duplicateSerials.slice(0, 10).join('\n')
+        const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
+        alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`)
+      }
     }
     
     event.target.value = ''
@@ -829,7 +831,7 @@ const handleSave = async () => {
         console.log('Saving new serials to DB:', serialRequests)
         const response = await createSerialsBatch(serialRequests)
         
-        // Update local serials with IDs from response instead of reloading
+        // Update local serials with IDs from response
         if (response.data && Array.isArray(response.data)) {
           response.data.forEach((createdSerial, index) => {
             const localSerial = newSerials[index]
@@ -843,7 +845,30 @@ const handleSave = async () => {
         // Reload from backend to ensure consistency
         await loadSerials()
         
-        alert(`✅ Lưu thành công!\n\n🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã được cập nhật.\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
+        // Update variant stock count in database
+        const activeSerialCount = localSerials.value.filter(s => s.trangThai === 1).length
+        console.log('🔄 Updating variant stock count:', activeSerialCount)
+        
+        // Import updateChiTietSanPham if not already imported
+        const { updateChiTietSanPham } = await import('@/service/sanpham/SanPhamService')
+        
+        const updatePayload = {
+          giaBan: props.variant.giaBan,
+          soLuongTon: activeSerialCount,
+          trangThai: props.variant.trangThai,
+          idMauSac: props.variant.idMauSac,
+          idCpu: props.variant.idCpu,
+          idRam: props.variant.idRam,
+          idGpu: props.variant.idGpu,
+          idOCung: props.variant.idOCung,
+          idLoaiManHinh: props.variant.idLoaiManHinh,
+          idPin: props.variant.idPin
+        }
+        
+        await updateChiTietSanPham(props.variant.id, updatePayload)
+        console.log('✅ Updated variant stock count in database:', activeSerialCount)
+        
+        alert(`✅ Lưu thành công!\n\n🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã cập nhật: ${activeSerialCount}\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
       } else {
         alert('⚠️ Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.')
       }
@@ -852,7 +877,8 @@ const handleSave = async () => {
     // Emit save event with updated serials to refresh parent component
     emit('save', {
       variantId: props.variant.id,
-      serials: localSerials.value
+      serials: localSerials.value,
+      stockCount: localSerials.value.filter(s => s.trangThai === 1).length
     })
     
     handleClose()

@@ -1,19 +1,5 @@
 import axios from './axiosInstance'
 
-// ✅ SỬA: Đổi BASE_URL để match với backend controllers
-// Backend đang dùng: /api/cpu, /api/gpu, /api/ram, v.v.
-
-// ⚠️ ĐANG TẮT: Backend chưa có Camera controller
-// export const getAllCamera = async () => {
-//   try {
-//     const res = await axios.get('/api/camera')
-//     console.log('getAllCamera:', res.data)
-//     return res.data
-//   } catch (error) {
-//     console.error('Lỗi khi lấy dữ liệu camera:', error)
-//     return null
-//   }
-// }
 
 export const getAllCpu = async () => {
   try {

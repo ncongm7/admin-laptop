@@ -815,7 +815,7 @@ async function onToggleStatus(user) {
 
 @media (max-width: 768px) {
   .nhanvien-wrapper {
-      padding: 12px;
-    }
+    padding: 12px;
   }
+}
 </style>

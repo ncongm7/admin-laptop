@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
-    // ❌ XÓA: getAllHang, getAllHeDieuHanh, getAllCamera - Backend chưa có controller
+  
     getAllCpu,
     getAllRam,
     getAllGpu,
@@ -15,7 +15,7 @@ import {
 export const useAttributeStore = defineStore('attribute', () => {
     // State
     const attributes = ref({
-        // ❌ XÓA: brands, oses, cameras - Backend chưa có controller
+       
         cpus: [],
         rams: [],
         gpus: [],
@@ -29,8 +29,6 @@ export const useAttributeStore = defineStore('attribute', () => {
     const loading = ref(false)
     const error = ref(null)
 
-    // Getters
-    // ❌ XÓA: getBrands, getOses, getCameras
     const getCpus = computed(() => attributes.value.cpus)
     const getRams = computed(() => attributes.value.rams)
     const getGpus = computed(() => attributes.value.gpus)
@@ -45,7 +43,7 @@ export const useAttributeStore = defineStore('attribute', () => {
         loading.value = true
         error.value = null
         try {
-            // ❌ XÓA: getAllHang, getAllHeDieuHanh, getAllCamera
+            
             const [
                 cpus,
                 rams,
@@ -151,8 +149,7 @@ export const useAttributeStore = defineStore('attribute', () => {
         loading,
         error,
 
-        // Getters
-        // ❌ XÓA: getBrands, getOses, getCameras
+        
         getCpus,
         getRams,
         getGpus,

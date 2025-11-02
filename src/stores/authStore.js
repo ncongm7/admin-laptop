@@ -121,6 +121,7 @@ export const useAuthStore = defineStore('auth', {
       const userStr = localStorage.getItem('user')
 
       if (!token) {
+        console.log('Không tìm thấy token, chưa đăng nhập')
         return false
       }
 
@@ -132,12 +133,14 @@ export const useAuthStore = defineStore('auth', {
       if (userStr) {
         try {
           this.user = JSON.parse(userStr)
+          console.log('Đã khôi phục thông tin user từ localStorage:', this.user)
         } catch (error) {
           console.error('Lỗi parse user từ localStorage:', error)
         }
       }
 
-      // Gọi API để lấy lại thông tin user mới nhất
+      // Thử gọi API để lấy lại thông tin user mới nhất (không bắt buộc)
+      // Nếu API fail, vẫn giữ nguyên token và user từ localStorage
       try {
         const response = await authService.getCurrentUser()
         const userData = response.data || response
@@ -151,15 +154,15 @@ export const useAuthStore = defineStore('auth', {
           localStorage.setItem('currentNhanVienId', userData.userId || userData.user_id)
         }
 
-        console.log('Đã khôi phục phiên đăng nhập:', userData)
-        return true
+        console.log('Đã cập nhật thông tin user mới nhất từ server:', userData)
       } catch (error) {
-        console.error('Token không hợp lệ hoặc đã hết hạn:', error)
-
-        // Token không hợp lệ, xóa hết
-        this.logout()
-        return false
+        console.warn('Không thể lấy thông tin user từ server, sử dụng thông tin từ localStorage:', error.message)
+        // KHÔNG logout tự động, để user tiếp tục sử dụng với token hiện có
+        // Token sẽ được verify khi gọi các API khác
       }
+
+      console.log('Đã khôi phục phiên đăng nhập thành công')
+      return true
     },
 
     /**

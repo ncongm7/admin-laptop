@@ -11,13 +11,8 @@
             <div class="search-customer mb-3">
                 <label class="form-label small fw-semibold">Tìm khách hàng</label>
                 <div class="input-group input-group-sm">
-                    <input 
-                        type="text" 
-                        class="form-control" 
-                        v-model="searchKeyword"
-                        @input="handleSearch"
-                        placeholder="Nhập SĐT hoặc tên..."
-                        @keyup.enter="searchCustomer" />
+                    <input type="text" class="form-control" v-model="searchKeyword" @input="handleSearch"
+                        placeholder="Nhập SĐT hoặc tên..." @keyup.enter="searchCustomer" />
                     <button class="btn btn-outline-secondary" @click="searchCustomer">
                         <i class="bi bi-search"></i>
                     </button>
@@ -25,8 +20,7 @@
 
                 <!-- Kết quả tìm kiếm -->
                 <div v-if="showSearchResults && searchResults.length > 0" class="search-results-dropdown">
-                    <div v-for="result in searchResults" :key="result.userId" 
-                        class="search-result-item"
+                    <div v-for="result in searchResults" :key="result.userId" class="search-result-item"
                         @click="selectCustomer(result)">
                         <div class="customer-name">{{ result.hoTen }}</div>
                         <div class="customer-phone text-muted small">
@@ -39,8 +33,7 @@
                 </div>
 
                 <!-- Không tìm thấy -->
-                <div v-if="showSearchResults && searchResults.length === 0 && searchKeyword" 
-                    class="no-results-message">
+                <div v-if="showSearchResults && searchResults.length === 0 && searchKeyword" class="no-results-message">
                     <small class="text-muted">Không tìm thấy khách hàng</small>
                 </div>
             </div>
@@ -132,7 +125,7 @@ const handleSearch = () => {
 }
 
 const searchCustomer = async () => {
-    if (!searchKeyword.value || searchKeyword.value.trim().length < 2) {
+    if (!searchKeyword.value || searchKeyword.value.trim().length < 1) {
         return
     }
 
@@ -141,18 +134,30 @@ const searchCustomer = async () => {
 
     try {
         const response = await timKiemKhachHang({
-            keyword: searchKeyword.value.trim(),
-            page: 0,
-            size: 10
+            keyword: searchKeyword.value.trim()
         })
 
-        if (response && response.data) {
-            searchResults.value = response.data.content || response.data || []
-        } else {
-            searchResults.value = []
+        console.log('🔍 [CustomerInfo] Response:', response)
+
+        // Parse response: Backend trả về { data: [...] } hoặc trực tiếp [...]
+        let results = []
+        if (response) {
+            if (Array.isArray(response)) {
+                results = response
+            } else if (response.data) {
+                if (Array.isArray(response.data)) {
+                    results = response.data
+                } else if (response.data.content) {
+                    results = response.data.content
+                }
+            }
         }
+
+        console.log('✅ [CustomerInfo] Parsed results:', results)
+        searchResults.value = results
+
     } catch (error) {
-        console.error('Lỗi khi tìm kiếm khách hàng:', error)
+        console.error('❌ [CustomerInfo] Lỗi khi tìm kiếm khách hàng:', error)
         searchResults.value = []
     } finally {
         isSearching.value = false
@@ -162,9 +167,10 @@ const searchCustomer = async () => {
 }
 
 const selectCustomer = (customer) => {
+    console.log('✅ [CustomerInfo] Chọn khách hàng:', customer)
     selectedCustomer.value = customer
     emit('update:customer', customer)
-    
+
     // Đóng dropdown và clear search
     showSearchResults.value = false
     searchKeyword.value = ''
@@ -172,7 +178,9 @@ const selectCustomer = (customer) => {
 }
 
 const clearCustomer = () => {
+    console.log('🗑️ [CustomerInfo] Xóa khách hàng → Chuyển về Khách lẻ')
     selectedCustomer.value = null
+    // Emit null để backend biết đây là khách vãng lai
     emit('update:customer', null)
 }
 
@@ -287,4 +295,3 @@ const closeDropdown = () => {
     background: #999;
 }
 </style>
-

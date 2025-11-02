@@ -131,6 +131,7 @@ const handleSearch = () => {
 
     searchTimeout = setTimeout(async () => {
         isLoading.value = true
+        console.log('🔍 Tìm kiếm sản phẩm:', keyword.value.trim())
 
         try {
             const response = await timKiemSanPham({
@@ -139,13 +140,36 @@ const handleSearch = () => {
                 size: 20
             })
 
-            if (response && response.data) {
-                ketQua.value = response.data.content || response.data || []
-            } else {
-                ketQua.value = []
+            console.log('📦 Response tìm kiếm:', response)
+
+            // Xử lý response linh hoạt - backend có thể trả về nhiều cấu trúc
+            let products = []
+
+            if (response) {
+                // Trường hợp 1: response.data.content (pagination)
+                if (response.data && response.data.content && Array.isArray(response.data.content)) {
+                    products = response.data.content
+                }
+                // Trường hợp 2: response.data (array trực tiếp)
+                else if (response.data && Array.isArray(response.data)) {
+                    products = response.data
+                }
+                // Trường hợp 3: response là array
+                else if (Array.isArray(response)) {
+                    products = response
+                }
+                // Trường hợp 4: response.data.data
+                else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                    products = response.data.data
+                }
             }
+
+            ketQua.value = products
+            console.log('✅ Tìm thấy', products.length, 'sản phẩm')
+
         } catch (error) {
-            console.error('Lỗi khi tìm kiếm:', error)
+            console.error('❌ Lỗi khi tìm kiếm sản phẩm:', error)
+            console.error('Error details:', error.response?.data)
             ketQua.value = []
         } finally {
             isLoading.value = false
