@@ -103,10 +103,10 @@
                                         Quét Serial/IMEI sản phẩm
                                         <span class="badge bg-danger ms-2">Bắt buộc</span>
                                     </h6>
-                                    <button class="btn btn-sm btn-outline-primary" @click="toggleScanMode"
-                                        :class="{ 'active': scanMode }" :disabled="isProcessing">
+                                    <button class="btn btn-sm btn-outline-primary" @click="openCameraScanner"
+                                        :disabled="isProcessing">
                                         <i class="bi bi-camera"></i>
-                                        {{ scanMode ? 'Tắt quét' : 'Bật quét' }}
+                                        Bật quét
                                     </button>
                                 </div>
 
@@ -212,12 +212,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Camera Scanner Modal -->
+    <div v-if="showCameraScanner" class="camera-scanner-modal">
+        <div class="camera-header">
+            <h6 class="mb-0"><i class="bi bi-camera"></i> Quét IMEI/Serial</h6>
+            <button class="btn btn-sm btn-danger" @click="closeCameraScanner">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="camera-container">
+            <StreamQrcodeBarcodeReader @decode="onBarcodeDetected" />
+        </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { layDanhSachPhuongThucThanhToan } from '@/service/banHangService'
+import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
+import { layDanhSachPhuongThucThanhToan } from '@/service/banHangService'
 
 const props = defineProps({
     hoaDon: {
@@ -238,6 +254,7 @@ const formData = ref({
 const tienKhachDua = ref(0)
 const isProcessing = ref(false)
 const serialInputs = ref([])
+const showCameraScanner = ref(false)
 
 // ==================== SERIAL VALIDATION ====================
 const hoaDonRef = computed(() => props.hoaDon)
@@ -328,10 +345,6 @@ const scanSerial = async (product) => {
     }
 }
 
-// Import composables
-import { useConfirm } from '@/composables/useConfirm'
-import { useToast } from '@/composables/useToast'
-
 const { showConfirm } = useConfirm()
 const { error: showError, warning: showWarning } = useToast()
 
@@ -408,6 +421,32 @@ const formatCurrency = (value) => {
         style: 'currency',
         currency: 'VND'
     }).format(value || 0)
+}
+
+// Camera Scanner functions
+const openCameraScanner = () => {
+    showCameraScanner.value = true
+}
+
+const closeCameraScanner = () => {
+    showCameraScanner.value = false
+}
+
+const onBarcodeDetected = async (result) => {
+    console.log('📷 Mã vạch đã quét:', result)
+
+    // Close camera UI
+    showCameraScanner.value = false
+
+    // Set the scanned code to current input
+    if (currentProduct.value) {
+        currentSerialInput.value = result
+        // Automatically scan the serial
+        await scanSerial(currentProduct.value)
+    } else {
+        // No product selected, just set the input
+        currentSerialInput.value = result
+    }
 }
 
 // Lifecycle
@@ -556,5 +595,61 @@ onMounted(() => {
     transition: width 0.3s ease;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* Camera Scanner Modal Styles */
+.camera-scanner-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.camera-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.camera-header h6 {
+    color: white;
+    margin: 0;
+}
+
+.camera-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 2rem;
+}
+
+/* StreamBarcodeReader styles */
+.camera-container :deep(video) {
+    width: 100% !important;
+    max-width: 600px;
+    height: auto !important;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 </style>
