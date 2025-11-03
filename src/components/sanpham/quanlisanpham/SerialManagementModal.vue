@@ -206,11 +206,16 @@
       </div>
     </div>
   </div>
+  
+  <!-- Toast Notifications -->
+  <NotificationToast ref="toast" />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { getSerialsByCtspId, createSerialsBatch, importSerialsFromExcel, updateSerial, updateSerialStatus, deleteSerial, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
+import { getSerialsByCtspId, getAllSerial, createSerialsBatch, importSerialsFromExcel, updateSerial, updateSerialStatus, deleteSerial, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
+import NotificationToast from '@/components/common/NotificationToast.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 const props = defineProps({
   modelValue: {
@@ -224,6 +229,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'save'])
+
+// Use confirm composable and toast
+const { showConfirm } = useConfirm()
+const toast = ref(null)
 
 // State
 const localSerials = ref([])
@@ -344,55 +353,138 @@ const validateSerialInput = () => {
   }
 }
 
-// Add serials with duplicate detection
-const addSerialNumbers = () => {
+// Add serials with duplicate detection against entire database
+const addSerialNumbers = async () => {
   const serials = serialInput.value.split(/[,;]/).map(s => s.trim().toUpperCase()).filter(s => s)
+  
+  if (serials.length === 0) {
+    validationError.value = 'Vui lòng nhập ít nhất một serial'
+    return
+  }
   
   // Validate format first
   const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
   if (invalidSerials.length > 0) {
     validationError.value = `❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`
-    alert(validationError.value)
+    
+    await showConfirm({
+      title: 'Serial không hợp lệ',
+      message: `❌ Serial không hợp lệ: ${invalidSerials.join(', ')}
+
+📋 Yêu cầu: Đúng 7 ký tự gồm chữ và số
+
+💡 Ví dụ: ABC1234, DEF5678`,
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
   
-  // Check for duplicates
-  const existingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
-  const duplicateSerials = []
-  const newSerials = []
-  
-  serials.forEach(serial => {
-    if (existingSerials.includes(serial)) {
-      duplicateSerials.push(serial)
-    } else {
-      newSerials.push(serial)
-      localSerials.value.push({
-        id: null,
-        soSerial: serial,
-        trangThai: 1
+  try {
+    loading.value = true
+    
+    // Get all serials from database to check for duplicates
+    console.log('🔍 Checking for duplicate serials in database...')
+    let allExistingSerials = []
+    
+    try {
+      const allSerialsResponse = await getAllSerial()
+      allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
+      console.log('✅ Successfully fetched', allExistingSerials.length, 'serials from database')
+    } catch (dbError) {
+      console.warn('⚠️ Failed to fetch serials from database:', dbError.message)
+      console.warn('⚠️ Falling back to local-only duplicate check')
+      
+      // Show user-friendly warning about database connection
+      if (dbError.message.includes('500') || dbError.message.includes('not supported')) {
+        console.warn('⚠️ Backend may need restart after endpoint changes')
+        // Don't show alert to user, just log the warning
+      }
+      
+      allExistingSerials = [] // Fallback to empty array
+    }
+    
+    // Also check local serials (not yet saved)
+    const localExistingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
+    
+    // Combine all existing serials
+    const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
+    
+    const duplicateSerials = []
+    const newSerials = []
+    
+    serials.forEach(serial => {
+      if (allExisting.includes(serial)) {
+        duplicateSerials.push(serial)
+      } else {
+        newSerials.push(serial)
+        localSerials.value.push({
+          id: null,
+          soSerial: serial,
+          trangThai: 1
+        })
+      }
+    })
+    
+    // Clear input and validation state
+    serialInput.value = ''
+    validationError.value = ''
+    validationSuccess.value = false
+    
+    // Show detailed results matching the design from the image
+    if (newSerials.length === 0 && duplicateSerials.length > 0) {
+      // All duplicates - show error message like in the image
+      const duplicateList = duplicateSerials.join('\n')
+      const message = `❌ Import thất bại!
+
+🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:
+${duplicateList}
+
+💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.
+
+🔍 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`
+      
+      await showConfirm({
+        title: 'Import thất bại',
+        message: message,
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
+      
+    } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
+      // Mixed: some new, some duplicates
+      const duplicateList = duplicateSerials.slice(0, 5).join('\n')
+      const moreCount = duplicateSerials.length > 5 ? `\n... và ${duplicateSerials.length - 5} serial khác` : ''
+      
+      toast.value?.addToast({
+        type: 'warning',
+        title: 'Import một phần thành công!',
+        message: `✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng đã bỏ qua, chỉ thêm serial mới.`,
+        duration: 6000
+      })
+      
+    } else if (newSerials.length > 0) {
+      // All new - success
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`,
+        duration: 5000
       })
     }
-  })
-  
-  // Clear input and validation state
-  serialInput.value = ''
-  validationError.value = ''
-  validationSuccess.value = false
-  
-  // Show detailed results
-  if (newSerials.length === 0 && duplicateSerials.length > 0) {
-    // All duplicates
-    const duplicateList = duplicateSerials.slice(0, 10).join(', ')
-    const moreCount = duplicateSerials.length > 10 ? ` và ${duplicateSerials.length - 10} serial khác` : ''
-    alert(`❌ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreCount}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
-  } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
-    // Mixed: some new, some duplicates
-    const duplicateList = duplicateSerials.slice(0, 5).join(', ')
-    const moreCount = duplicateSerials.length > 5 ? ` và ${duplicateSerials.length - 5} serial khác` : ''
-    alert(`⚠️ Thêm một phần thành công!\n\n✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng: ${duplicateList}${moreCount}\n\n💡 Serial trùng đã bỏ qua, chỉ thêm serial mới.`)
-  } else if (newSerials.length > 0) {
-    // All new
-    alert(`✅ Thành công!\n\nĐã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`)
+    
+  } catch (error) {
+    console.error('Error checking serial duplicates:', error)
+    validationError.value = 'Có lỗi khi kiểm tra serial trùng lặp: ' + (error.message || 'Unknown error')
+    
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi hệ thống!',
+      message: 'Không thể kiểm tra serial trùng lặp.\nVui lòng thử lại sau.',
+      duration: 5000
+    })
+  } finally {
+    loading.value = false
   }
 }
 
@@ -402,7 +494,15 @@ const removeSerial = async (index) => {
   
   // If serial has ID (saved in DB), call API to delete
   if (serial?.id && props.variant?.id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa serial này?')) {
+    const confirmed = await showConfirm({
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc chắn muốn xóa serial này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      type: 'danger'
+    })
+    
+    if (!confirmed) {
       return
     }
     
@@ -410,7 +510,13 @@ const removeSerial = async (index) => {
       loading.value = true
       await deleteSerial(serial.id)
       localSerials.value.splice(index, 1)
-      alert('Đã xóa serial thành công!')
+      
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: 'Đã xóa serial thành công!',
+        duration: 3000
+      })
       
       // Reload serials to update stock count
       await loadSerials()
@@ -422,7 +528,13 @@ const removeSerial = async (index) => {
       })
     } catch (error) {
       console.error('Error deleting serial:', error)
-      alert('Có lỗi khi xóa serial: ' + (error.response?.data?.message || error.message))
+      
+      toast.value?.addToast({
+        type: 'error',
+        title: 'Lỗi xóa serial!',
+        message: 'Có lỗi khi xóa serial: ' + (error.response?.data?.message || error.message),
+        duration: 5000
+      })
     } finally {
       loading.value = false
     }
@@ -480,10 +592,21 @@ const toggleSerialStatus = async (index) => {
         serials: localSerials.value || []
       })
       
-      alert(`Đã chuyển trạng thái serial sang "${newStatus === 1 ? 'Có sẵn' : 'Ẩn'}"`)
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Cập nhật thành công!',
+        message: `Đã chuyển trạng thái serial sang "${newStatus === 1 ? 'Có sẵn' : 'Ẩn'}"`,
+        duration: 3000
+      })
     } catch (error) {
       console.error('Error updating serial status:', error)
-      alert('Có lỗi khi cập nhật trạng thái: ' + (error.response?.data?.message || error.message))
+      
+      toast.value?.addToast({
+        type: 'error',
+        title: 'Lỗi cập nhật!',
+        message: 'Có lỗi khi cập nhật trạng thái: ' + (error.response?.data?.message || error.message),
+        duration: 5000
+      })
     } finally {
       loading.value = false
     }
@@ -504,7 +627,12 @@ const toggleSerialStatus = async (index) => {
       serials: localSerials.value || []
     })
     
-    alert(`Đã chuyển trạng thái serial sang "${newStatus === 1 ? 'Có sẵn' : 'Ẩn'}"`)
+    toast.value?.addToast({
+      type: 'success',
+      title: 'Cập nhật thành công!',
+      message: `Đã chuyển trạng thái serial sang "${newStatus === 1 ? 'Có sẵn' : 'Ẩn'}"`,
+      duration: 3000
+    })
   }
 }
 
@@ -530,7 +658,16 @@ const importFromExcel = async (event) => {
   ]
   
   if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().endsWith('.xlsx')) {
-    alert('Vui lòng chọn file CSV hoặc Excel (.csv, .xlsx)')
+    await showConfirm({
+      title: 'File không hợp lệ',
+      message: `📁 File không hợp lệ!
+
+📋 Vui lòng chọn file CSV hoặc Excel
+
+💡 Định dạng hỗ trợ: .csv, .xlsx`,
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     event.target.value = ''
     return
   }
@@ -545,19 +682,60 @@ const importFromExcel = async (event) => {
     console.log('🔵 Parsed serials:', serials)
     
     if (serials.length === 0) {
-      alert('Không có serial number nào được tìm thấy trong file.\n\nVui lòng đảm bảo:\n• File CSV hoặc Excel\n• Có cột "Serial Number" hoặc serial ở cột đầu tiên\n• Mỗi serial có đúng 7 ký tự gồm chữ và số\n• Ví dụ: ABC1234, DEF5678\n\nHãy tải file mẫu để tham khảo format đúng.')
+      await showConfirm({
+        title: 'Không tìm thấy serial',
+        message: `📂 Không có serial number nào được tìm thấy trong file.
+
+📋 Vui lòng đảm bảo:
+• File CSV hoặc Excel
+• Có cột "Serial Number" hoặc serial ở cột đầu tiên
+• Mỗi serial có đúng 7 ký tự gồm chữ và số
+
+💡 Ví dụ: ABC1234, DEF5678
+
+📝 Hãy tải file mẫu để tham khảo format đúng.`,
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
       event.target.value = ''
       return
     }
     
-    // Check for duplicates - ONLY classify, DON'T add to localSerials yet
-    const existingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
+    // Check for duplicates against entire database
+    console.log('🔍 Checking for duplicate serials in database...')
+    let allExistingSerials = []
+    
+    try {
+      const allSerialsResponse = await getAllSerial()
+      allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
+      console.log('✅ Successfully fetched', allExistingSerials.length, 'serials from database')
+    } catch (dbError) {
+      console.warn('⚠️ Failed to fetch serials from database:', dbError.message)
+      console.warn('⚠️ Falling back to local-only duplicate check')
+      
+      // Show user-friendly warning about database connection
+      if (dbError.message.includes('500') || dbError.message.includes('not supported')) {
+        console.warn('⚠️ Backend may need restart after endpoint changes')
+        // Don't show alert to user, just log the warning
+      }
+      
+      allExistingSerials = [] // Fallback to empty array
+    }
+    
+    // Also check local serials (not yet saved)
+    const localExistingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
+    
+    // Combine all existing serials
+    const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
+    
+    console.log('📦 Found', allExisting.length, 'existing serials (database + local)')
+    
     const duplicateSerials = []
     const newSerials = []
     
     serials.forEach(serial => {
       const serialUpper = serial.toUpperCase()
-      if (existingSerials.includes(serialUpper)) {
+      if (allExisting.includes(serialUpper)) {
         duplicateSerials.push(serial)
       } else {
         // Check if not duplicate within the same import batch
@@ -573,7 +751,20 @@ const importFromExcel = async (event) => {
     if (newSerials.length === 0 && duplicateSerials.length > 0) {
       const duplicateList = duplicateSerials.slice(0, 15).join('\n')
       const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-      alert(`❌ Import thất bại!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n📝 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`)
+      
+      await showConfirm({
+        title: 'Import thất bại',
+        message: `❌ Import thất bại!
+
+🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:
+${duplicateList}${moreText}
+
+💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.
+
+📝 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`,
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
       event.target.value = ''
       loading.value = false
       return // ⛔ STOP - Don't add anything to table
@@ -596,12 +787,23 @@ const importFromExcel = async (event) => {
       // Show appropriate success message
       if (duplicateSerials.length === 0) {
         // All new serials
-        alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`)
+        toast.value?.addToast({
+          type: 'success',
+          title: 'Import thành công!',
+          message: `🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`,
+          duration: 5000
+        })
       } else {
         // Mixed: some new, some duplicates
         const duplicateList = duplicateSerials.slice(0, 10).join('\n')
         const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
-        alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`)
+        
+        toast.value?.addToast({
+          type: 'warning',
+          title: 'Import một phần thành công!',
+          message: `🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`,
+          duration: 6000
+        })
       }
     }
     
@@ -614,7 +816,13 @@ const importFromExcel = async (event) => {
   } catch (error) {
     console.error('Error importing serials:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi import serial'
-    alert(errorMessage)
+    
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi import!',
+      message: errorMessage,
+      duration: 5000
+    })
     // ⛔ DON'T emit on error - keep modal open
   } finally {
     loading.value = false
@@ -868,9 +1076,19 @@ const handleSave = async () => {
         await updateChiTietSanPham(props.variant.id, updatePayload)
         console.log('✅ Updated variant stock count in database:', activeSerialCount)
         
-        alert(`✅ Lưu thành công!\n\n🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã cập nhật: ${activeSerialCount}\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
+        toast.value?.addToast({
+          type: 'success',
+          title: 'Lưu thành công!',
+          message: `🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã cập nhật: ${activeSerialCount}\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`,
+          duration: 5000
+        })
       } else {
-        alert('⚠️ Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.')
+        toast.value?.addToast({
+          type: 'info',
+          title: 'Không có thay đổi',
+          message: 'Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.',
+          duration: 4000
+        })
       }
     }
     
@@ -886,7 +1104,13 @@ const handleSave = async () => {
   } catch (error) {
     console.error('Error saving serials:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
-    alert(`❌ Lưu thất bại!\n\n🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng thử lại hoặc liên hệ quản trị viên.`)
+    
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lưu thất bại!',
+      message: `🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng thử lại hoặc liên hệ quản trị viên.`,
+      duration: 6000
+    })
   } finally {
     loading.value = false
   }

@@ -4,7 +4,7 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">Bảng điều khiển</h1>
       <div class="dashboard-actions">
-        <DateRangePicker @change="handleDateChange" />
+        <DateRangePicker @update:modelValue="handleDateChange" />
         <button class="btn-refresh" @click="refreshData">
           <i class="bi bi-arrow-clockwise"></i>
         </button>
@@ -12,18 +12,24 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="stats-grid">
+    <div v-if="!error" class="stats-grid">
       <SalesOverview :total="stats.totalSales" :growth="stats.salesGrowth" :loading="loading" />
       <RevenueStats :revenue="stats.revenue" :profit="stats.profit" :loading="loading" />
-      <CustomerStats :count="stats.customerCount" :growth="stats.customerGrowth" :loading="loading" />
+      <CustomerStats :count="stats.customerCount" :growth="stats.customerGrowth" :loading="loading"
+        :moiThangNay="stats.customerMoiThangNay" :hoatDong="stats.customerHoatDong" />
       <InventoryAlert :low-stock="lowStockItems" :critical="criticalItems" :loading="loading" />
     </div>
 
+    <!-- Error Message -->
+    <div v-if="error" class="error-message">
+      <p>{{ error }}</p>
+    </div>
+
     <!-- Main Content -->
-    <div class="dashboard-content">
+    <div v-if="!error" class="dashboard-content">
       <!-- Left Column -->
       <div class="content-left">
-        <SalesChart :data="chartData.sales" :loading="loading" class="chart-card" />
+        <SalesChart :data="chartData" :loading="loading" class="chart-card" />
         <RecentTransactions :transactions="recentTransactions" :loading="loading" class="transactions-card" />
       </div>
 
@@ -38,8 +44,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useDashboardStore } from '@/stores/dashboard'
-import { useProductDetailStore } from '@/stores/productDetailStore'
 import DateRangePicker from '@/components/trahang/DateRangePicker.vue'
 
 // Components
@@ -53,67 +59,45 @@ import TopProducts from '@/dashboardview/TopProducts.vue'
 import CustomerActivity from '@/dashboardview/CustomerActivity.vue'
 
 const dashboardStore = useDashboardStore()
-const productDetailStore = useProductDetailStore()
-const loading = ref(true)
+
+// Sử dụng storeToRefs để reactive với store state (optional, hoặc dùng trực tiếp từ store)
+const { isLoading: loading, stats, chartData, topProducts, recentTransactions, customerActivities, error } = storeToRefs(dashboardStore)
+
 const dateRange = ref({
   start: new Date(new Date().setDate(new Date().getDate() - 30)),
   end: new Date()
 })
 
-const stats = ref({
-  totalSales: 0,
-  salesGrowth: 0,
-  revenue: 0,
-  profit: 0,
-  customerCount: 0,
-  customerGrowth: 0,
-  // lowStockItems: 0, // Xóa dòng này
-  // criticalItems: 0 // Xóa dòng này
-})
-
-const chartData = ref({ sales: [] })
-const recentTransactions = ref([])
-const topProducts = ref([])
-const customerActivities = ref([])
-
 const fetchData = async () => {
   try {
-    loading.value = true
-    await Promise.all([
-      dashboardStore.fetchDashboardData(dateRange.value),
-      productDetailStore.fetchAllVariants()
-    ])
-    // Update all data from store
-    stats.value = dashboardStore.stats
-    chartData.value = dashboardStore.chartData
-    recentTransactions.value = dashboardStore.recentTransactions
-    topProducts.value = dashboardStore.topProducts
-    customerActivities.value = dashboardStore.customerActivities
-  } finally {
-    loading.value = false
+    await dashboardStore.fetchDashboardData(dateRange.value)
+  } catch (err) {
+    console.error('❌ [DashboardView] Lỗi khi fetch dữ liệu:', err)
   }
 }
 
 const handleDateChange = (range) => {
-  dateRange.value = range
-  fetchData()
+  // range is [startDate, endDate] from DateRangePicker
+  if (range && Array.isArray(range) && range.length === 2) {
+    dateRange.value = {
+      start: new Date(range[0]),
+      end: new Date(range[1])
+    }
+    fetchData()
+  }
 }
 
 const refreshData = () => {
   fetchData()
 }
 
+// Tồn kho từ API thống kê
+const lowStockItems = computed(() => stats.value?.lowStockCount || 0)
+const criticalItems = computed(() => stats.value?.criticalStockCount || 0)
+
 onMounted(() => {
   fetchData()
 })
-
-// Tính toán tồn kho thấp và hết hàng từ productDetailStore
-const lowStockItems = computed(() =>
-  productDetailStore.variants.filter(v => v.imeiCount > 0 && v.imeiCount <= 5).length
-)
-const criticalItems = computed(() =>
-  productDetailStore.variants.filter(v => v.imeiCount === 0).length
-)
 </script>
 
 <style scoped>
@@ -216,5 +200,14 @@ const criticalItems = computed(() =>
     align-items: flex-start;
     gap: 12px;
   }
+}
+
+.error-message {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 16px;
+  color: #991b1b;
+  text-align: center;
 }
 </style>

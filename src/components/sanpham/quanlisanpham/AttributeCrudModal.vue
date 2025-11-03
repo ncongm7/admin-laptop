@@ -75,7 +75,14 @@
                 <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
                 {{ editingIndex === -1 ? 'Thêm' : 'Cập nhật' }}
               </button>
-              <button class="btn btn-secondary btn-sm" type="button" @click="showResetConfirm" :disabled="loading">
+              <button 
+                class="btn btn-secondary btn-sm" 
+                type="button" 
+                @click="showResetConfirm" 
+                :disabled="loading"
+                title="Làm mới form (Ctrl+R)"
+              >
+                <i class="bi bi-arrow-clockwise me-1"></i>
                 Làm mới
               </button>
             </div>
@@ -148,23 +155,13 @@
     </div>
     <div class="attr-backdrop fade show"></div>
     
-    <!-- Confirm Dialog -->
-    <ConfirmDialog
-      ref="confirmDialog"
-      :type="confirmType"
-      :title="confirmTitle"
-      :message="confirmMessage"
-      :confirm-text="confirmButtonText"
-      @confirm="handleConfirmAction"
-    />
-    
     <!-- Toast Notifications -->
     <NotificationToast ref="toast" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   getCPUList, createCPU, updateCPU, deleteCPU,
   getGPUList, createGPU, updateGPU, deleteGPU,
@@ -174,14 +171,17 @@ import {
   getLoaiManHinhList, createLoaiManHinh, updateLoaiManHinh, deleteLoaiManHinh,
   getPinList, createPin, updatePin, deletePin,
 } from '@/service/sanpham/SanPhamService'
-import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import NotificationToast from '@/components/common/NotificationToast.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 const props = defineProps({
   type: { type: String, required: true },
 })
 
 const emit = defineEmits(['close'])
+
+// Use confirm composable
+const { showConfirm } = useConfirm()
 
 const mapTitle = {
   cpu: 'CPU',
@@ -261,14 +261,8 @@ const form = ref({
   colorHex: '#000000' // For color type
 })
 
-// Confirm dialog refs and state
-const confirmDialog = ref(null)
+// Toast notification ref
 const toast = ref(null)
-const confirmType = ref('danger')
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-const confirmButtonText = ref('Xác nhận')
-const pendingAction = ref(null)
 
 // Load data from API
 const loadData = async () => {
@@ -367,8 +361,11 @@ const generateMockData = () => {
 }
 
 function resetForm() {
+  // Reset editing state
   editingIndex.value = -1
   editingItem.value = null
+  
+  // Reset form data to initial state
   form.value = { 
     code: '', 
     name: '', 
@@ -376,8 +373,13 @@ function resetForm() {
     status: 1,
     colorHex: '#000000'
   }
+  
+  // Clear all errors
   errors.value = {}
   generalError.value = ''
+  
+  
+  console.log('✅ Form has been reset to initial state')
 }
 
 // Get field labels based on type
@@ -436,16 +438,16 @@ function showValidationError() {
     ? errorMessages.join('\n') 
     : 'Vui lòng kiểm tra lại thông tin nhập vào'
     
-  confirmType.value = 'warning'
-  confirmTitle.value = 'Thông tin không hợp lệ'
-  confirmMessage.value = message
-  confirmButtonText.value = 'Đã hiểu'
-  pendingAction.value = { type: 'validation' }
-  confirmDialog.value?.show()
+  showConfirm({
+    title: 'Thông tin không hợp lệ',
+    message: message,
+    confirmText: 'Đã hiểu',
+    type: 'warning'
+  })
 }
 
 // Show save confirmation
-function showSaveConfirm() {
+async function showSaveConfirm() {
   // Clear previous errors
   errors.value = {}
   generalError.value = ''
@@ -457,34 +459,57 @@ function showSaveConfirm() {
   }
   
   const isCreating = editingIndex.value === -1
-  confirmType.value = 'info'
-  confirmTitle.value = isCreating ? 'Xác nhận thêm mới' : 'Xác nhận cập nhật'
-  confirmMessage.value = isCreating 
+  const title_text = isCreating ? 'Xác nhận thêm mới' : 'Xác nhận cập nhật'
+  const message = isCreating 
     ? `Bạn có chắc chắn muốn thêm ${title.value.toLowerCase()} "${form.value.name}"?`
     : `Bạn có chắc chắn muốn cập nhật ${title.value.toLowerCase()} "${form.value.name}"?`
-  confirmButtonText.value = isCreating ? 'Thêm' : 'Cập nhật'
-  pendingAction.value = { type: 'save' }
-  confirmDialog.value?.show()
+  const confirmText = isCreating ? 'Thêm' : 'Cập nhật'
+  
+  const confirmed = await showConfirm({
+    title: title_text,
+    message: message,
+    confirmText: confirmText,
+    type: 'info'
+  })
+  
+  if (confirmed) {
+    await saveItem()
+  }
 }
 
 // Show reset confirmation
-function showResetConfirm() {
-  confirmType.value = 'warning'
-  confirmTitle.value = 'Xác nhận làm mới'
-  confirmMessage.value = 'Bạn có chắc chắn muốn xóa tất cả thông tin đã nhập?'
-  confirmButtonText.value = 'Làm mới'
-  pendingAction.value = { type: 'reset' }
-  confirmDialog.value?.show()
+async function showResetConfirm() {
+  const confirmed = await showConfirm({
+    title: 'Xác nhận làm mới',
+    message: 'Bạn có chắc chắn muốn xóa tất cả thông tin đã nhập?',
+    confirmText: 'Làm mới',
+    type: 'warning'
+  })
+  
+  if (confirmed) {
+    resetForm()
+    // Show success notification for reset
+    toast.value?.addToast({
+      type: 'success',
+      title: 'Làm mới thành công!',
+      message: 'Form đã được làm mới và sẵn sàng để nhập dữ liệu mới.',
+      duration: 3000
+    })
+  }
 }
 
 // Show edit confirmation
-function showEditConfirm(item, index) {
-  confirmType.value = 'info'
-  confirmTitle.value = 'Xác nhận chỉnh sửa'
-  confirmMessage.value = `Bạn có muốn chỉnh sửa ${title.value.toLowerCase()} "${item.name}"?`
-  confirmButtonText.value = 'Chỉnh sửa'
-  pendingAction.value = { type: 'edit', item, index }
-  confirmDialog.value?.show()
+async function showEditConfirm(item, index) {
+  const confirmed = await showConfirm({
+    title: 'Xác nhận chỉnh sửa',
+    message: `Bạn có muốn chỉnh sửa ${title.value.toLowerCase()} "${item.name}"?`,
+    confirmText: 'Chỉnh sửa',
+    type: 'info'
+  })
+  
+  if (confirmed) {
+    editItem(index)
+  }
 }
 
 async function saveItem() {
@@ -636,26 +661,19 @@ function editItem(index) {
   generalError.value = ''
 }
 
-function showDeleteConfirm(item, index) {
-  confirmType.value = 'danger'
-  confirmTitle.value = 'Xác nhẫn xóa'
-  confirmMessage.value = `Bạn có chắc chắn muốn xóa "${item.name}"? Hành động này không thể hoàn tác.`
-  confirmButtonText.value = 'Xóa'
-  pendingAction.value = { type: 'delete', item, index }
-  confirmDialog.value?.show()
-}
-
-function handleConfirmAction() {
-  if (pendingAction.value?.type === 'delete') {
-    return deleteItem(pendingAction.value.item, pendingAction.value.index)
-  } else if (pendingAction.value?.type === 'save') {
-    return saveItem()
-  } else if (pendingAction.value?.type === 'reset') {
-    resetForm()
-  } else if (pendingAction.value?.type === 'edit') {
-    editItem(pendingAction.value.index)
+async function showDeleteConfirm(item, index) {
+  const confirmed = await showConfirm({
+    title: 'Xác nhận xóa',
+    message: `Bạn có chắc chắn muốn xóa "${item.name}"? Hành động này không thể hoàn tác.`,
+    confirmText: 'Xóa',
+    type: 'danger'
+  })
+  
+  if (confirmed) {
+    await deleteItem(item, index)
   }
 }
+
 
 async function deleteItem(item, index) {
   if (!mapApiFunction[props.type]) return
@@ -698,9 +716,33 @@ async function deleteItem(item, index) {
 }
 
 
+// Handle keyboard shortcuts
+const handleKeyDown = (event) => {
+  // Ctrl+R for reset form
+  if (event.ctrlKey && event.key === 'r') {
+    event.preventDefault()
+    if (!loading.value) {
+      showResetConfirm()
+    }
+  }
+  // Escape to close modal
+  else if (event.key === 'Escape') {
+    event.preventDefault()
+    emit('close')
+  }
+}
+
 // Load data when component mounts or type changes
 onMounted(() => {
   loadData()
+  
+  // Add keyboard event listener
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+// Clean up event listener on unmount
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
 })
 
 watch(

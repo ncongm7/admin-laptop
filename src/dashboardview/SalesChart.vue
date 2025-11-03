@@ -14,6 +14,10 @@
             <div v-if="loading" class="chart-loading">
                 <div class="loading-placeholder"></div>
             </div>
+            <div v-else-if="!data || !data.labels || data.labels.length === 0" class="empty-chart">
+                <i class="bi bi-bar-chart"></i>
+                <p>Chưa có dữ liệu biểu đồ</p>
+            </div>
             <canvas v-else ref="chartCanvas"></canvas>
         </div>
     </div>
@@ -53,6 +57,19 @@ const changePeriod = (period) => {
 }
 
 const initChart = () => {
+    // Check nếu không có canvas hoặc không có data thì không render
+    if (!chartCanvas.value) {
+        console.log('🔄 [SalesChart] Canvas chưa sẵn sàng')
+        return
+    }
+
+    if (!props.data || !props.data.labels || props.data.labels.length === 0) {
+        console.log('🔄 [SalesChart] Đang chờ dữ liệu...')
+        return
+    }
+
+    console.log('📊 [SalesChart] Render chart với data:', props.data)
+
     if (chartInstance) {
         chartInstance.destroy()
     }
@@ -201,6 +218,25 @@ canvas {
     background: #f1f5f9;
     border-radius: 8px;
     animation: pulse 1.5s infinite;
+}
+
+.empty-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: #94a3b8;
+}
+
+.empty-chart i {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-chart p {
+    margin: 0;
+    font-size: 14px;
 }
 
 @keyframes pulse {

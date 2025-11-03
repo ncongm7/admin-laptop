@@ -1,6 +1,6 @@
 <template>
     <header class="app-header">
-        <!-- Left Section: Logo and Sidebar Toggle -->
+        <!-- Left Section: Logo, Toggle, and Breadcrumbs -->
         <div class="header-left">
             <button class="sidebar-toggle-btn" @click="toggleSidebar">
                 <i class="bi bi-list"></i>
@@ -9,24 +9,15 @@
                 <i class="bi bi-laptop logo-icon"></i>
                 <span class="logo-text">Viet<span class="logo-highlight">LapTop</span></span>
             </div>
-        </div>
-
-        <!-- Center Section: Global Search -->
-        <div class="header-center">
-            <div class="global-search">
-                <i class="bi bi-search search-icon"></i>
-                <input type="text" placeholder="Tìm kiếm sản phẩm, đơn hàng, khách hàng..." />
-            </div>
+            <!-- Breadcrumbs -->
+            <Breadcrumbs />
         </div>
 
         <!-- Right Section: Actions and User Menu -->
         <div class="header-right">
-            <button class="header-action-btn">
+            <button class="header-action-btn notification-btn" title="Thông báo">
                 <i class="bi bi-bell"></i>
                 <span class="badge-dot"></span>
-            </button>
-            <button class="header-action-btn">
-                <i class="bi bi-grid-3x3-gap"></i>
             </button>
             <div class="user-menu dropdown">
                 <button class="user-avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -39,13 +30,24 @@
                     <i class="bi bi-chevron-down dropdown-icon"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Cài đặt</a></li>
+                    <li>
+                        <a class="dropdown-item" href="#" @click.prevent="">
+                            <i class="bi bi-person me-2"></i>Thông tin cá nhân
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" @click.prevent="">
+                            <i class="bi bi-gear me-2"></i>Cài đặt
+                        </a>
+                    </li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
-                    <li><a class="dropdown-item text-danger" @click="logout"><i
-                                class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                    <li>
+                        <a class="dropdown-item text-danger" @click.prevent="logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -55,6 +57,7 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
+import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
@@ -67,7 +70,6 @@ const toggleSidebar = () => {
 const logout = async () => {
     if (confirm('Bạn có chắc muốn đăng xuất?')) {
         await authStore.logout()
-        // Chuyển hướng về trang đăng nhập
         router.push('/login')
     }
 }
@@ -85,14 +87,15 @@ const logout = async () => {
     position: sticky;
     top: 0;
     z-index: 1020;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-/* Left */
+/* Left Section */
 .header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
+    flex: 1;
 }
 
 .sidebar-toggle-btn {
@@ -101,64 +104,40 @@ const logout = async () => {
     font-size: 1.5rem;
     color: #495057;
     cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: #f1f3f5;
+    color: #2D7458;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-weight: 700;
     font-size: 1.25rem;
     color: #212529;
+    white-space: nowrap;
 }
 
 .logo-icon {
-    color: #0d6efd;
+    color: #2D7458;
     font-size: 1.7rem;
 }
 
 .logo-highlight {
-    color: #0d6efd;
+    color: #396E7C;
 }
 
-/* Center */
-.header-center {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    padding: 0 2rem;
-}
-
-.global-search {
-    position: relative;
-    width: 100%;
-    max-width: 450px;
-}
-
-.global-search .search-icon {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-}
-
-.global-search input {
-    width: 100%;
-    padding: 0.6rem 1rem 0.6rem 2.75rem;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    transition: all 0.2s ease;
-}
-
-.global-search input:focus {
-    background-color: #fff;
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* Right */
+/* Right Section */
 .header-right {
     display: flex;
     align-items: center;
@@ -174,11 +153,13 @@ const logout = async () => {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .header-action-btn:hover {
     background-color: #f1f3f5;
+    color: #2D7458;
 }
 
 .badge-dot {
@@ -198,9 +179,10 @@ const logout = async () => {
     gap: 10px;
     background: none;
     border: none;
-    padding: 4px 8px;
-    border-radius: 8px;
-    transition: background-color 0.2s;
+    padding: 4px 12px 4px 8px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .user-menu .user-avatar-btn:hover {
@@ -208,10 +190,11 @@ const logout = async () => {
 }
 
 .user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid #e9ecef;
 }
 
 .user-info {
@@ -234,5 +217,70 @@ const logout = async () => {
 .dropdown-icon {
     font-size: 0.8rem;
     color: #6c757d;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    min-width: 220px;
+    border: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #2D7458;
+}
+
+.dropdown-item i {
+    font-size: 1rem;
+}
+
+.dropdown-divider {
+    margin: 8px 0;
+}
+
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: #fff5f5;
+    color: #dc3545;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .header-left {
+        gap: 12px;
+    }
+    
+    .logo {
+        font-size: 1.1rem;
+    }
+    
+    .logo-icon {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-header {
+        padding: 0 16px;
+    }
+    
+    .user-info {
+        display: none;
+    }
 }
 </style>

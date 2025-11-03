@@ -13,7 +13,7 @@
                 v-if="$slots.default" />
         </div>
         <transition name="submenu">
-            <ul v-if="$slots.default && (open || isHovered)" class="nav flex-column ms-3" @click="handleSubmenuClick">
+            <ul v-if="$slots.default && (open || isHovered)" class="nav flex-column submenu-list" @click="handleSubmenuClick">
                 <slot />
             </ul>
         </transition>
@@ -21,12 +21,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 const props = defineProps({
     icon: String,
     label: String,
     to: String,
-    sub: Boolean
+    sub: Boolean,
+    collapsed: Boolean
 })
 const emit = defineEmits(['submenu-click'])
 const open = ref(false)
@@ -42,14 +43,12 @@ defineExpose({
 const toggleOpen = () => {
     if (!props.to) {
         open.value = !open.value
-        // Nếu đang mở bằng click, tắt hover state
         if (open.value) {
             isHovered.value = false
         }
     }
 }
 
-// Hàm để chuyển từ hover sang click state
 const switchToClickState = () => {
     if (isHovered.value && !open.value) {
         open.value = true
@@ -57,20 +56,15 @@ const switchToClickState = () => {
     }
 }
 
-// Xử lý click vào submenu item
 const handleSubmenuItemClick = () => {
     if (props.sub) {
-        // Emit event lên parent để chuyển sang click state
         emit('submenu-click')
     }
 }
 
-// Xử lý click trong submenu
 const handleSubmenuClick = (event) => {
-    // Kiểm tra xem có phải click vào submenu item không
     const target = event.target.closest('.menu-item')
     if (target) {
-        // Nếu đang ở trạng thái hover, chuyển sang click state
         if (isHovered.value && !open.value) {
             open.value = true
             isHovered.value = false
@@ -88,11 +82,10 @@ const onMouseEnter = () => {
 const onMouseLeave = () => {
     if (!props.to) {
         hoverTimeout = setTimeout(() => {
-            // Chỉ đóng hover nếu không đang mở bằng click
             if (!open.value) {
                 isHovered.value = false
             }
-        }, 150) // Delay để tránh đóng quá nhanh khi di chuyển chuột
+        }, 150)
     }
 }
 </script>
@@ -100,16 +93,16 @@ const onMouseLeave = () => {
 <style scoped>
 .menu-item {
     border-radius: 10px;
-    color: #222;
+    color: #495057;
     font-weight: 500;
-    font-size: 0.93rem;
+    font-size: 0.9rem;
     background: transparent;
-    transition: background 0.18s, color 0.18s, transform 0.18s, box-shadow 0.18s;
+    transition: all 0.2s ease;
     cursor: pointer;
     box-shadow: none;
     position: relative;
     border: 1px solid transparent;
-    padding: 7px 14px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -117,42 +110,55 @@ const onMouseLeave = () => {
 
 .menu-item.active,
 .menu-item.router-link-exact-active {
-    background: #e8fbe9;
-    color: #22c55e;
-    box-shadow: 0 2px 8px #22c55e11;
-    border: 1px solid #22c55e;
+    background: linear-gradient(135deg, rgba(45, 116, 88, 0.1) 0%, rgba(57, 110, 124, 0.1) 100%);
+    color: #2D7458;
+    box-shadow: 0 2px 8px rgba(45, 116, 88, 0.15);
+    border: 1px solid rgba(45, 116, 88, 0.2);
+    font-weight: 600;
 }
 
 .menu-item:hover {
-    background: #f3fdf4;
-    color: #22c55e;
-    border: 1px solid #22c55e;
+    background: rgba(45, 116, 88, 0.05);
+    color: #2D7458;
+    border: 1px solid rgba(45, 116, 88, 0.1);
 }
 
 .menu-item i {
-    font-size: 1.08em;
-    transition: color 0.18s, transform 0.18s;
+    font-size: 1.1em;
+    transition: all 0.2s ease;
 }
 
 .menu-item.active i,
 .menu-item.router-link-exact-active i,
 .menu-item:hover i {
-    color: #22c55e;
+    color: #2D7458;
 }
 
-.submenu>.menu-item {
-    padding-left: 1.7rem;
-    font-size: 0.91em;
-    background: #f8fafc;
-    color: #222;
-    min-height: 32px;
+.submenu .menu-item {
+    padding-left: 2rem;
+    font-size: 0.88rem;
+    background: rgba(248, 250, 252, 0.5);
+    color: #495057;
+    min-height: 36px;
+}
+
+.submenu .menu-item:hover {
+    background: rgba(45, 116, 88, 0.08);
+    color: #2D7458;
+}
+
+.submenu .menu-item.active,
+.submenu .menu-item.router-link-exact-active {
+    background: rgba(45, 116, 88, 0.12);
+    color: #2D7458;
+    font-weight: 600;
 }
 
 ul.nav {
     margin-bottom: 0;
     background: transparent;
-    border-left: 2px solid #e5e7eb;
-    padding-left: 0.5rem;
+    border-left: 2px solid rgba(45, 116, 88, 0.2);
+    padding-left: 0.75rem;
     overflow: hidden;
 }
 
@@ -161,19 +167,26 @@ ul.nav {
 }
 
 .chevron-icon {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.9em;
-    opacity: 0.7;
+    opacity: 0.6;
 }
 
 .nav-item.open .chevron-icon,
 .nav-item.hovered .chevron-icon {
     transform: rotate(90deg);
+    opacity: 1;
+    color: #2D7458;
+}
+
+.submenu-list {
+    padding-left: 0.75rem !important;
+    gap: 2px;
 }
 
 .submenu-enter-active,
 .submenu-leave-active {
-    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
     overflow: hidden;
 }
 

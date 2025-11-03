@@ -21,14 +21,14 @@
             </template>
         </div>
 
-        <div class="stat-footer">
+        <div class="stat-footer" v-if="!loading">
             <div class="customer-stats">
                 <div class="stat-item">
-                    <div class="stat-number">1,245</div>
+                    <div class="stat-number">{{ moiThangNay.toLocaleString() }}</div>
                     <div class="stat-label">Mới tháng này</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">3,842</div>
+                    <div class="stat-number">{{ hoatDong.toLocaleString() }}</div>
                     <div class="stat-label">Hoạt động</div>
                 </div>
             </div>
@@ -45,6 +45,14 @@ const props = defineProps({
         default: 0
     },
     growth: {
+        type: Number,
+        default: 0
+    },
+    moiThangNay: {
+        type: Number,
+        default: 0
+    },
+    hoatDong: {
         type: Number,
         default: 0
     },

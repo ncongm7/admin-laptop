@@ -24,6 +24,7 @@ import {
   updateChiTietSanPham,
   getHinhAnhByCtspId,
   getSerialsByCtspId,
+  getAllSerial,
   importSerialsFromExcel,
   createSerialsBatch
 } from '@/service/sanpham/SanPhamService'
@@ -690,6 +691,27 @@ export const useProductStore = defineStore('products', () => {
   }
 
   // Serial Management Methods
+  const getAllSerials = async () => {
+    try {
+      console.log('ProductStore: Fetching all serials...')
+      console.log('ProductStore: API endpoint will be: /api/serial/all')
+      const response = await getAllSerial()
+      console.log('ProductStore: API Response:', response)
+      console.log('ProductStore: Successfully fetched', response.data?.length || 0, 'serials')
+      return response
+    } catch (err) {
+      console.error('ProductStore: Error fetching all serials:', err)
+      console.error('ProductStore: Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data
+      })
+      error.value = err.message || 'Không thể tải danh sách serial'
+      throw err
+    }
+  }
+
   const getSerialsByVariantId = async (variantId) => {
     try {
       const response = await getSerialsByCtspId(variantId)
@@ -763,6 +785,7 @@ export const useProductStore = defineStore('products', () => {
     loadAttributes,
     advancedSearchProducts,
     advancedSearchProductsPage,
+    getAllSerials,
     getSerialsByVariantId,
     saveVariantSerials,
     importSerialsFromExcel: importSerialsFromExcelFile,

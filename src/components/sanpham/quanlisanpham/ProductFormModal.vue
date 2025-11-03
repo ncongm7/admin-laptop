@@ -700,17 +700,26 @@
       </div>
     </teleport>
   </div>
+  
+  <!-- Toast Notifications -->
+  <NotificationToast ref="toast" />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
-import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham, getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
+import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, getAllSerial, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham, getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
+import NotificationToast from '@/components/common/NotificationToast.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 const productStore = useProductStore()
 const router = useRouter()
+
+// Use confirm composable and toast
+const { showConfirm } = useConfirm()
+const toast = ref(null)
 
 const cpus = computed(() => productStore.cpus)
 const rams = computed(() => productStore.rams)
@@ -948,13 +957,67 @@ const generatePreviewVariants = () => {
 // Comprehensive save function - creates product, variants, and serials simultaneously
 const saveProduct = async () => {
   try {
-    loading.value = true
     error.value = null
 
     if (!form.value.tenSanPham.trim()) {
-      alert('Vui lòng nhập tên sản phẩm')
+      await showConfirm({
+        title: 'Thiếu thông tin',
+        message: 'Vui lòng nhập tên sản phẩm',
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
       return
     }
+
+    if (!form.value.maSanPham.trim()) {
+      await showConfirm({
+        title: 'Thiếu thông tin',
+        message: 'Vui lòng nhập mã sản phẩm',
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
+      return
+    }
+
+    // Check for duplicate product code
+    console.log('🔍 Checking for duplicate product code:', form.value.maSanPham)
+    try {
+      // Force refresh products list to get latest data
+      await productStore.fetchAllProducts()
+      const existingProducts = productStore.products || []
+      console.log('📦 Found', existingProducts.length, 'existing products')
+      
+      const duplicateProduct = existingProducts.find(p => 
+        p.maSanPham === form.value.maSanPham && 
+        p.id !== form.value.id // Exclude current product when editing
+      )
+      
+      console.log('🔍 Duplicate check result:', duplicateProduct ? 'FOUND DUPLICATE' : 'NO DUPLICATE')
+      
+      if (duplicateProduct) {
+        console.log('❌ Duplicate product found:', duplicateProduct)
+        await showConfirm({
+          title: 'Mã sản phẩm trùng lặp',
+          message: `Mã sản phẩm "${form.value.maSanPham}" đã tồn tại.\nVui lòng sử dụng mã khác.`,
+          confirmText: 'Đã hiểu',
+          type: 'warning'
+        })
+        return
+      }
+    } catch (checkErr) {
+      console.error('❌ Error checking duplicate product code:', checkErr)
+      // Show error and stop execution
+      await showConfirm({
+        title: 'Lỗi kiểm tra',
+        message: 'Không thể kiểm tra mã sản phẩm trùng lặp. Vui lòng thử lại.',
+        confirmText: 'Đã hiểu',
+        type: 'error'
+      })
+      return
+    }
+
+    // All validations passed, now set loading state
+    loading.value = true
 
     // Calculate price range from variants
     let giaThapNhat = 0
@@ -1148,11 +1211,13 @@ const saveProduct = async () => {
         successMessage += `\n\n💡 Bạn có thể thêm serial cho các biến thể sau bằng cách:\n- Nhấn vào nút quản lý serial của từng biến thể\n- Hoặc import từ file Excel`
       }
       
+      // Show success message directly with alert for reliability
       alert(successMessage)
     } else {
       // Create product only
       const response = await createSanPham(productPayload)
       form.value.id = response.data.id
+      
       alert('Tạo sản phẩm thành công!')
     }
 
@@ -1160,7 +1225,8 @@ const saveProduct = async () => {
   } catch (err) {
     console.error('Error saving product:', err)
     error.value = err.response?.data?.message || err.message || 'Lỗi khi lưu sản phẩm'
-    alert('Lỗi: ' + error.value)
+    
+    alert('Lỗi lưu sản phẩm: ' + error.value)
   } finally {
     loading.value = false
   }
@@ -1174,7 +1240,12 @@ const generateVariants = async () => {
   console.log('form.value.id:', form.value.id)
   
   if (!form.value.id) {
-    alert('Vui lòng lưu sản phẩm trước khi tạo biến thể')
+    await showConfirm({
+      title: 'Chưa lưu sản phẩm',
+      message: 'Vui lòng lưu sản phẩm trước khi tạo biến thể',
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
 
@@ -1193,7 +1264,12 @@ const generateVariants = async () => {
   console.log('hasSelectedAttributes:', hasSelectedAttributes)
 
   if (!hasSelectedAttributes) {
-    alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
+    await showConfirm({
+      title: 'Chưa chọn thuộc tính',
+      message: 'Vui lòng chọn ít nhất một thuộc tính để tạo biến thể',
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
 
@@ -1273,7 +1349,12 @@ const generateVariants = async () => {
       }
     }
 
-    alert(`Tạo thành công ${calculateTotalCombinations.value} biến thể!`)
+    toast.value?.addToast({
+      type: 'success',
+      title: 'Tạo biến thể thành công!',
+      message: `Tạo thành công ${calculateTotalCombinations.value} biến thể!`,
+      duration: 4000
+    })
     
     // Clear selections after successful creation
     variantConfig.value = {
@@ -1290,7 +1371,13 @@ const generateVariants = async () => {
   } catch (err) {
     console.error('Error creating variants:', err)
     error.value = err.response?.data?.message || err.message || 'Lỗi khi tạo biến thể'
-    alert('Lỗi: ' + error.value)
+    
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi tạo biến thể!',
+      message: 'Lỗi: ' + error.value,
+      duration: 5000
+    })
   } finally {
     loading.value = false
   }
@@ -1338,13 +1425,20 @@ const checkVariantAttributesMatch = (variant1, variant2) => {
 // Combined save product and create variants function (kept for compatibility)
 const saveAndCreateVariants = async () => {
   try {
-    loading.value = true
     error.value = null
 
     if (!form.value.tenSanPham.trim()) {
-      alert('Vui lòng nhập tên sản phẩm')
+      await showConfirm({
+        title: 'Thiếu thông tin',
+        message: 'Vui lòng nhập tên sản phẩm',
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
       return
     }
+
+    // All validations passed, now set loading state
+    loading.value = true
 
     // Prepare payload (always needed for emit)
     const payload = {
@@ -1900,10 +1994,21 @@ const handleImageUpload = async (event) => {
       loading.value = true
       const imageUrl = await uploadImageToCloudinary(file)
       form.value.anhDaiDien = imageUrl
-      alert('Tải ảnh đại diện thành công!')
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: 'Tải ảnh đại diện thành công!',
+        duration: 3000
+      })
     } catch (error) {
       console.error('Error uploading main image:', error)
-      alert('Có lỗi xảy ra khi tải ảnh')
+      
+      toast.value?.addToast({
+        type: 'error',
+        title: 'Lỗi tải ảnh!',
+        message: 'Có lỗi xảy ra khi tải ảnh',
+        duration: 4000
+      })
     } finally {
       loading.value = false
     }
@@ -1919,10 +2024,21 @@ const handleGalleryUpload = async (event) => {
       const imageUrls = await Promise.all(uploadPromises)
       
       form.value.images = [...(form.value.images || []), ...imageUrls]
-      alert(`Tải thành công ${imageUrls.length} ảnh!`)
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Tải thành công ${imageUrls.length} ảnh!`,
+        duration: 3000
+      })
     } catch (error) {
       console.error('Error uploading gallery images:', error)
-      alert('Có lỗi xảy ra khi tải ảnh')
+      
+      toast.value?.addToast({
+        type: 'error',
+        title: 'Lỗi tải ảnh!',
+        message: 'Có lỗi xảy ra khi tải ảnh',
+        duration: 4000
+      })
     } finally {
       loading.value = false
     }
@@ -1964,10 +2080,21 @@ const selectVariantImage = async (index) => {
           }
         }
         
-        alert('Tải ảnh thành công!')
+        toast.value?.addToast({
+          type: 'success',
+          title: 'Thành công!',
+          message: 'Tải ảnh thành công!',
+          duration: 3000
+        })
       } catch (error) {
         console.error('Error uploading variant image:', error)
-        alert('Có lỗi xảy ra khi tải ảnh')
+        
+        toast.value?.addToast({
+          type: 'error',
+          title: 'Lỗi tải ảnh!',
+          message: 'Có lỗi xảy ra khi tải ảnh',
+          duration: 4000
+        })
       } finally {
         loading.value = false
       }
@@ -2094,9 +2221,14 @@ const validateSerial = (serial) => {
   return { valid: true }
 }
 
-const addSerialNumbers = () => {
+const addSerialNumbers = async () => {
   if (!serialInput.value.trim()) {
-    alert('Vui lòng nhập serial number')
+    await showConfirm({
+      title: 'Thiếu thông tin',
+      message: 'Vui lòng nhập serial number',
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
 
@@ -2107,13 +2239,23 @@ const addSerialNumbers = () => {
     .filter((s) => s.length > 0)
 
   if (serials.length === 0) {
-    alert('Không có serial number hợp lệ')
+    await showConfirm({
+      title: 'Không có serial hợp lệ',
+      message: 'Không có serial number hợp lệ',
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
   
   // Initialize serials array if it doesn't exist
   if (!currentVariant.value) {
-    alert('Không tìm thấy biến thể')
+    await showConfirm({
+      title: 'Lỗi biến thể',
+      message: 'Không tìm thấy biến thể',
+      confirmText: 'Đã hiểu',
+      type: 'warning'
+    })
     return
   }
   
@@ -2124,59 +2266,119 @@ const addSerialNumbers = () => {
   // ✅ Validate format first (7 characters, alphanumeric)
   const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
   if (invalidSerials.length > 0) {
-    alert(`❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`)
-    return
-  }
-  
-  // ✅ Check for duplicates with existing serials (case-insensitive)
-  const existingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
-  const duplicateSerials = []
-  const newSerials = []
-  
-  serials.forEach(serial => {
-    if (existingSerials.includes(serial)) {
-      duplicateSerials.push(serial)
-    } else {
-      newSerials.push(serial)
-    }
-  })
-  
-  // Clear input and validation state
-  serialInput.value = ''
-  serialValidationError.value = ''
-  serialValidationSuccess.value = ''
-  
-  // ✅ Show detailed results
-  if (newSerials.length === 0 && duplicateSerials.length > 0) {
-    // All duplicates
-    const duplicateList = duplicateSerials.slice(0, 10).join(', ')
-    const moreCount = duplicateSerials.length > 10 ? ` và ${duplicateSerials.length - 10} serial khác` : ''
-    alert(`❌ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreCount}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
-    return
-  } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
-    // Mixed: some new, some duplicates
-    const duplicateList = duplicateSerials.slice(0, 5).join(', ')
-    const moreCount = duplicateSerials.length > 5 ? ` và ${duplicateSerials.length - 5} serial khác` : ''
-    alert(`⚠️ Thêm một phần thành công!\n\n✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng: ${duplicateList}${moreCount}\n\n💡 Serial trùng đã bỏ qua, chỉ thêm serial mới.`)
-  } else if (newSerials.length > 0) {
-    // All new
-    alert(`✅ Thành công!\n\nĐã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`)
-  }
-  
-  // Add only new serials to local list
-  newSerials.forEach(serial => {
-    currentVariant.value.serials.push({
-      id: null, // Local serial, no ID yet
-      soSerial: serial,
-      trangThai: 1 // Mặc định là 'Có sẵn'
+    await showConfirm({
+      title: 'Serial không hợp lệ',
+      message: `❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`,
+      confirmText: 'Đã hiểu',
+      type: 'warning'
     })
-  })
+    return
+  }
   
-  // Update stock count (only count available serials - trangThai = 1)
-  const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
-  currentVariant.value.soLuongTon = availableSerials.length
-  
-  console.log(`✅ Added ${newSerials.length} serial(s). Total: ${currentVariant.value.serials.length}, Stock: ${currentVariant.value.soLuongTon}`)
+  try {
+    loading.value = true
+    
+    // ✅ Check for duplicates against entire database
+    console.log('🔍 Checking for duplicate serials in database...')
+    let allExistingSerials = []
+    
+    try {
+      const allSerialsResponse = await getAllSerial()
+      allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
+      console.log('✅ Successfully fetched', allExistingSerials.length, 'serials from database')
+    } catch (dbError) {
+      console.warn('⚠️ Failed to fetch serials from database:', dbError.message)
+      console.warn('⚠️ Falling back to local-only duplicate check')
+      allExistingSerials = [] // Fallback to empty array
+    }
+    
+    // Also check local serials (not yet saved)
+    const localExistingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
+    
+    // Combine all existing serials
+    const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
+    
+    console.log('📦 Found', allExisting.length, 'existing serials (database + local)')
+    
+    const duplicateSerials = []
+    const newSerials = []
+    
+    serials.forEach(serial => {
+      if (allExisting.includes(serial)) {
+        duplicateSerials.push(serial)
+      } else {
+        newSerials.push(serial)
+      }
+    })
+    
+    // Clear input and validation state
+    serialInput.value = ''
+    serialValidationError.value = ''
+    serialValidationSuccess.value = ''
+    
+    // ✅ Show detailed results matching the design from the image
+    if (newSerials.length === 0 && duplicateSerials.length > 0) {
+      // All duplicates - show error message like in the image
+      const duplicateList = duplicateSerials.join('\n')
+      const message = `❌ Thêm thất bại!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n🔍 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`
+      
+      await showConfirm({
+        title: 'Thêm thất bại',
+        message: message,
+        confirmText: 'Đã hiểu',
+        type: 'warning'
+      })
+      return
+      
+    } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
+      // Mixed: some new, some duplicates
+      const duplicateList = duplicateSerials.slice(0, 5).join('\n')
+      const moreCount = duplicateSerials.length > 5 ? `\n... và ${duplicateSerials.length - 5} serial khác` : ''
+      
+      toast.value?.addToast({
+        type: 'warning',
+        title: 'Import một phần thành công!',
+        message: `✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng đã bỏ qua, chỉ thêm serial mới.`,
+        duration: 6000
+      })
+      
+    } else if (newSerials.length > 0) {
+      // All new - success
+      toast.value?.addToast({
+        type: 'success',
+        title: 'Thành công!',
+        message: `Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`,
+        duration: 5000
+      })
+    }
+    
+    // Add only new serials to local list
+    newSerials.forEach(serial => {
+      currentVariant.value.serials.push({
+        id: null, // Local serial, no ID yet
+        soSerial: serial,
+        trangThai: 1 // Mặc định là 'Có sẵn'
+      })
+    })
+    
+    // Update stock count (only count available serials - trangThai = 1)
+    const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
+    currentVariant.value.soLuongTon = availableSerials.length
+    
+    console.log(`✅ Added ${newSerials.length} serial(s). Total: ${currentVariant.value.serials.length}, Stock: ${currentVariant.value.soLuongTon}`)
+    
+  } catch (error) {
+    console.error('Error checking serial duplicates:', error)
+    
+    toast.value?.addToast({
+      type: 'error',
+      title: 'Lỗi hệ thống!',
+      message: 'Không thể kiểm tra serial trùng lặp.\nVui lòng thử lại sau.',
+      duration: 5000
+    })
+  } finally {
+    loading.value = false
+  }
 }
 
 // Note: removeVariantSerial functionality is handled by removeSerial function above
@@ -2521,14 +2723,34 @@ const importFromExcel = async (event) => {
     // Initialize serials array if needed
     currentVariant.value.serials = currentVariant.value.serials || []
     
-    // ✅ CHECK DUPLICATE - Compare with existing serials (case-insensitive)
-    const existingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
+    // ✅ CHECK DUPLICATE - Compare with entire database
+    console.log('🔍 Checking for duplicate serials in database...')
+    let allExistingSerials = []
+    
+    try {
+      const allSerialsResponse = await getAllSerial()
+      allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
+      console.log('✅ Successfully fetched', allExistingSerials.length, 'serials from database')
+    } catch (dbError) {
+      console.warn('⚠️ Failed to fetch serials from database:', dbError.message)
+      console.warn('⚠️ Falling back to local-only duplicate check')
+      allExistingSerials = [] // Fallback to empty array
+    }
+    
+    // Also check local serials (not yet saved)
+    const localExistingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
+    
+    // Combine all existing serials
+    const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
+    
+    console.log('📦 Found', allExisting.length, 'existing serials (database + local)')
+    
     const duplicateSerials = []
     const newSerials = []
     
     serials.forEach(serial => {
       const serialUpper = serial.toUpperCase()
-      if (existingSerials.includes(serialUpper)) {
+      if (allExisting.includes(serialUpper)) {
         duplicateSerials.push(serial)
       } else {
         // Check if not duplicate within the same import batch
