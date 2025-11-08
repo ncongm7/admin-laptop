@@ -51,23 +51,37 @@
             <!-- Voucher/Giảm giá -->
             <div class="voucher-section mt-2">
                 <label class="form-label small fw-semibold mb-1">
-                    <i class="bi bi-ticket-perforated"></i> Mã giảm giá
+                    <i class="bi bi-ticket-perforated"></i> Khuyến mãi
                 </label>
-                <div class="input-group input-group-sm">
-                    <input 
-                        type="text" 
-                        class="form-control" 
-                        v-model="voucherCode"
-                        placeholder="Nhập mã voucher..." />
-                    <button class="btn btn-outline-primary" @click="applyVoucher" :disabled="!voucherCode">
-                        Áp dụng
+                
+                <!-- Chưa có voucher -->
+                <div v-if="!hoaDon?.idPhieuGiamGia" class="voucher-not-applied">
+                    <button 
+                        class="btn btn-outline-primary btn-sm w-100" 
+                        @click="$emit('open-voucher-modal')">
+                        <i class="bi bi-gift"></i> Chọn Khuyến Mãi
                     </button>
                 </div>
-                <div v-if="hoaDon?.tienDuocGiam > 0" class="voucher-applied mt-1">
-                    <small class="text-success">
-                        <i class="bi bi-check-circle-fill"></i> 
-                        Đã giảm: {{ formatCurrency(hoaDon.tienDuocGiam) }}
-                    </small>
+                
+                <!-- Đã có voucher -->
+                <div v-else class="voucher-applied">
+                    <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded border border-success">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong class="text-success">{{ getVoucherName() }}</strong>
+                            </div>
+                            <small class="text-muted">
+                                Giảm: <span class="fw-bold text-success">{{ formatCurrency(hoaDon.tienDuocGiam) }}</span>
+                            </small>
+                        </div>
+                        <button 
+                            class="btn btn-sm btn-outline-danger ms-2" 
+                            @click="handleRemoveVoucher"
+                            title="Xóa voucher">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -134,10 +148,9 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['delete-item', 'apply-voucher', 'use-points', 'complete-payment', 'save-draft', 'cancel-bill'])
+const emit = defineEmits(['delete-item', 'apply-voucher', 'use-points', 'complete-payment', 'save-draft', 'cancel-bill', 'open-voucher-modal', 'remove-voucher'])
 
 // State
-const voucherCode = ref('')
 const usePoints = ref(false)
 
 // Computed
@@ -147,19 +160,49 @@ const canPayment = computed(() => {
            props.hoaDon.hoaDonChiTiet.length > 0
 })
 
+// Import composables
+import { useConfirm } from '@/composables/useConfirm'
+
+const { showConfirm } = useConfirm()
+
 // Methods
-const confirmDelete = (item) => {
-    if (confirm(`Bạn có chắc muốn xóa "${item.tenSanPham}" khỏi hóa đơn?`)) {
-        emit('delete-item', item.id)
+const confirmDelete = async (item) => {
+    const confirmed = await showConfirm({
+        title: 'Xác nhận xóa sản phẩm',
+        message: `Bạn có chắc chắn muốn xóa "${item.tenSanPham}" khỏi hóa đơn?`,
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        type: 'warning'
+    })
+    
+    if (confirmed) {
+        emit('delete-item', item.id, item.tenSanPham)
     }
 }
 
-const applyVoucher = () => {
-    if (!voucherCode.value || !voucherCode.value.trim()) {
-        alert('Vui lòng nhập mã voucher!')
-        return
+const handleRemoveVoucher = async () => {
+    const confirmed = await showConfirm({
+        title: 'Xác nhận xóa khuyến mãi',
+        message: 'Bạn có chắc chắn muốn xóa khuyến mãi này khỏi hóa đơn?',
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        type: 'warning'
+    })
+    
+    if (confirmed) {
+        emit('remove-voucher')
     }
-    emit('apply-voucher', voucherCode.value.trim())
+}
+
+const getVoucherName = () => {
+    // Lấy tên voucher từ hóa đơn (nếu có trong response)
+    if (props.hoaDon?.phieuGiamGia?.tenPhieuGiamGia) {
+        return props.hoaDon.phieuGiamGia.tenPhieuGiamGia
+    }
+    if (props.hoaDon?.phieuGiamGia?.ma) {
+        return props.hoaDon.phieuGiamGia.ma
+    }
+    return 'Voucher đã áp dụng'
 }
 
 const toggleUsePoints = () => {
@@ -185,7 +228,6 @@ const formatCurrency = (value) => {
 
 // Watch hoaDon để reset state khi chuyển hóa đơn
 watch(() => props.hoaDon, () => {
-    voucherCode.value = ''
     usePoints.value = false
 })
 </script>

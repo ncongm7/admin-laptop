@@ -14,7 +14,8 @@
                 </div>
             </div>
 
-            <div v-else v-for="(product, index) in products" :key="product.id" class="product-item">
+            <div v-else-if="products && products.length > 0" v-for="(product, index) in products" :key="product.id"
+                class="product-item">
                 <div class="product-rank">{{ index + 1 }}</div>
                 <div class="product-image">
                     <img :src="product.image" :alt="product.name">
@@ -26,6 +27,11 @@
                         <span class="sales-amount">{{ formatCurrency(product.revenue) }}</span>
                     </div>
                 </div>
+            </div>
+
+            <div v-else class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>Chưa có dữ liệu sản phẩm</p>
             </div>
         </div>
     </div>
@@ -188,6 +194,22 @@ defineProps({
 .loading-image {
     background: #e2e8f0;
     animation: pulse 1.5s infinite;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
 }
 
 @keyframes pulse {

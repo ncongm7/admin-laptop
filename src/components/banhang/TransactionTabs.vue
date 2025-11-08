@@ -10,13 +10,11 @@
             </button>
         </div>
 
-        <div class="card-body p-2">
+        <div class="card-body p-2" style="position: relative;">
             <!-- Danh sách hóa đơn chờ -->
             <div v-if="bills.length > 0" class="bills-list">
-                <div v-for="(bill, index) in bills" :key="bill.id" 
-                    class="bill-tab" 
-                    :class="{ active: bill.id === selectedBillId }"
-                    @click="$emit('select-bill', bill)">
+                <div v-for="(bill, index) in bills" :key="bill.id" class="bill-tab"
+                    :class="{ active: bill.id === selectedBillId }" @click="$emit('select-bill', bill)">
                     <div class="bill-info">
                         <div class="bill-number">
                             <i class="bi bi-receipt"></i>
@@ -94,10 +92,45 @@ const formatCurrency = (value) => {
     height: fit-content;
 }
 
+/* Đảm bảo header luôn có thể click được */
+.transaction-tabs .card-header {
+    pointer-events: auto;
+    z-index: 1;
+}
+
 .bills-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    max-height: 12rem;
+    /* Hiển thị khoảng 2 hóa đơn */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.25rem;
+    /* Thêm khoảng trống cho scrollbar */
+    position: relative;
+    /* Đảm bảo không ảnh hưởng đến các phần khác */
+    pointer-events: auto;
+    /* Đảm bảo có thể click vào các phần tử bên trong */
+}
+
+/* Tùy chỉnh scrollbar cho đẹp hơn */
+.bills-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.bills-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.bills-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.bills-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .bill-tab {
@@ -189,6 +222,10 @@ const formatCurrency = (value) => {
     .bills-list {
         flex-direction: row;
         overflow-x: auto;
+        overflow-y: hidden;
+        /* Tắt vertical scroll trên mobile */
+        max-height: none;
+        /* Bỏ giới hạn chiều cao trên mobile */
         padding-bottom: 0.5rem;
     }
 
@@ -197,4 +234,3 @@ const formatCurrency = (value) => {
     }
 }
 </style>
-

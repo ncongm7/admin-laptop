@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
   },
 })
 
-// Request interceptor - Tự động thêm token vào mọi request
+//tu động thêm tokeen vào request
 axiosInstance.interceptors.request.use(
   (config) => {
     // Lấy token từ localStorage
@@ -26,7 +26,7 @@ axiosInstance.interceptors.request.use(
   }
 )
 
-// Response interceptor - Xử lý lỗi response (không tự động logout)
+// Xử lý lỗi response (không tự động logout)
 axiosInstance.interceptors.response.use(
   (response) => {
     // Trả về response nếu thành công

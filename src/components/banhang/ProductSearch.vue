@@ -16,18 +16,8 @@
                     <button class="btn btn-primary" @click="handleSearch">
                         <i class="bi bi-search"></i>
                     </button>
-                    <button class="btn btn-warning" @click="toggleScanMode" :class="{ active: scanMode }">
-                        <i class="bi bi-upc-scan"></i> Quét mã
-                    </button>
                 </div>
 
-                <!-- Chế độ quét mã -->
-                <div v-if="scanMode" class="scan-mode-indicator">
-                    <div class="alert alert-warning mb-0 mt-2" role="alert">
-                        <i class="bi bi-upc-scan"></i> <strong>Chế độ quét mã đang BẬT</strong> - Hãy quét mã vạch hoặc
-                        IMEI
-                    </div>
-                </div>
             </div>
 
             <!-- Loading -->
@@ -90,8 +80,7 @@
             <div v-if="!keyword && !isLoading" class="search-instruction text-center py-4">
                 <i class="bi bi-info-circle" style="font-size: 3rem; color: #0dcaf0;"></i>
                 <p class="text-muted mt-2 mb-0">
-                    Nhập tên hoặc mã sản phẩm để tìm kiếm<br />
-                    Hoặc nhấn <strong>"Quét mã"</strong> để quét mã vạch/IMEI
+                    Nhập tên hoặc mã sản phẩm để tìm kiếm
                 </p>
             </div>
         </div>
@@ -99,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { timKiemSanPham } from '@/service/banHangService'
 
 const emit = defineEmits(['product-selected', 'scan-imei'])
@@ -108,7 +97,6 @@ const emit = defineEmits(['product-selected', 'scan-imei'])
 const keyword = ref('')
 const ketQua = ref([])
 const isLoading = ref(false)
-const scanMode = ref(false)
 const searchInput = ref(null)
 
 // Debounce timer
@@ -123,14 +111,9 @@ const handleSearch = () => {
         return
     }
 
-    // Nếu đang ở chế độ quét mã và keyword có vẻ là IMEI/Barcode (dài hơn 10 ký tự)
-    if (scanMode.value && keyword.value.trim().length >= 10) {
-        handleScanImei(keyword.value.trim())
-        return
-    }
-
     searchTimeout = setTimeout(async () => {
         isLoading.value = true
+        console.log('🔍 Tìm kiếm sản phẩm:', keyword.value.trim())
 
         try {
             const response = await timKiemSanPham({
@@ -139,13 +122,36 @@ const handleSearch = () => {
                 size: 20
             })
 
-            if (response && response.data) {
-                ketQua.value = response.data.content || response.data || []
-            } else {
-                ketQua.value = []
+            console.log('📦 Response tìm kiếm:', response)
+
+            // Xử lý response linh hoạt - backend có thể trả về nhiều cấu trúc
+            let products = []
+
+            if (response) {
+                // Trường hợp 1: response.data.content (pagination)
+                if (response.data && response.data.content && Array.isArray(response.data.content)) {
+                    products = response.data.content
+                }
+                // Trường hợp 2: response.data (array trực tiếp)
+                else if (response.data && Array.isArray(response.data)) {
+                    products = response.data
+                }
+                // Trường hợp 3: response là array
+                else if (Array.isArray(response)) {
+                    products = response
+                }
+                // Trường hợp 4: response.data.data
+                else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                    products = response.data.data
+                }
             }
+
+            ketQua.value = products
+            console.log('✅ Tìm thấy', products.length, 'sản phẩm')
+
         } catch (error) {
-            console.error('Lỗi khi tìm kiếm:', error)
+            console.error('❌ Lỗi khi tìm kiếm sản phẩm:', error)
+            console.error('Error details:', error.response?.data)
             ketQua.value = []
         } finally {
             isLoading.value = false
@@ -156,32 +162,6 @@ const handleSearch = () => {
 const selectProduct = (product) => {
     emit('product-selected', product)
     // Không clear keyword để có thể tiếp tục tìm kiếm
-}
-
-const toggleScanMode = () => {
-    scanMode.value = !scanMode.value
-
-    if (scanMode.value) {
-        // Focus vào input để sẵn sàng nhận dữ liệu từ máy quét
-        searchInput.value?.focus()
-        keyword.value = ''
-        ketQua.value = []
-    }
-}
-
-const handleScanImei = (imeiCode) => {
-    console.log('Đã quét mã:', imeiCode)
-    emit('scan-imei', imeiCode)
-
-    // Clear input sau khi quét
-    keyword.value = ''
-
-    // Tự động tắt chế độ quét sau 2 giây
-    setTimeout(() => {
-        if (scanMode.value) {
-            scanMode.value = false
-        }
-    }, 2000)
 }
 
 const getProductImage = (product) => {
@@ -204,15 +184,6 @@ const getStockClass = (stock) => {
     if (stock > 0) return 'stock-medium'
     return 'stock-low'
 }
-
-// Watch scanMode để focus input
-watch(scanMode, (newVal) => {
-    if (newVal) {
-        setTimeout(() => {
-            searchInput.value?.focus()
-        }, 100)
-    }
-})
 </script>
 
 <style scoped>
@@ -225,28 +196,6 @@ watch(scanMode, (newVal) => {
 .card-body {
     flex: 1;
     overflow-y: auto;
-}
-
-.btn.active {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #000;
-}
-
-.scan-mode-indicator {
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.7;
-    }
 }
 
 .search-results {
