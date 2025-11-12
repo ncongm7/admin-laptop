@@ -12,7 +12,7 @@
           </div>
           <div class="card-body" v-if="dotGiamGia">
             <p><strong>Tên:</strong> {{ dotGiamGia.tenKm }}</p>
-            <p><strong>Giá trị:</strong> {{ dotGiamGia.giaTri }} VND</p>
+            <p><strong>Giá trị:</strong> {{ showCurrency(dotGiamGia.giaTri) }} VND</p>
             <p><strong>Bắt đầu:</strong> {{ showDate(dotGiamGia.ngayBatDau) }}</p>
             <p><strong>Kết thúc:</strong> {{ showDate(dotGiamGia.ngayKetThuc) }}</p>
             <p><strong>Trạng thái:</strong> {{ dotGiamGia.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</p>
@@ -112,8 +112,8 @@
             <tr v-for="(it, idx) in pagedApplied" :key="it.id">
               <td>{{ (pageApplied - 1) * pageSizeApplied + idx + 1 }}</td>
               <td>{{ it.idCtsp }}</td>
-              <td>{{ it.giaBanDau }}</td>
-              <td>{{ it.giaSauKhiGiam }}</td>
+              <td>{{ showCurrency(it.giaBanDau) }}</td>
+              <td>{{ showCurrency(it.giaSauKhiGiam) }}</td>
               <td>
                 <button class="btn btn-danger btn-sm" @click="remove(it.id)">Xóa</button>
               </td>
@@ -319,6 +319,13 @@ const showDate = (v) => {
   if (isNaN(d)) return String(v)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const number = parseFloat(v)
+  if (isNaN(number)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(number)
 }
 
 const back = () => router.push('/quan-li-giam-gia')
