@@ -33,7 +33,7 @@
     <tr v-for="(it, idx) in paged" :key="it.id">
       <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
       <td>{{ it.tenKm }}</td>
-      <td>{{ it.giaTri }}</td>
+      <td>{{ showCurrency(it.giaTri) }}</td>
       <td>{{ it.moTa }}</td>
       <td>{{ showDate(it.ngayBatDau) }}</td>
       <td>{{ showDate(it.ngayKetThuc) }}</td>
@@ -135,8 +135,16 @@ const remove = async (id) => {
   }
 }
 
-//Định dạng hiển thị
-const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+
+//Định dạng hiển thị
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const number = parseFloat(v)
+  if (isNaN(number)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(number)
+}
+
+const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
 
 const showDate = (v) => {
   if (!v) return ''
