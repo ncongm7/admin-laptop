@@ -257,19 +257,51 @@ export default {
         await this.loadCustomerInfo()
       }
     },
+    /**
+     * Load thông tin khách hàng theo mã khách hàng
+     * Nếu tìm thấy: tự động điền thông tin họ tên và số điện thoại
+     * Nếu không tìm thấy: hiển thị thông báo và cho phép người dùng nhập thủ công
+     */
     async loadCustomerInfo() {
       try {
+        // Gọi API để lấy thông tin khách hàng theo mã
         const response = await KhachHangService.getByMaKhachHang(this.form.maKhachHang)
         const customer = response.data
 
+        // Kiểm tra nếu có dữ liệu khách hàng
         if (customer) {
-          // Auto-fill thông tin khách hàng (người dùng vẫn có thể sửa)
+          // Tự động điền thông tin khách hàng vào form (người dùng vẫn có thể sửa)
           this.form.hoTen = customer.hoTen || ''
           this.form.sdt = customer.soDienThoai || ''
+          
+          // Xóa lỗi mã khách hàng nếu có
+          delete this.errors.maKhachHang
         }
-      } catch {
-        console.log('Không tìm thấy khách hàng với mã:', this.form.maKhachHang)
-        // Không hiển thị lỗi vì người dùng có thể tự nhập
+      } catch (error) {
+        // Xử lý lỗi khi không tìm thấy khách hàng
+        console.error('Error loading customer info:', error)
+        
+        // Kiểm tra nếu lỗi là từ backend (NOT_FOUND)
+        if (error.response && error.response.data) {
+          const errorData = error.response.data
+          
+          // Nếu lỗi là "NOT_FOUND" (khách hàng không tồn tại)
+          if (errorData.code === 'NOT_FOUND') {
+            // Hiển thị thông báo lỗi cho người dùng
+            this.errors.maKhachHang = errorData.message || 'Khách hàng không tồn tại. Vui lòng kiểm tra lại mã khách hàng hoặc nhập thông tin thủ công.'
+            
+            // Reset thông tin khách hàng để người dùng có thể nhập thủ công
+            this.form.hoTen = ''
+            this.form.sdt = ''
+          } else {
+            // Xử lý các lỗi khác
+            this.errors.maKhachHang = errorData.message || 'Có lỗi xảy ra khi tải thông tin khách hàng'
+          }
+        } else {
+          // Lỗi không có response (network error, etc.)
+          console.log('Không tìm thấy khách hàng với mã:', this.form.maKhachHang)
+          this.errors.maKhachHang = 'Không thể kết nối đến server. Vui lòng thử lại sau.'
+        }
       }
     },
     validateMaKhachHang() {
@@ -345,21 +377,52 @@ export default {
       this.filteredTinhList = this.tinhList
       this.filteredXaList = []
     },
+    /**
+     * Xử lý lưu địa chỉ mới
+     * Validate form trước khi lưu
+     * Hiển thị thông báo lỗi chi tiết nếu có
+     */
     async handleSave() {
+      // Validate form trước khi lưu
       if (!this.validateForm()) {
         alert('Vui lòng điền đầy đủ thông tin bắt buộc')
         return
       }
 
       try {
+        // Gọi API để thêm địa chỉ mới
         await DiaChiService.addDiaChi(this.form)
 
+        // Hiển thị thông báo thành công
         alert('Thêm địa chỉ thành công!')
+        
+        // Reset form và emit event success để parent component cập nhật
         this.handleReset()
         this.$emit('success')
       } catch (error) {
+        // Xử lý lỗi khi thêm địa chỉ
         console.error('Error adding dia chi:', error)
-        alert('Có lỗi xảy ra khi thêm địa chỉ: ' + (error.response?.data?.message || error.message))
+        
+        // Kiểm tra nếu lỗi là từ backend
+        if (error.response && error.response.data) {
+          const errorData = error.response.data
+          
+          // Nếu lỗi là "NOT_FOUND" (khách hàng không tồn tại)
+          if (errorData.code === 'NOT_FOUND') {
+            // Hiển thị lỗi ở trường mã khách hàng
+            this.errors.maKhachHang = errorData.message || 'Khách hàng không tồn tại'
+            alert('Lỗi: ' + errorData.message)
+          } else if (errorData.code === 'VALIDATION_ERROR') {
+            // Xử lý lỗi validate
+            alert('Lỗi validate: ' + JSON.stringify(errorData.errors))
+          } else {
+            // Xử lý các lỗi khác
+            alert('Có lỗi xảy ra khi thêm địa chỉ: ' + (errorData.message || error.message))
+          }
+        } else {
+          // Lỗi không có response (network error, etc.)
+          alert('Có lỗi xảy ra khi thêm địa chỉ: ' + (error.message || 'Lỗi không xác định'))
+        }
       }
     },
     // Load danh sách tỉnh/thành phố

@@ -10,15 +10,8 @@
 
       <div class="col-md-6">
         <label class="form-label">Giá trị (VND) *</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.giaTri"
-          :min="0"
-          :step="1000"
-          :disabled="isDetail"
-        />
-        <small class="text-muted">{{ vndFormat(+form.giaTri || 0) }}</small>
+        <input type="number" class="form-control" v-model.number="form.giaTri" :disabled="isDetail" />
+        <small v-if="form.giaTri" class="text-muted d-block mt-1">{{ showCurrency(form.giaTri) }} VND</small>
       </div>
 
       <div class="col-md-6">
@@ -157,4 +150,11 @@ const save = async () => {
 }
 
 const back = () => router.push('/dot-giam-gia')
+
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const number = parseFloat(v)
+  if (isNaN(number)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(number)
+}
 </script>

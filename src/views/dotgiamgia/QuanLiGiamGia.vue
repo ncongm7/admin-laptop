@@ -195,7 +195,17 @@ const remove = async (id) => {
   }
 }
 
-//Định dạng hiển thị
+
+//Định dạng hiển thị
+const showCurrency = (v) => {
+  if (v === null || v === undefined) return ''
+  const number = parseFloat(v)
+  if (isNaN(number)) return String(v)
+  return new Intl.NumberFormat('vi-VN').format(number)
+}
+
+const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
+
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
