@@ -237,18 +237,18 @@ const hasStock = (product) => {
     if (product.soLuongTon !== undefined) {
         return product.soLuongTon > 0
     }
-    
+
     // Nếu là SanPham cha, kiểm tra có biến thể còn hàng không
     if (product.chiTietSanPhams && product.chiTietSanPhams.length > 0) {
         return product.chiTietSanPhams.some(ctsp => ctsp.soLuongTon > 0)
     }
-    
+
     // Nếu có trangThai = 1 (đang bán) thì coi như còn hàng
     // Vì API /api/san-pham/con-hang đã lọc sản phẩm có tồn kho > 0
     if (product.trangThai === 1) {
         return true
     }
-    
+
     return false
 }
 
