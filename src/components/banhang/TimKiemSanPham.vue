@@ -66,7 +66,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { timKiemSanPham } from '@/service/banHangService'
+import { timKiemSanPham } from '@/service/banhang/banHangService'
 
 const emit = defineEmits(['product-selected'])
 

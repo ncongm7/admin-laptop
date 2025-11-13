@@ -38,31 +38,31 @@
                     <div v-for="product in ketQua" :key="product.id" class="product-card"
                         @click="selectProduct(product)">
                         <div class="product-image-wrapper">
-                            <img :src="getProductImage(product)" :alt="product.tenSP" class="product-image" />
-                            <div class="product-stock-badge" :class="getStockClass(product.soLuongTon)">
-                                {{ product.soLuongTon || 0 }}
+                            <img :src="getProductImage(product)" :alt="getProductName(product)" class="product-image" />
+                            <div v-if="hasStock(product)" class="product-stock-badge stock-high">
+                                Còn hàng
+                            </div>
+                            <div v-else class="product-stock-badge stock-low">
+                                Hết hàng
                             </div>
                         </div>
 
                         <div class="product-info">
-                            <h6 class="product-name">{{ product.tenSP }}</h6>
+                            <h6 class="product-name">{{ getProductName(product) }}</h6>
                             <div class="product-code text-muted small">
-                                Mã: {{ product.maCTSP }}
+                                Mã: {{ getProductCode(product) }}
                             </div>
                             <div class="product-specs">
-                                <span v-if="product.ram" class="spec-badge">
-                                    <i class="bi bi-memory"></i> {{ product.ram.dungLuong }}
+                                <span class="spec-badge">
+                                    <i class="bi bi-box-seam"></i> {{ getVariantCount(product) }} biến thể
                                 </span>
-                                <span v-if="product.oCung" class="spec-badge">
-                                    <i class="bi bi-hdd"></i> {{ product.oCung.tenOCung }}
+                                <span v-if="product.trangThai === 1" class="spec-badge text-success">
+                                    <i class="bi bi-check-circle"></i> Đang bán
                                 </span>
                             </div>
                             <div class="product-footer">
-                                <div class="product-price">
-                                    {{ formatCurrency(product.giaBan) }}
-                                </div>
-                                <button class="btn btn-sm btn-primary">
-                                    <i class="bi bi-plus-circle"></i> Thêm
+                                <button class="btn btn-sm btn-primary w-100">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
                                 </button>
                             </div>
                         </div>
@@ -77,7 +77,7 @@
             </div>
 
             <!-- Hướng dẫn -->
-            <div v-if="!keyword && !isLoading" class="search-instruction text-center py-4">
+            <div v-if="!keyword && !isLoading && ketQua.length === 0" class="search-instruction text-center py-4">
                 <i class="bi bi-info-circle" style="font-size: 3rem; color: #0dcaf0;"></i>
                 <p class="text-muted mt-2 mb-0">
                     Nhập tên hoặc mã sản phẩm để tìm kiếm
@@ -88,8 +88,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { timKiemSanPham } from '@/service/banHangService'
+import { ref, onMounted } from 'vue'
+import { timKiemSanPham, laySanPhamConHang } from '@/service/banhang/banHangService'
 
 const emit = defineEmits(['product-selected', 'scan-imei'])
 
@@ -102,12 +102,56 @@ const searchInput = ref(null)
 // Debounce timer
 let searchTimeout = null
 
+// Load sản phẩm còn hàng khi vào màn hình
+onMounted(async () => {
+    await loadSanPhamConHang()
+})
+
 // Methods
+const loadSanPhamConHang = async () => {
+    isLoading.value = true
+    console.log('📦 Load danh sách sản phẩm còn hàng...')
+
+    try {
+        const response = await laySanPhamConHang({
+            page: 0,
+            size: 20
+        })
+
+        console.log('📦 Response sản phẩm còn hàng:', response)
+
+        // Xử lý response linh hoạt
+        let products = []
+
+        if (response) {
+            if (response.data && response.data.content && Array.isArray(response.data.content)) {
+                products = response.data.content
+            } else if (response.data && Array.isArray(response.data)) {
+                products = response.data
+            } else if (Array.isArray(response)) {
+                products = response
+            } else if (response.content && Array.isArray(response.content)) {
+                products = response.content
+            }
+        }
+
+        ketQua.value = products
+        console.log('✅ Đã load', products.length, 'sản phẩm còn hàng')
+
+    } catch (error) {
+        console.error('❌ Lỗi khi load sản phẩm còn hàng:', error)
+        ketQua.value = []
+    } finally {
+        isLoading.value = false
+    }
+}
+
 const handleSearch = () => {
     clearTimeout(searchTimeout)
 
     if (!keyword.value || keyword.value.trim().length < 2) {
-        ketQua.value = []
+        // Nếu xóa keyword, load lại sản phẩm còn hàng
+        loadSanPhamConHang()
         return
     }
 
@@ -170,6 +214,42 @@ const getProductImage = (product) => {
         return defaultImage ? defaultImage.uri : product.anhSanPhams[0].uri
     }
     return 'https://via.placeholder.com/150x150?text=No+Image'
+}
+
+const getProductName = (product) => {
+    // ChiTietSanPham có tenSP, SanPham có tenSanPham
+    return product.tenSP || product.tenSanPham || 'Không có tên'
+}
+
+const getProductCode = (product) => {
+    // ChiTietSanPham có maCTSP, SanPham có maSanPham
+    return product.maCTSP || product.maSanPham || 'N/A'
+}
+
+const getVariantCount = (product) => {
+    // Đếm số biến thể nếu có
+    return product.chiTietSanPhams?.length || 0
+}
+
+const hasStock = (product) => {
+    // Kiểm tra còn hàng
+    // Nếu có soLuongTon (ChiTietSanPham)
+    if (product.soLuongTon !== undefined) {
+        return product.soLuongTon > 0
+    }
+    
+    // Nếu là SanPham cha, kiểm tra có biến thể còn hàng không
+    if (product.chiTietSanPhams && product.chiTietSanPhams.length > 0) {
+        return product.chiTietSanPhams.some(ctsp => ctsp.soLuongTon > 0)
+    }
+    
+    // Nếu có trangThai = 1 (đang bán) thì coi như còn hàng
+    // Vì API /api/san-pham/con-hang đã lọc sản phẩm có tồn kho > 0
+    if (product.trangThai === 1) {
+        return true
+    }
+    
+    return false
 }
 
 const formatCurrency = (value) => {

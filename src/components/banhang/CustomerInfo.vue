@@ -83,7 +83,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { timKiemKhachHang } from '@/service/banHangService'
+import { timKiemKhachHang } from '@/service/banhang/banHangService'
 
 const props = defineProps({
     customer: {
