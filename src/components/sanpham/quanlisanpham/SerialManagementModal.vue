@@ -1083,12 +1083,8 @@ const handleSave = async () => {
           duration: 5000
         })
       } else {
-        toast.value?.addToast({
-          type: 'info',
-          title: 'Không có thay đổi',
-          message: 'Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.',
-          duration: 4000
-        })
+        // Don't show "no changes" message - just silently close
+        console.log('ℹ️ No new serials to save - all serials already saved')
       }
     }
     
@@ -1103,14 +1099,6 @@ const handleSave = async () => {
     
   } catch (error) {
     console.error('Error saving serials:', error)
-    const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
-    
-    toast.value?.addToast({
-      type: 'error',
-      title: 'Lưu thất bại!',
-      message: `🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng thử lại hoặc liên hệ quản trị viên.`,
-      duration: 6000
-    })
   } finally {
     loading.value = false
   }
