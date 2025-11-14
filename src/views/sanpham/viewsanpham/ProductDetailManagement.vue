@@ -152,10 +152,11 @@
                   <tr>
                     <th width="30">STT</th>
                     <th width="100">SKU</th>
-                    <th width="60">MÀU</th>
+                    <th width="100">MÀU SẮC</th>
                     <th width="80">CPU</th>
                     <th width="60">RAM</th>
                     <th width="70">GPU</th>
+                    <th width="70">PIN</th>
                     <th width="75">GIÁ BÁN</th>
                     <th width="60">SỐ LƯỢNG TỒN</th>
                     <th width="65">TRẠNG THÁI</th>
@@ -183,10 +184,25 @@
                     <td>
                       <code class="sku-code">{{ variant.maCtsp }}</code>
                     </td>
-                    <td>{{ variant.tenMauSac || 'N/A' }}</td>
+                    <td>
+                      <div class="color-display" v-if="variant.mauSac">
+                        <div class="d-flex align-items-center">
+                          <span 
+                            v-if="variant.mauSac.hexCode" 
+                            class="color-preview me-2" 
+                            :style="{ backgroundColor: variant.mauSac.hexCode }"
+                            :title="variant.mauSac.hexCode"
+                          ></span>
+                          <span class="text-truncate" :title="variant.mauSac.tenMau">{{ variant.mauSac.tenMau }}</span>
+                        </div>
+                      </div>
+                      <span v-else-if="variant.tenMauSac" class="text-truncate" :title="variant.tenMauSac">{{ variant.tenMauSac }}</span>
+                      <span v-else class="text-muted">N/A</span>
+                    </td>
                     <td>{{ variant.tenCpu || 'N/A' }}</td>
                     <td>{{ variant.tenRam || 'N/A' }}</td>
                     <td>{{ variant.tenGpu || 'N/A' }}</td>
+                    <td>{{ variant.dungLuongPin || 'N/A' }}</td>
                     <td>
                       <span class="price-text">{{ formatCurrency(variant.giaBan) }}</span>
                     </td>
@@ -261,7 +277,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
 import { formatCurrency } from '@/utils/formatters'
-import { getCTSPBySanPham, getHinhAnhByCtspId, deleteCTSPWithCascade } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId, deleteCTSPWithCascade, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
@@ -337,15 +353,32 @@ const fetchProductVariants = async (productId) => {
           console.warn(`Failed to load images for variant ${variant.id}`)
         }
         
+        // Get color info from productStore if available
+        let colorInfo = null
+        if (variant.idMauSac) {
+          const color = productStore.colors.find(c => c.id === variant.idMauSac)
+          if (color) {
+            colorInfo = {
+              tenMau: color.tenMau,
+              hexCode: color.hexCode || '#000000',
+              id: color.id
+            }
+          }
+        }
+        
+        // Fallback to variant data if not found in store
+        if (!colorInfo && variant.tenMauSac) {
+          colorInfo = {
+            tenMau: variant.tenMauSac,
+            hexCode: variant.hexCodeMauSac || '#cccccc',
+            id: variant.idMauSac
+          }
+        }
+        
         return {
           ...variant,
           images: images,
-          // Map flat fields to nested objects for consistency
-          mauSac: variant.tenMauSac ? {
-            tenMau: variant.tenMauSac,
-            hexCode: variant.hexCodeMauSac || '#000000',
-            id: variant.idMauSac
-          } : null,
+          mauSac: colorInfo
         }
       }))
       
@@ -432,18 +465,52 @@ const handleSerialSaved = async ({ variantId, serials }) => {
   console.log('🔵 Received serials array:', serials)
   console.log('🔵 Serials length:', serials?.length || 0)
   console.log('🔵 First few serials:', serials?.slice(0, 3))
-  console.log('🔵 This will close modal and reset currentVariantForSerial')
   
   // Count only active serials (trangThai = 1)
   const activeSerialCount = (serials || []).filter(s => s.trangThai === 1).length
-  console.log('Serials saved for variant:', variantId, 'Total:', serials?.length || 0, 'Active:', activeSerialCount)
+  console.log('✅ Serials saved for variant:', variantId, 'Total:', serials?.length || 0, 'Active (Available):', activeSerialCount)
   
-  // Update the specific variant's stock count immediately for better UX
-  if (variantId && productDetailStore.variants) {
-    const variantIndex = productDetailStore.variants.findIndex(v => v.id === variantId)
-    if (variantIndex !== -1) {
-      productDetailStore.variants[variantIndex].soLuongTon = activeSerialCount
-      console.log('✅ Updated variant stock count locally:', variantId, 'New stock:', activeSerialCount)
+  // Update database: soLuongTon = count of active serials
+  if (variantId) {
+    try {
+      // Find the variant to get all its data
+      const variant = productDetailStore.variants?.find(v => v.id === variantId)
+      
+      if (variant) {
+        // Prepare update payload with all required fields
+        const updatePayload = {
+          idSanPham: variant.idSanPham || productId.value,
+          maCtsp: variant.maCtsp,
+          giaBan: variant.giaBan,
+          ghiChu: variant.ghiChu || '',
+          soLuongTon: activeSerialCount, // ✅ Update stock based on active serials
+          soLuongTamGiu: variant.soLuongTamGiu || 0,
+          trangThai: variant.trangThai,
+          idCpu: variant.idCpu,
+          idGpu: variant.idGpu,
+          idRam: variant.idRam,
+          idOCung: variant.idOCung,
+          idMauSac: variant.idMauSac,
+          idLoaiManHinh: variant.idLoaiManHinh,
+          idPin: variant.idPin
+        }
+        
+        console.log('🔄 Updating variant stock in database:', variantId, 'New stock:', activeSerialCount)
+        await updateChiTietSanPham(variantId, updatePayload)
+        console.log('✅ Database updated successfully')
+        
+        // Update local state immediately for better UX
+        const variantIndex = productDetailStore.variants.findIndex(v => v.id === variantId)
+        if (variantIndex !== -1) {
+          productDetailStore.variants[variantIndex].soLuongTon = activeSerialCount
+          console.log('✅ Updated variant stock count locally:', variantId, 'New stock:', activeSerialCount)
+        }
+      } else {
+        console.warn('⚠️ Variant not found in store:', variantId)
+      }
+    } catch (error) {
+      console.error('❌ Error updating variant stock count:', error)
+      alert('Có lỗi khi cập nhật số lượng tồn: ' + (error.response?.data?.message || error.message))
     }
   }
   
@@ -658,5 +725,32 @@ const goBack = () => {
 .btn-group-sm .btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+}
+
+/* Color display styles */
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.color-display {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.color-display .d-flex {
+  max-width: 100%;
+}
+
+.color-display .text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 </style>
