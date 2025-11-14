@@ -134,7 +134,7 @@
               <th width="30">STT</th>
               <th width="60">ẢNH</th>
               <th width="100">SKU</th>
-              <th width="100">MÀU SẮC</th>
+              <th width="60">MÀU</th>
               <th width="80">CPU</th>
               <th width="60">RAM</th>
               <th width="70">GPU</th>
@@ -192,20 +192,22 @@
                 <code class="sku-code">{{ variant.maCtsp }}</code>
               </td>
               <td>
-                      <div class="color-display" v-if="variant.mauSac">
-                        <div class="d-flex align-items-center">
-                          <span 
-                            v-if="variant.mauSac.hexCode" 
-                            class="color-preview me-2" 
-                            :style="{ backgroundColor: variant.mauSac.hexCode }"
-                            :title="variant.mauSac.hexCode"
-                          ></span>
-                          <span class="text-truncate" :title="variant.mauSac.tenMau">{{ variant.mauSac.tenMau }}</span>
-                        </div>
-                      </div>
-                      <span v-else-if="variant.tenMauSac" class="text-truncate" :title="variant.tenMauSac">{{ variant.tenMauSac }}</span>
-                      <span v-else class="text-muted">N/A</span>
-                    </td>
+                <div class="color-display" v-if="variant.mauSac">
+                  <div class="d-flex align-items-center">
+                    <span 
+                      v-if="variant.mauSac.hexCode" 
+                      class="color-preview me-2" 
+                      :style="{ backgroundColor: variant.mauSac.hexCode }"
+                      :title="variant.mauSac.hexCode"
+                    ></span>
+                    <div class="color-info">
+                      <div class="color-name">{{ variant.mauSac?.tenMau }}</div>
+                      <div v-if="variant.mauSac.hexCode" class="color-hex">{{ variant.mauSac.hexCode }}</div>
+                    </div>
+                  </div>
+                </div>
+                <span v-else class="text-muted">-</span>
+              </td>
               <td>{{ variant.tenCpu || 'N/A' }}</td>
               <td>{{ variant.tenRam || 'N/A' }}</td>
               <td>{{ variant.tenGpu || 'N/A' }}</td>
@@ -1211,29 +1213,15 @@ const handleSerialSaved = async ({ variantId, serials }) => {
   cursor: help;
 }
 
-.color-display {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.color-display .d-flex {
-  max-width: 100%;
-}
-
 .color-info {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .color-name {
   font-weight: 500;
   font-size: 13px;
   color: #1f2937;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .color-hex {
@@ -1241,9 +1229,6 @@ const handleSerialSaved = async ({ variantId, serials }) => {
   color: #6b7280;
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Button styling for consistency */

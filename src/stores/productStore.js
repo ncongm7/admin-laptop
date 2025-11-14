@@ -50,27 +50,6 @@ export const useProductStore = defineStore('products', () => {
 
    // Normalize a ChiTietSanPhamResponse into structure used by component
   const normalizeCtsp = (item) => {
-    // Get hexCode from colors store if available
-    let mauSacInfo = null
-    if (item.tenMauSac || item.idMauSac) {
-      const colorFromStore = colors.value.find(c => c.id === item.idMauSac)
-      if (colorFromStore) {
-        mauSacInfo = {
-          tenMau: colorFromStore.tenMau,
-          id: colorFromStore.id,
-          hexCode: colorFromStore.hexCode || '#cccccc'
-        }
-      } else {
-        // Fallback to item data if not found in store
-        mauSacInfo = {
-          tenMau: item.tenMauSac,
-          id: item.idMauSac,
-          hexCode: item.hexCodeMauSac || '#cccccc'
-        }
-      }
-    } else if (item.mauSac) {
-      mauSacInfo = item.mauSac
-    }
  
     return {
       ...item,
@@ -81,7 +60,7 @@ export const useProductStore = defineStore('products', () => {
       oCung: item.dungLuongOCung ? { dungLuong: item.dungLuongOCung, id: item.idOCung } : (item.oCung || null),
       loaiManHinh: item.kichThuocManHinh ? { kichThuoc: item.kichThuocManHinh, id: item.idLoaiManHinh } : (item.loaiManHinh || null),
       pin: item.dungLuongPin ? { dungLuongPin: item.dungLuongPin, id: item.idPin } : (item.pin || null),
-      mauSac: mauSacInfo,
+      mauSac: item.tenMauSac ? { tenMau: item.tenMauSac, id: item.idMauSac, hexCode: item.hexCodeMauSac } : (item.mauSac || null),
       tenSanPham: item.tenSanPham || item.productName || '',
       maCtsp: item.maCtsp || item.code || '',
       giaBan: item.giaBan,

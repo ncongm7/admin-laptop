@@ -259,35 +259,9 @@ watch(() => props.variant, async (newVariant) => {
   }
 }, { immediate: true })
 
-// Watch for modal open/close to reload serials
-watch(() => props.modelValue, async (isVisible, wasVisible) => {
-  console.log('🔵 Modal visibility changed:', { isVisible, wasVisible })
-  
-  // When modal opens, reload serials
-  if (isVisible && !wasVisible) {
-    console.log('🔵 Modal opened - loading serials...')
-    if (props.variant?.id) {
-      await loadSerials()
-    }
-  }
-  
-  // When modal closes, reset validation state
-  if (!isVisible && wasVisible) {
-    console.log('🔵 Modal closed - resetting state')
-    serialInput.value = ''
-    validationError.value = ''
-    validationSuccess.value = false
-  }
-})
-
 // Load serials from API or use existing data
 const loadSerials = async () => {
-  if (!props.variant) {
-    console.log('⚠️ No variant provided')
-    return
-  }
-  
-  console.log('🔄 Loading serials for variant:', props.variant.id || 'preview')
+  if (!props.variant) return
   
   // If variant has ID, always load from API for fresh data
   if (props.variant.id) {
@@ -295,35 +269,31 @@ const loadSerials = async () => {
       console.log('🔵 Loading serials from API for variant:', props.variant.id)
       const response = await getSerialsByCtspId(props.variant.id)
       const backendSerials = response.data || []
-      console.log('✅ Backend serials received:', backendSerials.length, 'serials')
-      
-      if (backendSerials.length > 0) {
-        console.log('🔵 First serial example:', backendSerials[0])
-      }
+      console.log('🔵 Backend serials received:', backendSerials)
+      console.log('🔵 First serial status from backend:', backendSerials[0]?.trangThai)
       
       localSerials.value = backendSerials.map(serial => ({
         id: serial.id,
-        soSerial: serial.serialNo || serial.soSerial,
+        soSerial: serial.serialNo,
         trangThai: serial.trangThai // Don't use default, use actual value from backend
       }))
       originalSerials.value = JSON.parse(JSON.stringify(localSerials.value)) // Deep copy
       
-      console.log('✅ Local serials updated - total:', localSerials.value.length)
+      console.log('🔵 Local serials updated:', localSerials.value)
     } catch (error) {
-      console.error('❌ Error loading serials:', error)
+      console.error('Error loading serials:', error)
       localSerials.value = []
       originalSerials.value = []
     }
   } else if (props.variant.serials && Array.isArray(props.variant.serials)) {
     // Preview mode - use prop data
-    console.log('🔵 Using preview serials from props:', props.variant.serials.length)
+    console.log('🔵 Using preview serials from props')
     localSerials.value = [...props.variant.serials]
     originalSerials.value = JSON.parse(JSON.stringify(props.variant.serials)) // Deep copy
   } else {
     // New variant - empty serials
     console.log('🔵 New variant - empty serials')
     localSerials.value = []
-    originalSerials.value = []
   }
 }
 
@@ -344,28 +314,18 @@ const validateSerialInput = () => {
   }
 }
 
-// Add serials with duplicate detection
+// Add serials
 const addSerialNumbers = () => {
-  const serials = serialInput.value.split(/[,;]/).map(s => s.trim().toUpperCase()).filter(s => s)
-  
-  // Validate format first
+  const serials = serialInput.value.split(/[,;]/).map(s => s.trim()).filter(s => s)
   const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
+  
   if (invalidSerials.length > 0) {
-    validationError.value = `❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`
-    alert(validationError.value)
+    validationError.value = `Serial không hợp lệ: ${invalidSerials.join(', ')} (phải có đúng 7 ký tự gồm chữ và số)`
     return
   }
   
-  // Check for duplicates
-  const existingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
-  const duplicateSerials = []
-  const newSerials = []
-  
   serials.forEach(serial => {
-    if (existingSerials.includes(serial)) {
-      duplicateSerials.push(serial)
-    } else {
-      newSerials.push(serial)
+    if (!localSerials.value.find(s => s.soSerial === serial)) {
       localSerials.value.push({
         id: null,
         soSerial: serial,
@@ -374,26 +334,9 @@ const addSerialNumbers = () => {
     }
   })
   
-  // Clear input and validation state
   serialInput.value = ''
   validationError.value = ''
   validationSuccess.value = false
-  
-  // Show detailed results
-  if (newSerials.length === 0 && duplicateSerials.length > 0) {
-    // All duplicates
-    const duplicateList = duplicateSerials.slice(0, 10).join(', ')
-    const moreCount = duplicateSerials.length > 10 ? ` và ${duplicateSerials.length - 10} serial khác` : ''
-    alert(`❌ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại:\n${duplicateList}${moreCount}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.`)
-  } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
-    // Mixed: some new, some duplicates
-    const duplicateList = duplicateSerials.slice(0, 5).join(', ')
-    const moreCount = duplicateSerials.length > 5 ? ` và ${duplicateSerials.length - 5} serial khác` : ''
-    alert(`⚠️ Thêm một phần thành công!\n\n✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng: ${duplicateList}${moreCount}\n\n💡 Serial trùng đã bỏ qua, chỉ thêm serial mới.`)
-  } else if (newSerials.length > 0) {
-    // All new
-    alert(`✅ Thành công!\n\nĐã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhớ nhấn nút "Lưu" để lưu vào database.`)
-  }
 }
 
 // Remove serial
@@ -550,70 +493,117 @@ const importFromExcel = async (event) => {
       return
     }
     
-    // Check for duplicates - ONLY classify, DON'T add to localSerials yet
-    const existingSerials = localSerials.value.map(s => s.soSerial.toUpperCase())
-    const duplicateSerials = []
-    const newSerials = []
-    
+    // Add serials to local list (works for both preview and saved variants)
+    let addedCount = 0
     serials.forEach(serial => {
-      const serialUpper = serial.toUpperCase()
-      if (existingSerials.includes(serialUpper)) {
-        duplicateSerials.push(serial)
-      } else {
-        // Check if not duplicate within the same import batch
-        if (!newSerials.map(s => s.toUpperCase()).includes(serialUpper)) {
-          newSerials.push(serial)
-        }
+      if (!localSerials.value.find(s => s.soSerial === serial)) {
+        localSerials.value.push({
+          id: null,
+          soSerial: serial,
+          trangThai: 1
+        })
+        addedCount++
       }
-    })
-    
-    console.log(`📊 Import check results: ${newSerials.length} new, ${duplicateSerials.length} duplicates`)
-    
-    // If ALL are duplicates, stop here - DON'T add to table
-    if (newSerials.length === 0 && duplicateSerials.length > 0) {
-      const duplicateList = duplicateSerials.slice(0, 15).join('\n')
-      const moreText = duplicateSerials.length > 15 ? `\n... và ${duplicateSerials.length - 15} serial khác` : ''
-      alert(`✖ Không thể thêm serial!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}${moreText}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n📝 Lưu ý: Serial sẽ chỉ được lưu vào database khi bạn nhấn nút "Lưu".`)
-      event.target.value = ''
-      loading.value = false
-      return // ⛔ STOP - Don't add anything to table
-    }
-    
-    // ✅ NEW LOGIC: Always add to preview table first, don't auto-save to DB
-    // Add new serials to local list for preview
-    newSerials.forEach(serial => {
-      localSerials.value.push({
-        id: null, // No ID means not saved to DB yet
-        soSerial: serial,
-        trangThai: 1
-      })
     })
     
     // Force trigger reactivity
     localSerials.value = [...localSerials.value]
     
-    // Show appropriate success message
-    if (duplicateSerials.length === 0) {
-      // All new serials
-      alert(`✅ Import thành công!\n\n🟢 Đã thêm ${newSerials.length} serial mới vào danh sách.\n\n💡 Nhấn nút "Lưu" để lưu vào database và cập nhật số lượng tồn.`)
-    } else {
-      // Mixed: some new, some duplicates
-      const duplicateList = duplicateSerials.slice(0, 10).join('\n')
-      const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
-      alert(`⚠️ Import một phần thành công!\n\n🟢 Đã thêm: ${newSerials.length} serial mới\n🔴 Đã bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial bị trùng:\n${duplicateList}${moreText}\n\n💡 Nhấn nút "Lưu" để lưu ${newSerials.length} serial mới vào database.`)
+    // If variant is saved to DB, also save serials to backend
+    if (props.variant?.id) {
+      try {
+        console.log('Saving serials to backend using import API...')
+        
+        // Use the import API for better handling
+        const response = await importSerialsFromExcel(props.variant.id, file)
+        console.log('✅ Import API response:', response)
+        
+        // Handle both old and new response formats
+        let importedSerials = []
+        let importCount = 0
+        
+        if (response.data?.success) {
+          // New structured response format
+          importedSerials = response.data.data || []
+          importCount = response.data.count || importedSerials.length
+          console.log('✅ New format - imported count:', importCount)
+        } else if (Array.isArray(response.data)) {
+          // Old format - direct array
+          importedSerials = response.data
+          importCount = importedSerials.length
+          console.log('✅ Old format - imported count:', importCount)
+        }
+        
+        // Update local serials with backend data
+        if (importedSerials.length > 0) {
+          // Clear and reload from backend to ensure consistency
+          await loadSerials()
+          console.log('✅ Reloaded serials from backend after import')
+        }
+        
+        // Show success message with actual count
+        if (importCount > 0) {
+          alert(`✅ Import thành công!\n\n• Đã import: ${importCount} serial\n• Tổng serial hiện tại: ${localSerials.value.length}\n• Serial có sẵn: ${localSerials.value.filter(s => s.trangThai === 1).length}`)
+        } else {
+          alert('⚠️ Không có serial mới nào được import. Tất cả serial trong file có thể đã tồn tại.')
+        }
+        
+      } catch (error) {
+        console.error('❌ Error using import API:', error)
+        
+        // Extract error message from response
+        let errorMessage = 'Có lỗi khi import serial'
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
+        alert('❌ Import thất bại!\n\n' + errorMessage + '\n\nVui lòng kiểm tra:\n• File đúng định dạng (.csv, .xlsx)\n• Mỗi serial có đúng 7 ký tự\n• Serial chưa tồn tại trong hệ thống')
+        
+        // Fallback: try to add serials locally
+        console.log('Trying fallback method - adding serials locally...')
+        let addedCount = 0
+        serials.forEach(serial => {
+          if (!localSerials.value.find(s => s.soSerial === serial)) {
+            localSerials.value.push({
+              id: null,
+              soSerial: serial,
+              trangThai: 1
+            })
+            addedCount++
+          }
+        })
+        
+        if (addedCount > 0) {
+          localSerials.value = [...localSerials.value]
+          alert(`⚠️ Import API thất bại nhưng đã thêm ${addedCount} serial vào danh sách tạm thời.\n\nBạn cần nhấn "Lưu" để lưu vào database.`)
+        }
+      }
+    }
+    
+    // Only show this alert if we're not using the backend API (fallback mode)
+    if (!props.variant?.id) {
+      alert(`✅ Đã thêm ${addedCount} serial vào danh sách!\nTổng cộng: ${serials.length} serial trong file, ${addedCount} serial được thêm.\n\nLưu ý: Cần lưu sản phẩm trước để import trực tiếp vào database.`)
     }
     
     event.target.value = ''
     
-    // NOTE: emit 'save' is now handled inside success blocks above
-    // Only emit when there are new serials successfully added
-    // DON'T emit when all duplicates or errors - keep modal open
+    // Emit save event to update parent component
+    if (props.variant?.id) {
+      console.log('🔵 Emitting save event to parent after import')
+      emit('save', {
+        variantId: props.variant.id,
+        serials: localSerials.value
+      })
+    }
     
   } catch (error) {
     console.error('Error importing serials:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi import serial'
     alert(errorMessage)
-    // ⛔ DON'T emit on error - keep modal open
   } finally {
     loading.value = false
   }
@@ -840,16 +830,13 @@ const handleSave = async () => {
           })
         }
         
-        // Reload from backend to ensure consistency
-        await loadSerials()
-        
-        alert(`✅ Lưu thành công!\n\n🟢 Đã lưu ${newSerials.length} serial mới vào database.\n💾 Số lượng tồn đã được cập nhật.\n\n💡 Tổng serial hiện tại: ${localSerials.value.length}`)
+        alert(`Lưu thành công ${newSerials.length} serial mới!`)
       } else {
-        alert('⚠️ Không có serial mới để lưu!\n\n💡 Tất cả serial đã được lưu vào database.')
+        alert('Không có serial mới để lưu!')
       }
     }
     
-    // Emit save event with updated serials to refresh parent component
+    // Emit save event with updated serials
     emit('save', {
       variantId: props.variant.id,
       serials: localSerials.value
@@ -859,8 +846,7 @@ const handleSave = async () => {
     
   } catch (error) {
     console.error('Error saving serials:', error)
-    const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
-    alert(`❌ Lưu thất bại!\n\n🔴 Lỗi: ${errorMessage}\n\n💡 Vui lòng thử lại hoặc liên hệ quản trị viên.`)
+    alert('Có lỗi khi lưu serial')
   } finally {
     loading.value = false
   }
@@ -1005,4 +991,3 @@ const getSaveButtonText = () => {
   font-size: 1rem;
 }
 </style>
-
