@@ -21,17 +21,17 @@ const API_BASE = '/api/v1/hoa-don'
  * @returns {Promise}
  */
 export const getHoaDons = async (params = {}) => {
-    try {
-        console.log('📋 [HoaDonService] Lấy danh sách hóa đơn:', params)
+  try {
+    console.log('📋 [HoaDonService] Lấy danh sách hóa đơn:', params)
 
-        const response = await axiosInstance.get(API_BASE, { params })
+    const response = await axiosInstance.get(API_BASE, { params })
 
-        console.log('✅ [HoaDonService] Response:', response.data)
-        return response.data
-    } catch (error) {
-        console.error('❌ [HoaDonService] Lỗi khi lấy danh sách hóa đơn:', error)
-        throw error
-    }
+    console.log('✅ [HoaDonService] Response:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ [HoaDonService] Lỗi khi lấy danh sách hóa đơn:', error)
+    throw error
+  }
 }
 
 /**
@@ -40,21 +40,43 @@ export const getHoaDons = async (params = {}) => {
  * @returns {Promise}
  */
 export const getHoaDonDetail = async (idHoaDon) => {
-    try {
-        console.log('🔍 [HoaDonService] Lấy chi tiết hóa đơn:', idHoaDon)
+  try {
+    console.log('🔍 [HoaDonService] Lấy chi tiết hóa đơn:', idHoaDon)
 
-        const response = await axiosInstance.get(`${API_BASE}/${idHoaDon}`)
+    const response = await axiosInstance.get(`${API_BASE}/${idHoaDon}`)
 
-        console.log('✅ [HoaDonService] Chi tiết hóa đơn:', response.data)
-        return response.data
-    } catch (error) {
-        console.error('❌ [HoaDonService] Lỗi khi lấy chi tiết hóa đơn:', error)
-        throw error
-    }
+    console.log('✅ [HoaDonService] Chi tiết hóa đơn:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ [HoaDonService] Lỗi khi lấy chi tiết hóa đơn:', error)
+    throw error
+  }
+}
+
+/**
+ * Cập nhật trạng thái đơn hàng
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @param {Number} trangThai - Trạng thái mới (0-4)
+ * @returns {Promise}
+ */
+export const updateOrderStatus = async (idHoaDon, trangThai) => {
+  try {
+    console.log('🔄 [HoaDonService] Cập nhật trạng thái:', { idHoaDon, trangThai })
+
+    const response = await axiosInstance.put(`${API_BASE}/${idHoaDon}/status`, null, {
+      params: { trangThai },
+    })
+
+    console.log('✅ [HoaDonService] Cập nhật trạng thái thành công:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ [HoaDonService] Lỗi khi cập nhật trạng thái:', error)
+    throw error
+  }
 }
 
 export default {
-    getHoaDons,
-    getHoaDonDetail
+  getHoaDons,
+  getHoaDonDetail,
+  updateOrderStatus,
 }
-

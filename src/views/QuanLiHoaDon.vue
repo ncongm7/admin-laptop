@@ -9,10 +9,17 @@
     <div class="filter-section mb-3 p-3 bg-light rounded">
       <div class="row g-2 align-items-center">
         <div class="col-12 position-relative">
-          <i class="bi bi-search position-absolute"
-            style="top: 50%; left: 16px; transform: translateY(-50%); color: #888"></i>
-          <input v-model="searchQuery" type="text" class="form-control rounded-pill ps-5"
-            placeholder="Nhập mã hóa đơn hoặc tên, SĐT người nhận" @keyup.enter="handleSearch" />
+          <i
+            class="bi bi-search position-absolute"
+            style="top: 50%; left: 16px; transform: translateY(-50%); color: #888"
+          ></i>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="form-control rounded-pill ps-5"
+            placeholder="Nhập mã hóa đơn hoặc tên, SĐT người nhận"
+            @keyup.enter="handleSearch"
+          />
         </div>
         <div class="col-12">
           <div class="d-flex gap-2 align-items-center">
@@ -57,38 +64,66 @@
 
     <!-- Status Tabs -->
     <div class="status-counts mb-3">
-      <span class="status-tab" :class="{ active: activeStatusTab === '' }" @click="activeStatusTab = ''"
-        v-if="statusCounts.total">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === '' }"
+        @click="activeStatusTab = ''"
+        v-if="statusCounts.total"
+      >
         TẤT CẢ
         <span class="badge-count">{{ statusCounts.total }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'processing' }"
-        @click="activeStatusTab = 'processing'" v-if="statusCounts.processing">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'processing' }"
+        @click="activeStatusTab = 'processing'"
+        v-if="statusCounts.processing"
+      >
         CHỜ XÁC NHẬN
         <span class="badge-count">{{ statusCounts.processing }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'confirmed' }"
-        @click="activeStatusTab = 'confirmed'" v-if="statusCounts.confirmed">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'confirmed' }"
+        @click="activeStatusTab = 'confirmed'"
+        v-if="statusCounts.confirmed"
+      >
         ĐÃ XÁC NHẬN
         <span class="badge-count">{{ statusCounts.confirmed }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'delivering' }"
-        @click="activeStatusTab = 'delivering'" v-if="statusCounts.delivering">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'delivering' }"
+        @click="activeStatusTab = 'delivering'"
+        v-if="statusCounts.delivering"
+      >
         CHỜ GIAO HÀNG
         <span class="badge-count">{{ statusCounts.delivering }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'shipping' }" @click="activeStatusTab = 'shipping'"
-        v-if="statusCounts.shipping">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'shipping' }"
+        @click="activeStatusTab = 'shipping'"
+        v-if="statusCounts.shipping"
+      >
         ĐANG VẬN CHUYỂN
         <span class="badge-count">{{ statusCounts.shipping }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'delivered' }"
-        @click="activeStatusTab = 'delivered'" v-if="statusCounts.delivered">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'delivered' }"
+        @click="activeStatusTab = 'delivered'"
+        v-if="statusCounts.delivered"
+      >
         HOÀN THÀNH
         <span class="badge-count">{{ statusCounts.delivered }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'done' }" @click="activeStatusTab = 'done'"
-        v-if="statusCounts.done">
+      <span
+        class="status-tab"
+        :class="{ active: activeStatusTab === 'done' }"
+        @click="activeStatusTab = 'done'"
+        v-if="statusCounts.done"
+      >
         HOÀN TẤT
         <span class="badge-count">{{ statusCounts.done }}</span>
       </span>
@@ -157,12 +192,18 @@
             </td>
             <td class="fw-semibold">{{ formatCurrency(hoaDon.tongTienSauGiam) }}</td>
             <td class="action-col">
-              <button class="btn btn-outline-success btn-sm rounded-circle me-1" @click="openDetail(hoaDon)"
-                title="Xem chi tiết">
+              <button
+                class="btn btn-outline-success btn-sm rounded-circle me-1"
+                @click="openDetail(hoaDon)"
+                title="Xem chi tiết"
+              >
                 <i class="bi bi-eye"></i>
               </button>
-              <button class="btn btn-outline-dark btn-sm rounded-circle" @click="printInvoice(hoaDon)"
-                title="In hóa đơn">
+              <button
+                class="btn btn-outline-dark btn-sm rounded-circle"
+                @click="printInvoice(hoaDon)"
+                title="In hóa đơn"
+              >
                 <i class="bi bi-printer"></i>
               </button>
             </td>
@@ -173,9 +214,7 @@
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="d-flex justify-content-between align-items-center mt-3">
-      <div class="text-muted">
-        Hiển thị {{ hoaDons.length }} / {{ totalElements }} hóa đơn
-      </div>
+      <div class="text-muted">Hiển thị {{ hoaDons.length }} / {{ totalElements }} hóa đơn</div>
       <nav>
         <ul class="pagination pagination-sm mb-0">
           <li class="page-item" :class="{ disabled: currentPage === 0 }">
@@ -184,7 +223,12 @@
             </a>
           </li>
 
-          <li v-for="page in visiblePages" :key="page" class="page-item" :class="{ active: page === currentPage }">
+          <li
+            v-for="page in visiblePages"
+            :key="page"
+            class="page-item"
+            :class="{ active: page === currentPage }"
+          >
             <a class="page-link" href="#" @click.prevent="goToPage(page)">
               {{ page + 1 }}
             </a>
@@ -200,7 +244,12 @@
     </div>
 
     <!-- Modal chi tiết -->
-    <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal" />
+    <ChiTietHoaDonModal
+      v-if="showDetailModal"
+      :idHoaDon="selectedHoaDonId"
+      @close="closeDetailModal"
+      @updated="handleOrderUpdated"
+    />
   </div>
 </template>
 
@@ -247,10 +296,11 @@ const fetchHoaDons = async () => {
       page: currentPage.value,
       size: pageSize.value,
       keyword: searchQuery.value || undefined,
-      loaiHoaDon: typeFilter.value === 'Tại quầy' ? 0 : typeFilter.value === 'Online' ? 1 : undefined,
+      loaiHoaDon:
+        typeFilter.value === 'Tại quầy' ? 0 : typeFilter.value === 'Online' ? 1 : undefined,
       trangThai: mapStatusToNumber(activeStatusTab.value),
       startDate: dateFrom.value || undefined,
-      endDate: dateTo.value || undefined
+      endDate: dateTo.value || undefined,
     }
 
     const response = await getHoaDons(params)
@@ -275,12 +325,12 @@ const fetchHoaDons = async () => {
  */
 const mapStatusToNumber = (status) => {
   const map = {
-    'CHO_THANH_TOAN': undefined, // Không lọc
-    'CHO_XAC_NHAN': undefined,
-    'DA_XAC_NHAN': undefined,
-    'DANG_GIAO': undefined,
-    'HOAN_THANH': undefined,
-    'DA_HUY': undefined
+    CHO_THANH_TOAN: undefined, // Không lọc
+    CHO_XAC_NHAN: undefined,
+    DA_XAC_NHAN: undefined,
+    DANG_GIAO: undefined,
+    HOAN_THANH: undefined,
+    DA_HUY: undefined,
   }
   return map[status]
 }
@@ -291,7 +341,7 @@ const mapStatusToNumber = (status) => {
 const statusCounts = computed(() => {
   // TODO: Backend cần API riêng để lấy counts, tạm thời dùng client-side
   const counts = { total: hoaDons.value.length }
-  hoaDons.value.forEach(hd => {
+  hoaDons.value.forEach((hd) => {
     const status = hd.trangThai
     counts[status] = (counts[status] || 0) + 1
   })
@@ -337,30 +387,30 @@ const formatDate = (dateStr) => {
     minute: '2-digit',
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
 const getTrangThaiLabel = (trangThai) => {
   const labels = {
-    'CHO_THANH_TOAN': 'Chờ thanh toán',
-    'CHO_XAC_NHAN': 'Chờ xác nhận',
-    'DA_XAC_NHAN': 'Đã xác nhận',
-    'DANG_GIAO': 'Đang giao hàng',
-    'HOAN_THANH': 'Hoàn thành',
-    'DA_HUY': 'Đã hủy'
+    CHO_THANH_TOAN: 'Chờ thanh toán',
+    CHO_XAC_NHAN: 'Chờ xác nhận',
+    DA_XAC_NHAN: 'Đã xác nhận',
+    DANG_GIAO: 'Đang giao hàng',
+    HOAN_THANH: 'Hoàn thành',
+    DA_HUY: 'Đã hủy',
   }
   return labels[trangThai] || trangThai
 }
 
 const getStatusBadgeClass = (trangThai) => {
   const classes = {
-    'CHO_THANH_TOAN': 'bg-secondary',
-    'CHO_XAC_NHAN': 'bg-warning',
-    'DA_XAC_NHAN': 'bg-info',
-    'DANG_GIAO': 'bg-primary',
-    'HOAN_THANH': 'bg-success',
-    'DA_HUY': 'bg-danger'
+    CHO_THANH_TOAN: 'bg-secondary',
+    CHO_XAC_NHAN: 'bg-warning',
+    DA_XAC_NHAN: 'bg-info',
+    DANG_GIAO: 'bg-primary',
+    HOAN_THANH: 'bg-success',
+    DA_HUY: 'bg-danger',
   }
   return classes[trangThai] || 'bg-secondary'
 }
@@ -394,6 +444,11 @@ const resetFilters = () => {
   dateTo.value = ''
   activeStatusTab.value = ''
   currentPage.value = 0
+  fetchHoaDons()
+}
+
+const handleOrderUpdated = () => {
+  // Reload danh sách hóa đơn khi có cập nhật
   fetchHoaDons()
 }
 
