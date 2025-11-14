@@ -355,6 +355,10 @@ export const importSerialsFromExcel = (ctspId, file) => {
   })
 }
 
+export const getAllSerial = () => {
+  return client.get(`${SERIAL_ROUTE}/all`)
+}
+
 export const getSerialsByCtspId = (ctspId) => {
   return client.get(`${SERIAL_ROUTE}/ctsp/${ctspId}`)
 }

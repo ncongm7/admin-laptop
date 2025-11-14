@@ -24,6 +24,7 @@ import {
   updateChiTietSanPham,
   getHinhAnhByCtspId,
   getSerialsByCtspId,
+  getAllSerial,
   importSerialsFromExcel,
   createSerialsBatch
 } from '@/service/sanpham/SanPhamService'
@@ -50,6 +51,27 @@ export const useProductStore = defineStore('products', () => {
 
    // Normalize a ChiTietSanPhamResponse into structure used by component
   const normalizeCtsp = (item) => {
+    // Get hexCode from colors store if available
+    let mauSacInfo = null
+    if (item.tenMauSac || item.idMauSac) {
+      const colorFromStore = colors.value.find(c => c.id === item.idMauSac)
+      if (colorFromStore) {
+        mauSacInfo = {
+          tenMau: colorFromStore.tenMau,
+          id: colorFromStore.id,
+          hexCode: colorFromStore.hexCode || '#cccccc'
+        }
+      } else {
+        // Fallback to item data if not found in store
+        mauSacInfo = {
+          tenMau: item.tenMauSac,
+          id: item.idMauSac,
+          hexCode: item.hexCodeMauSac || '#cccccc'
+        }
+      }
+    } else if (item.mauSac) {
+      mauSacInfo = item.mauSac
+    }
  
     return {
       ...item,
@@ -60,7 +82,7 @@ export const useProductStore = defineStore('products', () => {
       oCung: item.dungLuongOCung ? { dungLuong: item.dungLuongOCung, id: item.idOCung } : (item.oCung || null),
       loaiManHinh: item.kichThuocManHinh ? { kichThuoc: item.kichThuocManHinh, id: item.idLoaiManHinh } : (item.loaiManHinh || null),
       pin: item.dungLuongPin ? { dungLuongPin: item.dungLuongPin, id: item.idPin } : (item.pin || null),
-      mauSac: item.tenMauSac ? { tenMau: item.tenMauSac, id: item.idMauSac, hexCode: item.hexCodeMauSac } : (item.mauSac || null),
+      mauSac: mauSacInfo,
       tenSanPham: item.tenSanPham || item.productName || '',
       maCtsp: item.maCtsp || item.code || '',
       giaBan: item.giaBan,
@@ -669,6 +691,27 @@ export const useProductStore = defineStore('products', () => {
   }
 
   // Serial Management Methods
+  const getAllSerials = async () => {
+    try {
+      console.log('ProductStore: Fetching all serials...')
+      console.log('ProductStore: API endpoint will be: /api/serial/all')
+      const response = await getAllSerial()
+      console.log('ProductStore: API Response:', response)
+      console.log('ProductStore: Successfully fetched', response.data?.length || 0, 'serials')
+      return response
+    } catch (err) {
+      console.error('ProductStore: Error fetching all serials:', err)
+      console.error('ProductStore: Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data
+      })
+      error.value = err.message || 'Không thể tải danh sách serial'
+      throw err
+    }
+  }
+
   const getSerialsByVariantId = async (variantId) => {
     try {
       const response = await getSerialsByCtspId(variantId)
@@ -742,6 +785,7 @@ export const useProductStore = defineStore('products', () => {
     loadAttributes,
     advancedSearchProducts,
     advancedSearchProductsPage,
+    getAllSerials,
     getSerialsByVariantId,
     saveVariantSerials,
     importSerialsFromExcel: importSerialsFromExcelFile,

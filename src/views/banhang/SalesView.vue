@@ -237,7 +237,7 @@ const handleRemoveVoucher = async () => {
     if (!confirmed) return
 
     try {
-        const { xoaVoucher } = await import('@/service/banHangService')
+        const { xoaVoucher } = await import('@/service/banhang/banHangService')
         const response = await xoaVoucher(hoaDonHienTai.value.id)
 
         if (response && response.data) {

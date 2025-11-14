@@ -136,9 +136,17 @@
                                         }">
                                         <div class="product-header">
                                             <div class="d-flex justify-content-between align-items-start">
-                                                <div>
-                                                    <h6 class="mb-1">{{ product.tenSanPham }}</h6>
-                                                    <small class="text-muted">Mã: {{ product.maCTSP }}</small>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        {{ getProductName(product) }}
+                                                    </h6>
+                                                    <small class="text-muted d-block">
+                                                        Mã: {{ getProductCode(product) }}
+                                                    </small>
+                                                    <small class="text-info d-block" v-if="product.idChiTietSanPham">
+                                                        <i class="bi bi-box"></i> ID: {{
+                                                            product.idChiTietSanPham.substring(0, 8) }}...
+                                                    </small>
                                                 </div>
                                                 <div class="text-end">
                                                     <span class="badge" :class="{
@@ -156,9 +164,18 @@
                                         <div v-if="!product.hoanThanh" class="serial-input-group mt-2">
                                             <div class="input-group">
                                                 <input type="text" class="form-control" v-model="currentSerialInput"
-                                                    @keyup.enter="scanSerial(product)" @focus="currentProduct = product"
+                                                    @keyup.enter="scanSerial(product)"
+                                                    @focus="currentProduct = product; loadAvailableSerials(product)"
                                                     :placeholder="`Quét/nhập Serial ${product.soLuongDaQuet + 1}...`"
                                                     :disabled="isLoading || isProcessing" ref="serialInputs" />
+                                                <button class="btn btn-outline-secondary"
+                                                    @click="loadAvailableSerials(product)"
+                                                    :disabled="isLoadingSerials || isProcessing"
+                                                    title="Xem danh sách serial khả dụng">
+                                                    <span v-if="isLoadingSerials"
+                                                        class="spinner-border spinner-border-sm"></span>
+                                                    <i v-else class="bi bi-list-ul"></i>
+                                                </button>
                                                 <button class="btn btn-primary" @click="scanSerial(product)"
                                                     :disabled="!currentSerialInput || isLoading || isProcessing">
                                                     <span v-if="isLoading && currentProduct?.id === product.id"
@@ -167,6 +184,42 @@
                                                     Xác nhận
                                                 </button>
                                             </div>
+
+                                            <!-- Dropdown danh sách serial khả dụng -->
+                                            <div v-if="showSerialDropdown[product.id] && availableSerials[product.id]?.length > 0"
+                                                class="serial-dropdown mt-2">
+                                                <div class="dropdown-header">
+                                                    <strong>Chọn serial khả dụng ({{ availableSerials[product.id].length
+                                                        }})</strong>
+                                                    <button class="btn-close-dropdown"
+                                                        @click="showSerialDropdown[product.id] = false">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="serial-list">
+                                                    <div v-for="serial in availableSerials[product.id]" :key="serial.id"
+                                                        class="serial-item"
+                                                        @click="selectSerialFromDropdown(product, serial)">
+                                                        <i class="bi bi-upc-scan"></i>
+                                                        <span class="serial-number">{{ getSerialDisplay(serial)
+                                                            }}</span>
+                                                        <span class="badge" :class="{
+                                                            'bg-success': serial.trangThai === 0,
+                                                            'bg-warning': serial.trangThai === 1,
+                                                            'bg-secondary': serial.trangThai === 2
+                                                        }">
+                                                            {{ getSerialStatusText(serial.trangThai) }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <small
+                                                v-if="showSerialDropdown[product.id] && availableSerials[product.id]?.length === 0"
+                                                class="text-warning d-block mt-2">
+                                                <i class="bi bi-exclamation-triangle"></i> Không có serial khả dụng
+                                            </small>
+
                                             <small v-if="errorMessage && currentProduct?.id === product.id"
                                                 class="text-danger">
                                                 {{ errorMessage }}
@@ -233,7 +286,7 @@ import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
-import { layDanhSachPhuongThucThanhToan } from '@/service/banHangService'
+import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
 
 const props = defineProps({
     hoaDon: {
@@ -255,6 +308,9 @@ const tienKhachDua = ref(0)
 const isProcessing = ref(false)
 const serialInputs = ref([])
 const showCameraScanner = ref(false)
+const availableSerials = ref({})
+const showSerialDropdown = ref({})
+const isLoadingSerials = ref(false)
 
 // ==================== SERIAL VALIDATION ====================
 const hoaDonRef = computed(() => props.hoaDon)
@@ -325,6 +381,53 @@ const loadPaymentMethods = async () => {
     }
 }
 
+const loadAvailableSerials = async (product) => {
+    if (!product.idChiTietSanPham) {
+        console.warn('⚠️ Sản phẩm không có idChiTietSanPham')
+        return
+    }
+
+    // Nếu đã load rồi thì không load lại
+    if (availableSerials.value[product.id]) {
+        showSerialDropdown.value[product.id] = true
+        return
+    }
+
+    isLoadingSerials.value = true
+    try {
+        const serials = await layDanhSachSerialKhaDung(product.idChiTietSanPham)
+
+        console.log('📦 Raw serials từ API:', serials)
+
+        // Lọc ra các serial chưa bán (trangThai = 0 hoặc 1)
+        const khaDung = serials.filter(s => s.trangThai === 0 || s.trangThai === 1)
+
+        availableSerials.value[product.id] = khaDung
+        showSerialDropdown.value[product.id] = true
+
+        console.log('✅ Đã load', khaDung.length, 'serial khả dụng cho sản phẩm:', product.tenSanPham)
+
+        // Debug: Log serial đầu tiên để kiểm tra cấu trúc
+        if (khaDung.length > 0) {
+            console.log('🔍 Serial đầu tiên:', khaDung[0])
+        }
+    } catch (error) {
+        console.error('❌ Lỗi khi load serial:', error)
+        availableSerials.value[product.id] = []
+    } finally {
+        isLoadingSerials.value = false
+    }
+}
+
+const selectSerialFromDropdown = async (product, serial) => {
+    const serialNumber = getSerialDisplay(serial)
+    currentSerialInput.value = serialNumber
+    showSerialDropdown.value[product.id] = false
+
+    // Tự động scan serial đã chọn
+    await scanSerial(product)
+}
+
 const scanSerial = async (product) => {
     if (!currentSerialInput.value || !currentSerialInput.value.trim()) {
         errorMessage.value = 'Vui lòng nhập Serial Number'
@@ -356,7 +459,7 @@ const xoaSerial = async (serialNumber) => {
         cancelText: 'Hủy',
         type: 'warning'
     })
-    
+
     if (confirmed) {
         xoaSerialComposable(serialNumber)
     }
@@ -408,7 +511,7 @@ const close = async () => {
                 cancelText: 'Hủy',
                 type: 'warning'
             })
-            
+
             if (!confirmed) return
         }
         resetSerials()
@@ -421,6 +524,44 @@ const formatCurrency = (value) => {
         style: 'currency',
         currency: 'VND'
     }).format(value || 0)
+}
+
+// Helper methods để hiển thị thông tin sản phẩm
+const getProductName = (product) => {
+    // Thử nhiều field có thể có
+    return product.tenSanPham ||
+        product.tenSP ||
+        product.chiTietSanPham?.tenSP ||
+        product.chiTietSanPham?.sanPham?.tenSanPham ||
+        'Sản phẩm không tên'
+}
+
+const getProductCode = (product) => {
+    // Thử nhiều field có thể có
+    return product.maCTSP ||
+        product.maCtsp ||
+        product.chiTietSanPham?.maCTSP ||
+        product.chiTietSanPham?.maCtsp ||
+        'N/A'
+}
+
+// Helper methods để hiển thị serial
+const getSerialDisplay = (serial) => {
+    // Backend entity Serial có field: serialNo
+    return serial.serialNo || serial.soSerial || serial.serialNumber || 'N/A'
+}
+
+const getSerialStatusText = (trangThai) => {
+    switch (trangThai) {
+        case 0:
+            return 'Mới'
+        case 1:
+            return 'Đang dùng'
+        case 2:
+            return 'Đã bán'
+        default:
+            return 'Không xác định'
+    }
 }
 
 // Camera Scanner functions
@@ -456,6 +597,15 @@ onMounted(() => {
     // Tự động set số tiền khách đưa bằng tổng tiền (tiện lợi hơn)
     if (tongTien.value > 0) {
         tienKhachDua.value = tongTien.value
+    }
+
+    // Debug: Log cấu trúc hóa đơn để kiểm tra
+    console.log('🧾 Hóa đơn:', props.hoaDon)
+    console.log('📦 Danh sách sản phẩm cần quét:', danhSachSanPhamCanQuet.value)
+
+    // Log chi tiết từng sản phẩm
+    if (danhSachSanPhamCanQuet.value.length > 0) {
+        console.log('📋 Chi tiết sản phẩm đầu tiên:', danhSachSanPhamCanQuet.value[0])
     }
 })
 </script>
@@ -595,6 +745,116 @@ onMounted(() => {
     transition: width 0.3s ease;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* Serial Dropdown Styles */
+.serial-dropdown {
+    position: relative;
+    background: white;
+    border: 2px solid #0dcaf0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+    z-index: 100;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+.btn-close-dropdown {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.2rem;
+    transition: color 0.2s;
+}
+
+.btn-close-dropdown:hover {
+    color: #dc3545;
+}
+
+.serial-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.serial-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.serial-item:hover {
+    background: #e7f5ff;
+    border-color: #0dcaf0;
+    transform: translateX(4px);
+}
+
+.serial-item i {
+    color: #0dcaf0;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.serial-item .serial-number {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #212529;
+}
+
+.serial-item .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Scrollbar cho serial list */
+.serial-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.serial-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.serial-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.serial-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 /* Camera Scanner Modal Styles */

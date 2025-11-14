@@ -115,7 +115,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { layGoiYVoucher } from '@/service/banHangService'
+import { layGoiYVoucher } from '@/service/banhang/banHangService'
 
 const props = defineProps({
     visible: {
