@@ -1,6 +1,6 @@
 <template>
     <div v-if="confirmState.show" class="modal fade show d-block" tabindex="-1" role="dialog"
-        style="background-color: rgba(0, 0, 0, 0.5); z-index: 10000;" @click.self="handleCancel">
+        style="background-color: rgba(0, 0, 0, 0.5); z-index: 100000;" @click.self="handleCancel">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content shadow-lg">
                 <div :class="['modal-header', `bg-${getHeaderClass()}`, 'text-white']">

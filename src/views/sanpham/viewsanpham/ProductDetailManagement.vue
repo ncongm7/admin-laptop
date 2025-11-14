@@ -156,6 +156,9 @@
                     <th width="80">CPU</th>
                     <th width="60">RAM</th>
                     <th width="70">GPU</th>
+                    <th width="70">Ổ CỨNG</th>
+                    <th width="70">PIN</th>
+                    <th width="70">MÀN HÌNH</th>
                     <th width="75">GIÁ BÁN</th>
                     <th width="60">SỐ LƯỢNG TỒN</th>
                     <th width="65">TRẠNG THÁI</th>
@@ -187,6 +190,9 @@
                     <td>{{ variant.tenCpu || 'N/A' }}</td>
                     <td>{{ variant.tenRam || 'N/A' }}</td>
                     <td>{{ variant.tenGpu || 'N/A' }}</td>
+                    <td>{{ variant.dungLuongOCung || 'N/A' }}</td>
+                    <td>{{ variant.dungLuongPin || 'N/A' }}</td>
+                    <td>{{ variant.kichThuocManHinh || 'N/A' }}</td>
                     <td>
                       <span class="price-text">{{ formatCurrency(variant.giaBan) }}</span>
                     </td>
