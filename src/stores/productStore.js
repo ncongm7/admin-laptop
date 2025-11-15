@@ -629,7 +629,18 @@ export const useProductStore = defineStore('products', () => {
     error.value = null
     try {
       const response = await getAllSanPham({ id })
-      return response.data || response
+      const data = response.data || response
+
+      let product = null
+      if (Array.isArray(data)) {
+        product = data[0] || null
+      } else if (data && Array.isArray(data.content)) {
+        product = data.content[0] || null
+      } else {
+        product = data
+      }
+
+      return product
     } catch (err) {
       error.value = err.message || 'Không thể tải thông tin sản phẩm'
       console.error('Error fetching product:', err)
