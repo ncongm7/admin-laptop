@@ -19,6 +19,7 @@
         @view="viewDetail"
         @bulk-delete="handleBulkDelete"
         @selection-change="handleSelectionChange"
+        @variant-added="handleVariantAdded"
         class="product-list"
       />
 
@@ -399,6 +400,28 @@ const handleBulkDelete = async (selectedIds) => {
 
 const handleSelectionChange = (selectedIds) => {
   selectedProductIds.value = selectedIds
+}
+
+const handleVariantAdded = async () => {
+  try {
+    // Reload products and variants from store so variant counts are up to date
+    await fetchData()
+    
+    // If a filter is currently applied, remap variants for filtered products as well
+    if (isFilterApplied.value) {
+      filteredData.value = (filteredData.value || []).map((product) => {
+        const productVariants = productStore.variants.filter(
+          (variant) => variant.idSanPham === product.id || variant.sanPhamId === product.id,
+        )
+        return {
+          ...product,
+          variants: productVariants,
+        }
+      })
+    }
+  } catch (err) {
+    console.error('Error refreshing products after variant added:', err)
+  }
 }
 
 onMounted(() => {
