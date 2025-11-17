@@ -25,42 +25,78 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
 
   /**
    * Xử lý khi chọn sản phẩm từ tìm kiếm
+   * 
+   * ProductSearch component emit cấu trúc mới:
+   * {
+   *   variant: ChiTietSanPhamResponse,  // Biến thể đã chọn
+   *   quantity: Number,                 // Số lượng đã nhập
+   *   product: SanPhamResponse          // Sản phẩm cha
+   * }
    */
-  const handleProductSelected = (product) => {
-    console.log('📦 [useProductManagement] Chọn sản phẩm:', {
-      product,
-      id: product?.id,
-      maCTSP: product?.maCTSP || product?.maCtsp,
-      tenSP: product?.tenSP || product?.tenSanPham,
-      soLuongTon: product?.soLuongTon,
-      giaBan: product?.giaBan,
-    })
+  const handleProductSelected = (data) => {
+    console.log('📦 [useProductManagement] Nhận data từ ProductSearch:', data)
 
-    // Validate product structure
-    if (!product) {
-      console.error('❌ [useProductManagement] Product is null or undefined')
+    // Kiểm tra xem data có phải là object mới (variant + quantity) hay object cũ (product trực tiếp)
+    let variant, quantity, product
+
+    if (data && data.variant) {
+      // Cấu trúc mới từ ProductSearch component
+      variant = data.variant
+      quantity = data.quantity || 1
+      product = data.product
+
+      console.log('📦 [useProductManagement] Cấu trúc mới - Variant đã chọn:', {
+        variantId: variant?.id,
+        tenSanPham: variant?.tenSanPham,
+        maCtsp: variant?.maCtsp,
+        quantity: quantity,
+      })
+    } else {
+      // Cấu trúc cũ - Tương thích ngược
+      variant = data
+      quantity = 1
+      product = null
+
+      console.log('📦 [useProductManagement] Cấu trúc cũ - Product trực tiếp:', {
+        id: data?.id,
+        maCTSP: data?.maCTSP || data?.maCtsp,
+      })
+    }
+
+    // Validate variant structure
+    if (!variant) {
+      console.error('❌ [useProductManagement] Variant is null or undefined')
       showError('Lỗi: Không có thông tin sản phẩm!')
       return
     }
 
-    if (!product.id) {
-      console.error('❌ [useProductManagement] Product missing ID field!', product)
+    if (!variant.id) {
+      console.error('❌ [useProductManagement] Variant missing ID field!', variant)
       showError(
-        `Lỗi: Sản phẩm "${product.tenSP || product.tenSanPham || 'Unknown'}" không có ID hợp lệ. Vui lòng thử lại!`,
+        `Lỗi: Sản phẩm "${variant.tenSP || variant.tenSanPham || 'Unknown'}" không có ID hợp lệ. Vui lòng thử lại!`,
       )
       return
     }
 
-    selectedProduct.value = product
-    soLuongNhap.value = 1
-    showQuantityModal.value = true
+    // Lưu variant vào selectedProduct (vì logic cũ dùng selectedProduct)
+    selectedProduct.value = variant
+    soLuongNhap.value = quantity
 
-    // Focus vào input số lượng
-    nextTick(() => {
-      if (quantityInput.value) {
-        quantityInput.value.focus()
-      }
-    })
+    // Nếu đã nhập số lượng từ ProductSearch modal, gọi luôn confirmAddProduct
+    if (data.variant && data.quantity) {
+      console.log('✅ [useProductManagement] Đã nhập số lượng, thêm luôn vào hóa đơn')
+      confirmAddProduct()
+    } else {
+      // Hiển thị modal số lượng (cấu trúc cũ)
+      showQuantityModal.value = true
+
+      // Focus vào input số lượng
+      nextTick(() => {
+        if (quantityInput.value) {
+          quantityInput.value.focus()
+        }
+      })
+    }
   }
 
   /**
