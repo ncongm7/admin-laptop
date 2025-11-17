@@ -15,11 +15,7 @@
       <div v-for="(variant, index) in variants" :key="variant.id || index" class="variant-card">
         <div class="variant-header">
           <span class="variant-number">Biến thể #{{ index + 1 }}</span>
-          <button
-            class="btn btn-sm btn-link text-danger"
-            @click="removeVariant(index)"
-            v-if="variants.length > 1"
-          >
+          <button class="btn btn-sm btn-link text-danger" @click="removeVariant(index)" v-if="variants.length > 1">
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -65,11 +61,8 @@
             <div class="col-md-12" v-if="variant.id">
               <label class="form-label">IMEI ({{ variant.imeis.length }})</label>
               <div class="imei-badges">
-                <span
-                  v-for="imei in variant.imeis.slice(0, 3)"
-                  :key="imei.id"
-                  class="badge bg-light text-dark me-2 mb-2"
-                >
+                <span v-for="imei in variant.imeis.slice(0, 3)" :key="imei.id"
+                  class="badge bg-light text-dark me-2 mb-2">
                   {{ imei.soImei }}
                 </span>
                 <span v-if="variant.imeis.length > 3" class="badge bg-secondary me-2 mb-2">
@@ -169,6 +162,46 @@ watch(
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.action-buttons .btn {
+  opacity: 1 !important;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+}
+
+.action-buttons .btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  font-weight: 600;
+  padding: 6px 16px;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+  transition: all 0.2s ease;
+}
+
+.action-buttons .btn-success:hover {
+  background: #15803d;
+  border-color: #15803d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4);
+}
+
+.action-buttons .btn-outline-success {
+  background: #fff;
+  border: 2px solid #16a34a;
+  color: #16a34a;
+  font-weight: 600;
+  padding: 5px 14px;
+  transition: all 0.2s ease;
+}
+
+.action-buttons .btn-outline-success:hover {
+  background: #16a34a;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
 .variants-list {

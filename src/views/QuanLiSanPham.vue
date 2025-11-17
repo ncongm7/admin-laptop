@@ -7,10 +7,8 @@
 
       </div>
       <div class="d-flex gap-2">
-        <button
-          class="btn btn-sm btn-outline-success btn-add-product d-flex align-items-center gap-2"
-          @click="openCreateModal"
-        >
+        <button class="btn btn-sm btn-outline-success btn-add-product d-flex align-items-center gap-2"
+          @click="openCreateModal">
           <i class="bi bi-plus-circle"></i>
           <span class="btn-label small-text">Thêm sản phẩm</span>
         </button>
@@ -19,10 +17,7 @@
 
     <!-- Content -->
     <div class="tab-content p-4 bg-white rounded shadow-sm">
-      <ProductsView
-        :showCreateModal="showCreateModal"
-        @close-create-modal="showCreateModal = false"
-      />
+      <ProductsView :showCreateModal="showCreateModal" @close-create-modal="showCreateModal = false" />
     </div>
   </div>
 </template>
@@ -49,24 +44,31 @@ function openCreateModal() {
 }
 
 .btn-add-product {
-  background: #fff;
-  color: #16a34a;
-  border: 1px solid #16a34a;
+  background: #16a34a;
+  color: #fff;
+  border: 2px solid #16a34a;
   font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 6px; /* same as other buttons */
-  box-shadow: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
   transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+  opacity: 1 !important;
 }
 
 .btn-add-product:hover {
-  background: #16a34a;
+  background: #15803d;
   color: #fff;
-  border-color: #16a34a;
+  border-color: #15803d;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+  transform: translateY(-2px);
 }
 
 .btn-add-product:active {
-  transform: translateY(1px);
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
 }
 
 .btn-add-product .btn-label {
