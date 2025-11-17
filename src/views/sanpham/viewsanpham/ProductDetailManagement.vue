@@ -267,7 +267,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProductDetailStore } from '@/stores/productDetailStore'
 import { useProductStore } from '@/stores/productStore'
 import { formatCurrency } from '@/utils/formatters'
-import { getCTSPBySanPham, getHinhAnhByCtspId, deleteCTSPWithCascade } from '@/service/sanpham/SanPhamService'
+import { getCTSPBySanPham, getHinhAnhByCtspId, deleteCTSPWithCascade, getSanPhamById } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'
 
@@ -295,27 +295,27 @@ onMounted(async () => {
       return
     }
     
-    // Ensure variants array is initialized
+    // Đảm bảo mảng variants đã được khởi tạo
     if (!productDetailStore.variants) {
       productDetailStore.variants = []
     }
     
-    // Load attributes first
+    // Luôn load lại attributes (CPU, RAM, v.v.) từ backend
     await productStore.loadAttributes()
     
-    // Fetch product details first
-    await productStore.fetchProductByIdSP(productId.value)
+    // Gọi API lấy chi tiết sản phẩm trực tiếp từ backend theo productId
+    const response = await getSanPhamById(productId.value)
+    const detail = response.data || response
     
-    // Get the product from store
-    const productFromStore = productStore.products.find((p) => p.id == productId.value)
-    
-    if (productFromStore) {
-      // Update productDetailStore with the product data
-      productDetailStore.productDetail = productFromStore
-      
-      // Fetch variants for this product using getCTSPBySanPham API
-      await fetchProductVariants(productId.value)
+    if (detail) {
+      // Lưu chi tiết sản phẩm vào productDetailStore để dùng cho computed selectedProduct
+      productDetailStore.productDetail = detail
+    } else {
+      console.warn('No product detail found for id:', productId.value)
     }
+    
+    // Luôn tải danh sách biến thể từ backend dựa trên productId (không phụ thuộc vào store tạm)
+    await fetchProductVariants(productId.value)
   } catch (error) {
     console.error('Error fetching product data:', error)
   } finally {
@@ -367,15 +367,11 @@ const fetchProductVariants = async (productId) => {
   }
 }
 
-// Computed property to get the selected product from the store
+// Computed property: luôn lấy thông tin sản phẩm từ productDetailStore
+// (đã được load trực tiếp từ backend trong onMounted),
+// tránh phụ thuộc vào productStore.products vì store này bị reset sau F5
 const selectedProduct = computed(() => {
-  // First try to get from productDetailStore
-  if (productDetailStore.productDetail && productDetailStore.productDetail.id == productId.value) {
-    return productDetailStore.productDetail
-  }
-  // Fallback to productStore if available
-  const product = productStore.products.find((p) => p.id == productId.value) || {}
-  return product
+  return productDetailStore.productDetail || {}
 })
 
 const productVariants = computed(() => productDetailStore.variants || [])

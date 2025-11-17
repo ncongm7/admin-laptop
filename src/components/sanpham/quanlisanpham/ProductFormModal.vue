@@ -1994,21 +1994,10 @@ const handleImageUpload = async (event) => {
       loading.value = true
       const imageUrl = await uploadImageToCloudinary(file)
       form.value.anhDaiDien = imageUrl
-      toast.value?.addToast({
-        type: 'success',
-        title: 'Thành công!',
-        message: 'Tải ảnh đại diện thành công!',
-        duration: 3000
-      })
+      alert('Tải ảnh đại diện thành công!')
     } catch (error) {
       console.error('Error uploading main image:', error)
-      
-      toast.value?.addToast({
-        type: 'error',
-        title: 'Lỗi tải ảnh!',
-        message: 'Có lỗi xảy ra khi tải ảnh',
-        duration: 4000
-      })
+      alert('Có lỗi xảy ra khi tải ảnh')
     } finally {
       loading.value = false
     }
@@ -2024,21 +2013,11 @@ const handleGalleryUpload = async (event) => {
       const imageUrls = await Promise.all(uploadPromises)
       
       form.value.images = [...(form.value.images || []), ...imageUrls]
-      toast.value?.addToast({
-        type: 'success',
-        title: 'Thành công!',
-        message: `Tải thành công ${imageUrls.length} ảnh!`,
-        duration: 3000
-      })
+       alert(`Tải thành công ${imageUrls.length} ảnh!`)
     } catch (error) {
       console.error('Error uploading gallery images:', error)
       
-      toast.value?.addToast({
-        type: 'error',
-        title: 'Lỗi tải ảnh!',
-        message: 'Có lỗi xảy ra khi tải ảnh',
-        duration: 4000
-      })
+      alert('Có lỗi xảy ra khi tải ảnh')
     } finally {
       loading.value = false
     }
@@ -2080,21 +2059,11 @@ const selectVariantImage = async (index) => {
           }
         }
         
-        toast.value?.addToast({
-          type: 'success',
-          title: 'Thành công!',
-          message: 'Tải ảnh thành công!',
-          duration: 3000
-        })
+        alert('Tải ảnh thành công!')
       } catch (error) {
         console.error('Error uploading variant image:', error)
         
-        toast.value?.addToast({
-          type: 'error',
-          title: 'Lỗi tải ảnh!',
-          message: 'Có lỗi xảy ra khi tải ảnh',
-          duration: 4000
-        })
+        alert('Có lỗi xảy ra khi tải ảnh')
       } finally {
         loading.value = false
       }
