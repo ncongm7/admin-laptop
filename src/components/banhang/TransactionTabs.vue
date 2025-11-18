@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 const props = defineProps({
     bills: {
@@ -64,14 +64,24 @@ const props = defineProps({
 
 const emit = defineEmits(['select-bill', 'remove-bill', 'create-new'])
 
+const { showConfirm } = useConfirm()
+
 const getBillItemsCount = (bill) => {
     return bill.hoaDonChiTiet?.length || 0
 }
 
-const confirmRemove = (bill) => {
+const confirmRemove = async (bill) => {
     const itemsCount = getBillItemsCount(bill)
     if (itemsCount > 0) {
-        if (confirm(`Hóa đơn này có ${itemsCount} sản phẩm. Bạn có chắc muốn xóa?`)) {
+        const confirmed = await showConfirm({
+            title: 'Xác nhận xóa hóa đơn',
+            message: `Hóa đơn này có ${itemsCount} sản phẩm. Bạn có chắc chắn muốn xóa?`,
+            confirmText: 'Xóa',
+            cancelText: 'Hủy',
+            type: 'warning'
+        })
+
+        if (confirmed) {
             emit('remove-bill', bill.id)
         }
     } else {

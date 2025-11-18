@@ -82,6 +82,8 @@
 </template>
 
 <script>
+import { useToast } from '@/composables/useToast'
+
 export default {
   props: {
     totalCustomers: {
@@ -95,6 +97,13 @@ export default {
       status: '',
     }
   },
+  created() {
+    // Khởi tạo toast composable
+    const { error: showError } = useToast()
+    
+    // Lưu vào this để sử dụng trong methods
+    this.showError = showError
+  },
   methods: {
     async handleSearch() {
       try {
@@ -107,7 +116,8 @@ export default {
         })
       } catch (error) {
         console.error('Lỗi khi tìm kiếm:', error)
-        alert('Lỗi khi tìm kiếm khách hàng')
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi tìm kiếm khách hàng'
+        this.showError(errorMessage)
       }
     },
 

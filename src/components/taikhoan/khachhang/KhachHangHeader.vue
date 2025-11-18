@@ -25,6 +25,7 @@
 import KhachHangFormDN from './KhachHangFormDN.vue'
 import KhachHangService from '@/service/taikhoan/khachHangService'
 import ExcelExporter from '@/utils/excelExport.js'
+import { useToast } from '@/composables/useToast'
 
 export default {
   components: { KhachHangFormDN },
@@ -33,6 +34,15 @@ export default {
       showForm: false,
       isExporting: false,
     }
+  },
+  created() {
+    // Khởi tạo toast composable
+    const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+    
+    // Lưu vào this để sử dụng trong methods
+    this.showSuccess = showSuccess
+    this.showError = showError
+    this.showWarning = showWarning
   },
   methods: {
     async exportToExcel() {
@@ -44,7 +54,7 @@ export default {
         const customers = response.data || []
 
         if (customers.length === 0) {
-          alert('Không có dữ liệu khách hàng để xuất')
+          this.showWarning('Không có dữ liệu khách hàng để xuất')
           return
         }
 
@@ -53,12 +63,11 @@ export default {
         ExcelExporter.exportCustomers(customers, filename)
 
         // Hiển thị thông báo thành công
-        this.$toast?.success(`Đã xuất thành công ${customers.length} khách hàng`) ||
-          alert(`Đã xuất thành công ${customers.length} khách hàng`)
+        this.showSuccess(`Đã xuất thành công ${customers.length} khách hàng`)
       } catch (error) {
         console.error('Lỗi khi xuất Excel:', error)
-        this.$toast?.error('Lỗi khi xuất Excel: ' + error.message) ||
-          alert('Lỗi khi xuất Excel: ' + error.message)
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi xuất Excel'
+        this.showError(errorMessage)
       } finally {
         this.isExporting = false
       }

@@ -10,18 +10,35 @@
 
       <div class="col-md-6">
         <label class="form-label">Giá trị (VND) *</label>
-        <input type="number" class="form-control" v-model.number="form.giaTri" :disabled="isDetail" />
-        <small v-if="form.giaTri" class="text-muted d-block mt-1">{{ showCurrency(form.giaTri) }} VND</small>
+        <input
+          type="number"
+          class="form-control"
+          v-model.number="form.giaTri"
+          :disabled="isDetail"
+        />
+        <small v-if="form.giaTri" class="text-muted d-block mt-1"
+          >{{ showCurrency(form.giaTri) }} VND</small
+        >
       </div>
 
       <div class="col-md-6">
         <label class="form-label">Ngày bắt đầu *</label>
-        <input type="datetime-local" class="form-control" v-model="form.ngayBatDau" :disabled="isDetail" />
+        <input
+          type="datetime-local"
+          class="form-control"
+          v-model="form.ngayBatDau"
+          :disabled="isDetail"
+        />
       </div>
 
       <div class="col-md-6">
         <label class="form-label">Ngày kết thúc *</label>
-        <input type="datetime-local" class="form-control" v-model="form.ngayKetThuc" :disabled="isDetail" />
+        <input
+          type="datetime-local"
+          class="form-control"
+          v-model="form.ngayKetThuc"
+          :disabled="isDetail"
+        />
       </div>
 
       <div class="col-12">
@@ -40,10 +57,17 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getDotGiamGiaById, addDotGiamGia, updateDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
+import {
+  getDotGiamGiaById,
+  addDotGiamGia,
+  updateDotGiamGia,
+} from '@/service/dotgiamgia/DotGiamGiaService'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
+
+const { success: showSuccess, error: showError } = useToast()
 
 const mode = ref('add')
 const id = route.params.id
@@ -53,7 +77,7 @@ const form = ref({
   giaTri: 0,
   moTa: '',
   ngayBatDau: '', // 'yyyy-MM-ddTHH:mm'
-  ngayKetThuc: ''
+  ngayKetThuc: '',
 })
 
 /** =======================
@@ -90,17 +114,19 @@ onMounted(async () => {
       giaTri: data.giaTri,
       moTa: data.moTa,
       ngayBatDau: instantToLocalInput(data.ngayBatDau),
-      ngayKetThuc: instantToLocalInput(data.ngayKetThuc)
+      ngayKetThuc: instantToLocalInput(data.ngayKetThuc),
     }
   }
 })
 
 const isDetail = computed(() => mode.value === 'detail')
-const title = computed(() => mode.value === 'add'
-  ? 'Thêm Đợt Giảm Giá'
-  : mode.value === 'edit'
-    ? 'Cập Nhật Đợt Giảm Giá'
-    : 'Chi Tiết Đợt Giảm Giá')
+const title = computed(() =>
+  mode.value === 'add'
+    ? 'Thêm Đợt Giảm Giá'
+    : mode.value === 'edit'
+      ? 'Cập Nhật Đợt Giảm Giá'
+      : 'Chi Tiết Đợt Giảm Giá',
+)
 
 function normalizedPayload() {
   return {
@@ -116,14 +142,17 @@ const save = async () => {
     const payload = normalizedPayload()
     if (mode.value === 'add') {
       await addDotGiamGia(payload)
-      alert('Thêm thành công!')
+      showSuccess('Thêm thành công!')
     } else if (mode.value === 'edit') {
       await updateDotGiamGia(payload, id)
-      alert('Cập nhật thành công!')
+      showSuccess('Cập nhật thành công!')
     }
     router.push('/quan-li-giam-gia')
   } catch (e) {
     console.error(e)
+    const errorMessage =
+      e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi lưu đợt giảm giá'
+    showError(errorMessage)
   }
 }
 

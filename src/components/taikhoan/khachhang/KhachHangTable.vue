@@ -122,6 +122,8 @@ input[type='checkbox'] {
 <script>
 import CustomerDetail from './KhachHangForrm.vue'
 import KhachHangService from '../../../service/taikhoan/khachHangService'
+import { useToast } from '@/composables/useToast'
+
 export default {
   components: { CustomerDetail },
   data() {
@@ -135,6 +137,15 @@ export default {
       pageSize: 20,
       loading: false,
     }
+  },
+  created() {
+    // Khởi tạo toast composable
+    const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+    
+    // Lưu vào this để sử dụng trong methods
+    this.showSuccess = showSuccess
+    this.showError = showError
+    this.showWarning = showWarning
   },
   mounted() {
     this.fetchCustomers()
@@ -179,7 +190,7 @@ export default {
 
         if (!customer) {
           console.error('Customer object không tồn tại')
-          alert('Không tìm thấy thông tin khách hàng')
+          this.showError('Không tìm thấy thông tin khách hàng')
           this.showModal = false
           return
         }
@@ -205,7 +216,8 @@ export default {
         }
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết khách hàng:', error)
-        alert('Lỗi khi tải thông tin khách hàng: ' + error.message)
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi tải thông tin khách hàng'
+        this.showError(errorMessage)
         this.showModal = false
       } finally {
         this.loading = false
@@ -264,7 +276,8 @@ export default {
         this.$emit('customers-updated', this.customers.length)
       } catch (error) {
         console.error('Lỗi khi tìm kiếm khách hàng:', error)
-        alert('Lỗi khi tìm kiếm khách hàng')
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi tìm kiếm khách hàng'
+        this.showError(errorMessage)
       }
     },
   },

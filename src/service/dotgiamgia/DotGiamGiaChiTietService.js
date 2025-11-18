@@ -20,7 +20,7 @@ async function handleResponse(res) {
   } catch {
     msg = raw || msg;
   }
-  alert(msg);
+  // Throw error để component có thể xử lý và hiển thị toast
   throw new Error(msg);
 }
 
