@@ -53,8 +53,52 @@ export const getHoaDonDetail = async (idHoaDon) => {
     }
 }
 
+/**
+ * Xác nhận đơn hàng online
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @param {String} nhanVienId - UUID của nhân viên (optional)
+ * @returns {Promise}
+ */
+export const xacNhanDonHang = async (idHoaDon, nhanVienId = null) => {
+    try {
+        console.log('✅ [HoaDonService] Xác nhận đơn hàng:', idHoaDon)
+
+        const params = nhanVienId ? { nhanVienId } : {}
+        const response = await axiosInstance.put(`${API_BASE}/${idHoaDon}/xac-nhan`, null, { params })
+
+        console.log('✅ [HoaDonService] Xác nhận đơn hàng thành công:', response.data)
+        return response.data
+    } catch (error) {
+        console.error('❌ [HoaDonService] Lỗi khi xác nhận đơn hàng:', error)
+        throw error
+    }
+}
+
+/**
+ * Hủy đơn hàng online
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @param {String} nhanVienId - UUID của nhân viên (optional)
+ * @returns {Promise}
+ */
+export const huyDonHang = async (idHoaDon, nhanVienId = null) => {
+    try {
+        console.log('🚫 [HoaDonService] Hủy đơn hàng:', idHoaDon)
+
+        const params = nhanVienId ? { nhanVienId } : {}
+        const response = await axiosInstance.put(`${API_BASE}/${idHoaDon}/huy`, null, { params })
+
+        console.log('✅ [HoaDonService] Hủy đơn hàng thành công:', response.data)
+        return response.data
+    } catch (error) {
+        console.error('❌ [HoaDonService] Lỗi khi hủy đơn hàng:', error)
+        throw error
+    }
+}
+
 export default {
     getHoaDons,
-    getHoaDonDetail
+    getHoaDonDetail,
+    xacNhanDonHang,
+    huyDonHang
 }
 
