@@ -154,12 +154,31 @@
               <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
                 {{ getTrangThaiLabel(hoaDon.trangThai) }}
               </span>
+              <!-- Badge đặc biệt cho đơn online chờ xác nhận -->
+              <span v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'" 
+                    class="badge bg-warning text-dark ms-1">
+                CHỜ XÁC NHẬN
+              </span>
             </td>
             <td class="fw-semibold">{{ formatCurrency(hoaDon.tongTienSauGiam) }}</td>
             <td class="action-col">
               <button class="btn btn-outline-success btn-sm rounded-circle me-1" @click="openDetail(hoaDon)"
                 title="Xem chi tiết">
                 <i class="bi bi-eye"></i>
+              </button>
+              <!-- Nút xác nhận đơn hàng online (chỉ hiện khi là đơn online và chờ thanh toán) -->
+              <button v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'"
+                      class="btn btn-outline-primary btn-sm rounded-circle me-1" 
+                      @click="xacNhanDonHang(hoaDon)"
+                      title="Xác nhận đơn hàng">
+                <i class="bi bi-check-circle"></i>
+              </button>
+              <!-- Nút hủy đơn hàng online (chỉ hiện khi là đơn online và chờ thanh toán) -->
+              <button v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'"
+                      class="btn btn-outline-danger btn-sm rounded-circle me-1" 
+                      @click="huyDonHang(hoaDon)"
+                      title="Hủy đơn hàng">
+                <i class="bi bi-x-circle"></i>
               </button>
               <button class="btn btn-outline-dark btn-sm rounded-circle" @click="printInvoice(hoaDon)"
                 title="In hóa đơn">
@@ -206,7 +225,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getHoaDons } from '@/service/hoaDonService'
+import { getHoaDons, xacNhanDonHang as xacNhanDonHangAPI, huyDonHang as huyDonHangAPI } from '@/service/hoaDonService'
 import ChiTietHoaDonModal from '@/components/hoadon/ChiTietHoaDonModal.vue'
 
 // State
@@ -272,15 +291,18 @@ const fetchHoaDons = async () => {
 
 /**
  * Map status tab sang số (theo DB)
+ * TrangThaiHoaDon enum: 0=CHO_THANH_TOAN, 1=DA_THANH_TOAN, 2=DA_HUY, 3=DANG_GIAO, 4=HOAN_THANH
  */
 const mapStatusToNumber = (status) => {
   const map = {
-    'CHO_THANH_TOAN': undefined, // Không lọc
-    'CHO_XAC_NHAN': undefined,
-    'DA_XAC_NHAN': undefined,
-    'DANG_GIAO': undefined,
-    'HOAN_THANH': undefined,
-    'DA_HUY': undefined
+    '': undefined, // Tất cả
+    'processing': 0, // CHO_THANH_TOAN - Chờ thanh toán (bao gồm chờ xác nhận)
+    'confirmed': 1, // DA_THANH_TOAN - Đã thanh toán/Đã xác nhận
+    'delivering': 3, // DANG_GIAO - Đang giao hàng
+    'shipping': 3, // DANG_GIAO - Đang vận chuyển
+    'delivered': 4, // HOAN_THANH - Hoàn thành
+    'done': 4, // HOAN_THANH - Hoàn tất
+    'cancelled': 2 // DA_HUY - Đã hủy
   }
   return map[status]
 }
@@ -344,23 +366,21 @@ const formatDate = (dateStr) => {
 const getTrangThaiLabel = (trangThai) => {
   const labels = {
     'CHO_THANH_TOAN': 'Chờ thanh toán',
-    'CHO_XAC_NHAN': 'Chờ xác nhận',
-    'DA_XAC_NHAN': 'Đã xác nhận',
+    'DA_THANH_TOAN': 'Đã thanh toán',
+    'DA_HUY': 'Đã hủy',
     'DANG_GIAO': 'Đang giao hàng',
-    'HOAN_THANH': 'Hoàn thành',
-    'DA_HUY': 'Đã hủy'
+    'HOAN_THANH': 'Hoàn thành'
   }
   return labels[trangThai] || trangThai
 }
 
 const getStatusBadgeClass = (trangThai) => {
   const classes = {
-    'CHO_THANH_TOAN': 'bg-secondary',
-    'CHO_XAC_NHAN': 'bg-warning',
-    'DA_XAC_NHAN': 'bg-info',
-    'DANG_GIAO': 'bg-primary',
-    'HOAN_THANH': 'bg-success',
-    'DA_HUY': 'bg-danger'
+    'CHO_THANH_TOAN': 'bg-warning text-dark', // Chờ thanh toán - màu vàng
+    'DA_THANH_TOAN': 'bg-info', // Đã thanh toán - màu xanh dương
+    'DA_HUY': 'bg-danger', // Đã hủy - màu đỏ
+    'DANG_GIAO': 'bg-primary', // Đang giao hàng - màu xanh
+    'HOAN_THANH': 'bg-success' // Hoàn thành - màu xanh lá
   }
   return classes[trangThai] || 'bg-secondary'
 }
@@ -395,6 +415,48 @@ const resetFilters = () => {
   activeStatusTab.value = ''
   currentPage.value = 0
   fetchHoaDons()
+}
+
+/**
+ * Xác nhận đơn hàng online
+ */
+const xacNhanDonHang = async (hoaDon) => {
+  if (!confirm(`Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\nLưu ý: Hệ thống sẽ trừ kho khi xác nhận.`)) {
+    return
+  }
+
+  try {
+    await xacNhanDonHangAPI(hoaDon.id)
+    alert('✅ Xác nhận đơn hàng thành công!')
+    fetchHoaDons() // Reload danh sách
+    if (showDetailModal.value && selectedHoaDonId.value === hoaDon.id) {
+      closeDetailModal()
+    }
+  } catch (error) {
+    console.error('❌ Lỗi khi xác nhận đơn hàng:', error)
+    alert('❌ Không thể xác nhận đơn hàng: ' + (error.response?.data?.message || error.message || 'Lỗi không xác định'))
+  }
+}
+
+/**
+ * Hủy đơn hàng online
+ */
+const huyDonHang = async (hoaDon) => {
+  if (!confirm(`Bạn có chắc chắn muốn hủy đơn hàng ${hoaDon.ma}?`)) {
+    return
+  }
+
+  try {
+    await huyDonHangAPI(hoaDon.id)
+    alert('✅ Hủy đơn hàng thành công!')
+    fetchHoaDons() // Reload danh sách
+    if (showDetailModal.value && selectedHoaDonId.value === hoaDon.id) {
+      closeDetailModal()
+    }
+  } catch (error) {
+    console.error('❌ Lỗi khi hủy đơn hàng:', error)
+    alert('❌ Không thể hủy đơn hàng: ' + (error.response?.data?.message || error.message || 'Lỗi không xác định'))
+  }
 }
 
 // Pagination
