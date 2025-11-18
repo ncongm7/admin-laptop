@@ -147,9 +147,14 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { findByDotGiamGiaId, deleteDotGiamGiaChiTiet, getSanPhamCombobox, getAvailableCtsp, addCtspToDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaChiTietService'
 import { getDotGiamGiaById } from '@/service/dotgiamgia/DotGiamGiaService'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 const route = useRoute()
 const router = useRouter()
+
+const { success: showSuccess, error: showError } = useToast()
+const { showConfirm } = useConfirm()
 
 // Data for the page
 const list = ref([]) // List of products already in the campaign (bottom table)
@@ -245,13 +250,14 @@ const addCtspToCampaign = async (ctspId) => {
       ctspIds: [ctspId] // Gửi ID đơn lẻ dưới dạng mảng (List)
     });
 
-    alert('Thêm chi tiết sản phẩm thành công')
+    showSuccess('Thêm chi tiết sản phẩm thành công')
     // 2. Cập nhật lại dữ liệu cho cả hai bảng
     await refreshTables();
 
   } catch (e) {
-    // alert lỗi đã được xử lý trong hàm handleResponse của Service
     console.error('Lỗi khi thêm CTSP vào đợt giảm giá:', e)
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi thêm chi tiết sản phẩm'
+    showError(errorMessage)
   }
 }
 // ... các import & state cũ giữ nguyên ...
@@ -280,11 +286,12 @@ const addAllCTSP = async () => {
         ctspIds: chunk,
       })
     }
-    alert('Đã thêm toàn bộ chi tiết sản phẩm vào đợt giảm giá')
+    showSuccess('Đã thêm toàn bộ chi tiết sản phẩm vào đợt giảm giá')
     await refreshTables()
   } catch (e) {
     console.error('Lỗi khi thêm toàn bộ CTSP:', e)
-    alert('Có lỗi khi thêm toàn bộ CTSP. Vui lòng thử lại.')
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi khi thêm toàn bộ CTSP. Vui lòng thử lại.'
+    showError(errorMessage)
   } finally {
     addingAll.value = false
   }
@@ -292,10 +299,19 @@ const addAllCTSP = async () => {
 
 // Remove a product from the campaign (bottom table)
 const remove = async (chiTietId) => {
-  if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi đợt giảm giá không?')) return
+  const confirmed = await showConfirm({
+    title: 'Xác nhận xóa sản phẩm',
+    message: 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi đợt giảm giá?',
+    confirmText: 'Xóa',
+    cancelText: 'Hủy',
+    type: 'warning'
+  })
+  
+  if (!confirmed) return
+  
   try {
     await deleteDotGiamGiaChiTiet(chiTietId)
-    alert('Xóa thành công!')
+    showSuccess('Xóa thành công!')
 
     // Refresh data for both tables
     const productsRes = await findByDotGiamGiaId(id)
@@ -310,6 +326,8 @@ const remove = async (chiTietId) => {
 
   } catch (e) {
     console.error('Lỗi khi xóa:', e)
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa chi tiết'
+    showError(errorMessage)
   }
 }
 

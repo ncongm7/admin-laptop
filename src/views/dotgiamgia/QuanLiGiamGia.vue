@@ -71,9 +71,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDotGiamGias, deleteDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
-// ... (phần script không đổi)
 const router = useRouter()
+const { success: showSuccess, error: showError } = useToast()
+const { showConfirm } = useConfirm()
 const list = ref([])
 const q = ref('')
 
@@ -124,14 +127,25 @@ const goToAdd = () => router.push('/dot-giam-gia/add')
 const edit = (id) => router.push(`/dot-giam-gia/edit/${id}`)
 const viewProducts = (id) => router.push(`/chi-tiet-giam-gia/${id}`)
 const remove = async (id) => {
-  if (!confirm('Bạn có chắc muốn xóa không?')) return
+  const confirmed = await showConfirm({
+    title: 'Xác nhận xóa đợt giảm giá',
+    message: 'Bạn có chắc chắn muốn xóa đợt giảm giá này?',
+    confirmText: 'Xóa',
+    cancelText: 'Hủy',
+    type: 'warning'
+  })
+  
+  if (!confirmed) return
+  
   try {
     await deleteDotGiamGia(id)
-    alert('Xóa thành công!')
+    showSuccess('Xóa thành công!')
     await fetchList()
     if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa đợt giảm giá'
+    showError(errorMessage)
   }
 }
 

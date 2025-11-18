@@ -216,6 +216,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { timKiemSanPham, laySanPhamConHang } from '@/service/banhang/banHangService'
+import { useToast } from '@/composables/useToast'
+
+const { warning: showWarning } = useToast()
 
 const emit = defineEmits(['product-selected', 'scan-imei'])
 
@@ -384,7 +387,7 @@ const closeVariantModal = () => {
 
 const selectVariant = (variant) => {
     if (variant.soLuongTon <= 0) {
-        alert('Sản phẩm này đã hết hàng!')
+        showWarning('Sản phẩm này đã hết hàng!')
         return
     }
 

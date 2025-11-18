@@ -132,7 +132,7 @@
       </div>
     </div>
 
-    <!-- 🔸 Địa chỉ -->
+    <!--  Địa chỉ -->
     <div class="card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -264,6 +264,8 @@
 import khachHangService from '@/service/taikhoan/khachHangService'
 import DiaChiService from '@/service/taikhoan/diaChiService'
 import DiaChiForm from './DiaChiForm.vue'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 export default {
   name: 'KhachHangForm',
@@ -292,6 +294,17 @@ export default {
       },
     }
   },
+  created() {
+    // Khởi tạo toast và confirm composables
+    const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+    const { showConfirm } = useConfirm()
+    
+    // Lưu vào this để sử dụng trong methods
+    this.showSuccess = showSuccess
+    this.showError = showError
+    this.showWarning = showWarning
+    this.showConfirm = showConfirm
+  },
   watch: {
     'form.maKhachHang'(newVal) {
       if (newVal && newVal.trim() !== '') {
@@ -305,34 +318,118 @@ export default {
     async handleSave() {
       // Validate form trước khi submit
       if (!this.validateForm()) {
-        alert('Vui lòng kiểm tra lại thông tin đã nhập')
+        this.showWarning('Vui lòng kiểm tra lại thông tin đã nhập')
         return
       }
 
       try {
-        await khachHangService.addKhachHang(this.form)
-        alert('Thêm khách hàng thành công!')
-        this.$emit('success') // thông báo cho parent để reload table
+        // Chuẩn hóa dữ liệu: convert empty string thành null cho các trường optional
+        const payload = {
+          maKhachHang: this.form.maKhachHang.trim(),
+          hoTen: this.form.hoTen.trim(),
+          soDienThoai: this.form.soDienThoai.trim(),
+          email: this.form.email && this.form.email.trim() ? this.form.email.trim() : null,
+          gioiTinh: this.form.gioiTinh,
+          ngaySinh: this.form.ngaySinh && this.form.ngaySinh.trim() ? this.form.ngaySinh : null,
+          trangThai: this.form.trangThai,
+        }
+
+        const response = await khachHangService.addKhachHang(payload)
+        const responseData = response?.data || response
+
+        // Backend có thể không trả về dữ liệu khách hàng, nên tạo object từ payload
+        // Hoặc merge dữ liệu từ response nếu có
+        const newCustomer = {
+          ...payload,
+          ...responseData,
+          // Đảm bảo có đầy đủ các field cần thiết
+          maKhachHang: responseData?.maKhachHang || payload.maKhachHang,
+          hoTen: responseData?.hoTen || payload.hoTen,
+          soDienThoai: responseData?.soDienThoai || payload.soDienThoai,
+          email: responseData?.email || payload.email,
+          diemTichLuy: responseData?.diemTichLuy || 0,
+        }
+
+        // Nếu response không có id, thử lấy lại thông tin khách hàng từ backend bằng maKhachHang
+        if (!newCustomer.id && newCustomer.maKhachHang) {
+          try {
+            // Đợi một chút để đảm bảo transaction đã commit
+            await new Promise((resolve) => setTimeout(resolve, 300))
+            const customerInfo = await khachHangService.getByMaKhachHang(newCustomer.maKhachHang)
+            const customerData = customerInfo?.data || customerInfo
+            if (customerData) {
+              // Merge thông tin từ backend vào newCustomer
+              Object.assign(newCustomer, customerData)
+            }
+          } catch (error) {
+            console.warn('Không thể lấy lại thông tin khách hàng từ backend:', error)
+            // Vẫn tiếp tục với dữ liệu từ payload
+          }
+        }
+
+        // Nếu có địa chỉ trong danh sách, thêm địa chỉ sau khi thêm khách hàng thành công
+        if (this.addressList.length > 0) {
+          // Đợi một chút để đảm bảo transaction đã commit
+          await new Promise((resolve) => setTimeout(resolve, 500))
+
+          // Thêm từng địa chỉ
+          for (const address of this.addressList) {
+            try {
+              await DiaChiService.addDiaChi({
+                maKhachHang: newCustomer.maKhachHang || payload.maKhachHang,
+                hoTen: address.hoTen || newCustomer.hoTen,
+                sdt: address.sdt || newCustomer.soDienThoai,
+                diaChi: address.diaChi || '',
+                xa: address.xa || '',
+                tinh: address.tinh || '',
+                macDinh: address.macDinh || false,
+              })
+            } catch (error) {
+              console.error('Lỗi khi thêm địa chỉ:', error)
+              // Không dừng quá trình nếu thêm địa chỉ lỗi
+            }
+          }
+        }
+
+        this.showSuccess('Thêm khách hàng thành công!')
+        this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
         this.$emit('close') // đóng form
       } catch (error) {
         console.error(error)
-        alert('Lỗi khi thêm khách hàng')
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Lỗi khi thêm khách hàng'
+        this.showError(errorMessage)
       }
     },
     async handleSaveAndNew() {
       // Validate form trước khi submit
       if (!this.validateForm()) {
-        alert('Vui lòng kiểm tra lại thông tin đã nhập')
+        this.showWarning('Vui lòng kiểm tra lại thông tin đã nhập')
         return
       }
 
       try {
-        await khachHangService.addKhachHang(this.form)
-        alert('Thêm khách hàng thành công!')
+        // Chuẩn hóa dữ liệu: convert empty string thành null cho các trường optional
+        const payload = {
+          maKhachHang: this.form.maKhachHang.trim(),
+          hoTen: this.form.hoTen.trim(),
+          soDienThoai: this.form.soDienThoai.trim(),
+          email: this.form.email && this.form.email.trim() ? this.form.email.trim() : null,
+          gioiTinh: this.form.gioiTinh,
+          ngaySinh: this.form.ngaySinh && this.form.ngaySinh.trim() ? this.form.ngaySinh : null,
+          trangThai: this.form.trangThai,
+        }
+
+        const response = await khachHangService.addKhachHang(payload)
+        const newCustomer = response?.data || response
+        this.showSuccess('Thêm khách hàng thành công!')
+        this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
         this.resetForm()
       } catch (error) {
         console.error(error)
-        alert('Lỗi khi thêm khách hàng')
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Lỗi khi thêm khách hàng'
+        this.showError(errorMessage)
       }
     },
     resetForm() {
@@ -361,11 +458,10 @@ export default {
         // Clear error khi tạo mã thành công
         this.errors.maKhachHang = ''
         // Hiển thị thông báo thành công
-        this.$toast?.success('Đã tạo mã khách hàng tự động!') ||
-          alert('Đã tạo mã khách hàng tự động!')
+        this.showSuccess('Đã tạo mã khách hàng tự động!')
       } catch (error) {
         console.error('Lỗi khi tạo mã khách hàng:', error)
-        this.$toast?.error('Lỗi khi tạo mã khách hàng') || alert('Lỗi khi tạo mã khách hàng')
+        this.showError('Lỗi khi tạo mã khách hàng')
       } finally {
         this.isGeneratingCode = false
       }
@@ -424,7 +520,7 @@ export default {
     },
     showAddAddressModal() {
       if (!this.form.maKhachHang) {
-        alert('Vui lòng nhập mã khách hàng trước!')
+        this.showWarning('Vui lòng nhập mã khách hàng trước!')
         return
       }
       this.showAddressModal = true
@@ -450,16 +546,25 @@ export default {
       this.closeAddressModal()
     },
     async deleteAddress(addressId) {
-      if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
+      const confirmed = await this.showConfirm({
+        title: 'Xác nhận xóa địa chỉ',
+        message: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        type: 'warning'
+      })
+      
+      if (!confirmed) {
         return
       }
+      
       try {
         await DiaChiService.deleteDiaChi(addressId)
         this.fetchAddresses()
-        alert('Đã xóa địa chỉ thành công')
+        this.showSuccess('Đã xóa địa chỉ thành công')
       } catch (error) {
         console.error('Error deleting address:', error)
-        alert('Có lỗi xảy ra')
+        this.showError('Có lỗi xảy ra khi xóa địa chỉ')
       }
     },
   },
