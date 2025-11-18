@@ -268,9 +268,35 @@ watch(() => props.variant, async (newVariant) => {
   }
 }, { immediate: true })
 
+// Watch for modal open/close to reload serials
+watch(() => props.modelValue, async (isVisible, wasVisible) => {
+  console.log('🔵 Modal visibility changed:', { isVisible, wasVisible })
+  
+  // When modal opens, reload serials
+  if (isVisible && !wasVisible) {
+    console.log('🔵 Modal opened - loading serials...')
+    if (props.variant?.id) {
+      await loadSerials()
+    }
+  }
+  
+  // When modal closes, reset validation state
+  if (!isVisible && wasVisible) {
+    console.log('🔵 Modal closed - resetting state')
+    serialInput.value = ''
+    validationError.value = ''
+    validationSuccess.value = false
+  }
+})
+
 // Load serials from API or use existing data
 const loadSerials = async () => {
-  if (!props.variant) return
+  if (!props.variant) {
+    console.log('⚠️ No variant provided')
+    return
+  }
+  
+  console.log('🔄 Loading serials for variant:', props.variant.id || 'preview')
   
   // If variant has ID, always load from API for fresh data
   if (props.variant.id) {
@@ -278,31 +304,35 @@ const loadSerials = async () => {
       console.log('🔵 Loading serials from API for variant:', props.variant.id)
       const response = await getSerialsByCtspId(props.variant.id)
       const backendSerials = response.data || []
-      console.log('🔵 Backend serials received:', backendSerials)
-      console.log('🔵 First serial status from backend:', backendSerials[0]?.trangThai)
+      console.log('✅ Backend serials received:', backendSerials.length, 'serials')
+      
+      if (backendSerials.length > 0) {
+        console.log('🔵 First serial example:', backendSerials[0])
+      }
       
       localSerials.value = backendSerials.map(serial => ({
         id: serial.id,
-        soSerial: serial.serialNo,
+        soSerial: serial.serialNo || serial.soSerial,
         trangThai: serial.trangThai // Don't use default, use actual value from backend
       }))
       originalSerials.value = JSON.parse(JSON.stringify(localSerials.value)) // Deep copy
       
-      console.log('🔵 Local serials updated:', localSerials.value)
+      console.log('✅ Local serials updated - total:', localSerials.value.length)
     } catch (error) {
-      console.error('Error loading serials:', error)
+      console.error('❌ Error loading serials:', error)
       localSerials.value = []
       originalSerials.value = []
     }
   } else if (props.variant.serials && Array.isArray(props.variant.serials)) {
     // Preview mode - use prop data
-    console.log('🔵 Using preview serials from props')
+    console.log('🔵 Using preview serials from props:', props.variant.serials.length)
     localSerials.value = [...props.variant.serials]
     originalSerials.value = JSON.parse(JSON.stringify(props.variant.serials)) // Deep copy
   } else {
     // New variant - empty serials
     console.log('🔵 New variant - empty serials')
     localSerials.value = []
+    originalSerials.value = []
   }
 }
 
@@ -334,7 +364,6 @@ const addSerialNumbers = async () => {
   
   // Validate format first
   const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
-  
   if (invalidSerials.length > 0) {
     validationError.value = `❌ Serial không hợp lệ: ${invalidSerials.join(', ')}\n\nYêu cầu: Đúng 7 ký tự gồm chữ và số (VD: ABC1234)`
     
@@ -780,14 +809,9 @@ ${duplicateList}${moreText}
     
     event.target.value = ''
     
-    // Emit save event to update parent component
-    if (props.variant?.id) {
-      console.log('🔵 Emitting save event to parent after import')
-      emit('save', {
-        variantId: props.variant.id,
-        serials: localSerials.value
-      })
-    }
+    // NOTE: emit 'save' is now handled inside success blocks above
+    // Only emit when there are new serials successfully added
+    // DON'T emit when all duplicates or errors - keep modal open
     
   } catch (error) {
     console.error('Error importing serials:', error)
@@ -1064,7 +1088,7 @@ const handleSave = async () => {
       }
     }
     
-    // Emit save event with updated serials
+    // Emit save event with updated serials to refresh parent component
     emit('save', {
       variantId: props.variant.id,
       serials: localSerials.value,
