@@ -112,7 +112,20 @@
                                     </div>
                                 </div>
                                 <div class="variant-meta">
-                                    <div class="variant-price">{{ formatCurrency(variant.giaBan) }}</div>
+                                    <div class="variant-price">
+                                        <span v-if="variant.coGiamGia && variant.giaGiam" class="price-discounted">
+                                            {{ formatCurrency(variant.giaGiam) }}
+                                        </span>
+                                        <span v-else>
+                                            {{ formatCurrency(variant.giaBan) }}
+                                        </span>
+                                        <span v-if="variant.coGiamGia && variant.giaGoc" class="price-original">
+                                            <del>{{ formatCurrency(variant.giaGoc) }}</del>
+                                        </span>
+                                    </div>
+                                    <div v-if="variant.coGiamGia && variant.phanTramGiam" class="discount-badge">
+                                        <span class="badge bg-danger">-{{ variant.phanTramGiam }}%</span>
+                                    </div>
                                     <div class="variant-stock">
                                         <span :class="getStockClass(variant.soLuongTon)">
                                             <i class="bi bi-box"></i> Tồn: {{ variant.soLuongTon }}
@@ -158,7 +171,24 @@
 
                             <div class="info-row">
                                 <span class="label">Giá bán:</span>
-                                <span class="value price">{{ formatCurrency(selectedVariant.giaBan) }}</span>
+                                <span class="value price">
+                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGiam" class="price-discounted">
+                                        {{ formatCurrency(selectedVariant.giaGiam) }}
+                                    </span>
+                                    <span v-else>
+                                        {{ formatCurrency(selectedVariant.giaBan) }}
+                                    </span>
+                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGoc" class="price-original ms-2">
+                                        <del>{{ formatCurrency(selectedVariant.giaGoc) }}</del>
+                                    </span>
+                                </span>
+                            </div>
+
+                            <div v-if="selectedVariant.coGiamGia && selectedVariant.phanTramGiam" class="info-row">
+                                <span class="label">Giảm giá:</span>
+                                <span class="value text-danger">
+                                    <span class="badge bg-danger">-{{ selectedVariant.phanTramGiam }}%</span>
+                                </span>
                             </div>
 
                             <div class="info-row">
@@ -191,7 +221,7 @@
 
                             <div class="total-row">
                                 <span class="label">Tổng tiền:</span>
-                                <span class="value total">{{ formatCurrency(selectedVariant.giaBan * quantity) }}</span>
+                                <span class="value total">{{ formatCurrency(getCurrentPrice(selectedVariant) * quantity) }}</span>
                             </div>
                         </div>
                     </div>
@@ -448,7 +478,8 @@ const confirmAddProduct = () => {
     console.log('✅ Đã chọn sản phẩm:', {
         name: getVariantDisplayName(selectedVariant.value),
         quantity: quantity.value,
-        total: selectedVariant.value.giaBan * quantity.value
+        price: getCurrentPrice(selectedVariant.value),
+        total: getCurrentPrice(selectedVariant.value) * quantity.value
     })
 
     // Đóng modal và reset
@@ -536,6 +567,16 @@ const getVariantSpecs = (variant) => {
     if (variant.kichThuocManHinh) specs.push(`${variant.kichThuocManHinh}"`)
 
     return specs.length > 0 ? specs.join(' | ') : 'Chưa có thông số'
+}
+
+/**
+ * Lấy giá hiện tại của variant (ưu tiên giá giảm nếu có)
+ */
+const getCurrentPrice = (variant) => {
+    if (variant.coGiamGia && variant.giaGiam) {
+        return variant.giaGiam
+    }
+    return variant.giaBan || 0
 }
 </script>
 
@@ -754,6 +795,25 @@ const getVariantSpecs = (variant) => {
     font-size: 1.125rem;
     font-weight: 700;
     color: #dc3545;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.price-discounted {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.price-original {
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.discount-badge {
+    margin-top: 0.25rem;
 }
 
 .variant-stock {
