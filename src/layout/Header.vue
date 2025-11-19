@@ -10,7 +10,7 @@
                 <span class="logo-text">Viet<span class="logo-highlight">LapTop</span></span>
             </div>
             <!-- Breadcrumbs -->
-            <Breadcrumbs />
+            <Breadcrumbs :current-tab="currentTab" />
         </div>
 
         <!-- Right Section: Actions and User Menu -->
@@ -21,11 +21,10 @@
             </button>
             <div class="user-menu dropdown">
                 <button class="user-avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img :src="authStore.user?.avatar || 'https://i.pravatar.cc/40'" alt="User Avatar"
-                        class="user-avatar" />
+                    <img :src="getAvatarUrl(authStore.user?.avatar)" alt="User Avatar" class="user-avatar" />
                     <div class="user-info">
-                        <span class="user-name">{{ authStore.user?.hoTen || 'Nhân viên' }}</span>
-                        <span class="user-role">{{ authStore.user?.role || 'Staff' }}</span>
+                        <span class="user-name">{{ displayUserName }}</span>
+                        <span class="user-role">{{ displayUserRole }}</span>
                     </div>
                     <i class="bi bi-chevron-down dropdown-icon"></i>
                 </button>
@@ -55,6 +54,7 @@
 </template>
 
 <script setup>
+import { ref, provide, computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
@@ -62,6 +62,52 @@ import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Current tab state (để truyền vào breadcrumb)
+const currentTab = ref(null)
+
+// Provide để các component con có thể update tab
+provide('updateBreadcrumbTab', (tab) => {
+    currentTab.value = tab
+})
+
+// Computed properties để hiển thị thông tin user
+const displayUserName = computed(() => {
+    return authStore.getUserName || 'Nhân viên'
+})
+
+const displayUserRole = computed(() => {
+    const role = authStore.getUserRole
+    if (!role) return 'Nhân viên'
+
+    // Format role để hiển thị đẹp
+    const roleMap = {
+        'ADMIN': 'Quản trị viên',
+        'NHAN_VIEN': 'Nhân viên',
+        'KHACH_HANG': 'Khách hàng',
+        'STAFF': 'Nhân viên',
+        'MANAGER': 'Quản lý',
+        'CASHIER': 'Thu ngân',
+        'Quản trị viên': 'Quản trị viên',
+        'Nhân viên': 'Nhân viên',
+        'Khách hàng': 'Khách hàng'
+    }
+
+    return roleMap[role] || role
+})
+
+function getAvatarUrl(avatar) {
+    if (!avatar) return 'https://i.pravatar.cc/40'
+
+    // Nếu là relative URL, thêm base URL
+    if (avatar.startsWith('/uploads/')) {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        return `${baseURL}${avatar}`
+    }
+
+    // Nếu là base64 hoặc full URL, trả về trực tiếp
+    return avatar
+}
 
 const toggleSidebar = () => {
     emit('toggle-sidebar')
@@ -264,11 +310,11 @@ const logout = async () => {
     .header-left {
         gap: 12px;
     }
-    
+
     .logo {
         font-size: 1.1rem;
     }
-    
+
     .logo-icon {
         font-size: 1.5rem;
     }
@@ -278,7 +324,7 @@ const logout = async () => {
     .app-header {
         padding: 0 16px;
     }
-    
+
     .user-info {
         display: none;
     }

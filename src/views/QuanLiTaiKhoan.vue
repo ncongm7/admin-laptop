@@ -1,157 +1,131 @@
 <template>
     <div class="user-management">
-        <!-- Header với tab phân loại -->
-        <!-- <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-people-fill"></i> Quản lý người dùng</h2>
-            <div>
-                <button class="btn btn-primary me-2" @click="openCreateModal">
-                    <i class="bi bi-plus-circle"></i> Thêm mới
-                </button>
-                <button class="btn btn-outline-secondary" @click="exportExcel">
-                    <i class="bi bi-file-earmark-excel"></i> Xuất Excel
-                </button>
+        <!-- Nhân viên: Hiển thị giao diện riêng -->
+        <MyAccount v-if="!isAdmin" />
+
+        <!-- Admin: Hiển thị giao diện quản lý đầy đủ -->
+        <template v-else>
+            <!-- Tab phân loại - Modern Design -->
+            <TabNavigation v-model="activeTab" :tabs="accountTabs" variant="modern" @change="handleTabChange" />
+
+            <!-- Nội dung động theo tab -->
+
+            <div v-if="activeTab === 'staff'">
+                <NhanVien />
             </div>
-        </div> -->
-
-        <!-- Tab phân loại -->
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item">
-                <a class="nav-link" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">
-                    Tất cả
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" :class="{ active: activeTab === 'staff' }" @click="activeTab = 'staff'">
-                    Nhân viên
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" :class="{ active: activeTab === 'customer' }" @click="activeTab = 'customer'">
-                    Khách hàng
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" :class="{ active: activeTab === 'locked' }" @click="activeTab = 'locked'">
-                    Tài khoản bị khóa
-                </a>
-            </li>
-        </ul>
-
-        <!-- Nội dung động theo tab -->
-        <div v-if="activeTab === 'staff'">
-            <NhanVien />
-        </div>
-        <div v-else-if="activeTab === 'customer'">
-            <KhachHangManager />
-        </div>
-        <div v-else>
-            <!-- Filter/Search -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <input v-model="searchQuery" type="text" class="form-control"
-                                placeholder="Tìm theo tên, email, SĐT...">
-                        </div>
-                        <div class="col-md-3">
-                            <select v-model="roleFilter" class="form-select">
-                                <option value="">Tất cả vai trò</option>
-                                <option v-for="role in roleOptions" :value="role.value">{{ role.label }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select v-model="statusFilter" class="form-select">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="1">Hoạt động</option>
-                                <option value="0">Bị khóa</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100" @click="resetFilter">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
-                            </button>
+            <div v-else-if="activeTab === 'customer'">
+                <KhachHangManager />
+            </div>
+            <div v-else-if="activeTab === 'locked'">
+                <!-- Filter/Search -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <input v-model="searchQuery" type="text" class="form-control"
+                                    placeholder="Tìm theo tên, email, SĐT...">
+                            </div>
+                            <div class="col-md-3">
+                                <select v-model="roleFilter" class="form-select">
+                                    <option value="">Tất cả vai trò</option>
+                                    <option v-for="role in roleOptions" :value="role.value">{{ role.label }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select v-model="statusFilter" class="form-select">
+                                    <option value="">Tất cả trạng thái</option>
+                                    <option value="1">Hoạt động</option>
+                                    <option value="0">Bị khóa</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary w-100" @click="resetFilter">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Bảng danh sách -->
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Thông tin</th>
-                                    <th>Vai trò</th>
-                                    <th>Trạng thái</th>
-                                    <th>Ngày tạo</th>
-                                    <th>Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="user in filteredUsers" :key="user.id">
-                                    <td>{{ user.id }}</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img :src="user.avatar || '/images/default-avatar.jpg'"
-                                                class="rounded-circle me-3" width="40" height="40">
-                                            <div>
-                                                <strong>{{ user.name }}</strong>
-                                                <div class="text-muted small">{{ user.email }}</div>
-                                                <div class="text-muted small">{{ user.phone }}</div>
+                <!-- Bảng danh sách -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Thông tin</th>
+                                        <th>Vai trò</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày tạo</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="user in filteredUsers" :key="user.id">
+                                        <td>{{ user.id }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img :src="user.avatar || '/images/default-avatar.jpg'"
+                                                    class="rounded-circle me-3" width="40" height="40">
+                                                <div>
+                                                    <strong>{{ user.name }}</strong>
+                                                    <div class="text-muted small">{{ user.email }}</div>
+                                                    <div class="text-muted small">{{ user.phone }}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge" :class="roleBadgeClass(user.role)">
-                                            {{ formatRole(user.role) }}
-                                        </span>
-                                        <div v-if="user.isStaff" class="small text-muted mt-1">
-                                            {{ user.position }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge" :class="user.status ? 'bg-success' : 'bg-danger'">
-                                            {{ user.status ? 'Hoạt động' : 'Bị khóa' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ formatDate(user.created_at) }}</td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-sm btn-outline-primary" @click="viewDetail(user)">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-warning" @click="editUser(user)">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                @click="confirmToggleStatus(user)">
-                                                <i class="bi" :class="user.status ? 'bi-lock' : 'bi-unlock'"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge" :class="roleBadgeClass(user.role)">
+                                                {{ formatRole(user.role) }}
+                                            </span>
+                                            <div v-if="user.isStaff" class="small text-muted mt-1">
+                                                {{ user.position }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge" :class="user.status ? 'bg-success' : 'bg-danger'">
+                                                {{ user.status ? 'Hoạt động' : 'Bị khóa' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ formatDate(user.created_at) }}</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    @click="viewDetail(user)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" @click="editUser(user)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                    @click="confirmToggleStatus(user)">
+                                                    <i class="bi" :class="user.status ? 'bi-lock' : 'bi-unlock'"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <!-- Pagination -->
-                    <nav class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                                <a class="page-link" href="#" @click.prevent="prevPage">Previous</a>
-                            </li>
-                            <li v-for="page in totalPages" :key="page" class="page-item"
-                                :class="{ active: currentPage === page }">
-                                <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page }}</a>
-                            </li>
-                            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                                <a class="page-link" href="#" @click.prevent="nextPage">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+                        <!-- Pagination -->
+                        <nav class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                                    <a class="page-link" href="#" @click.prevent="prevPage">Previous</a>
+                                </li>
+                                <li v-for="page in totalPages" :key="page" class="page-item"
+                                    :class="{ active: currentPage === page }">
+                                    <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page }}</a>
+                                </li>
+                                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                                    <a class="page-link" href="#" @click.prevent="nextPage">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             </div>
 
@@ -162,22 +136,36 @@
             <!-- Modal tạo/chỉnh sửa người dùng -->
             <UserEditModal v-if="showEditModal" :user="editingUser" :is-edit-mode="isEditMode" @save="handleSaveUser"
                 @close="showEditModal = false" />
-        </div>
+        </template>
     </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import UserDetailModal from '@/components/taikhoan/UserDetailModal.vue'
 import NhanVien from '@/components/taikhoan/nhanvien/NhanVien.vue'
 import KhachHangManager from '@/components/taikhoan/khachhang/KhachHangManager.vue'
-// import UserEditModal from './UserEditModal.vue'
-// import { formatDate } from '@/utils/dateFormatter'
+import TabNavigation from '@/components/common/TabNavigation.vue'
+import MyAccount from '@/components/taikhoan/MyAccount.vue'
+import { createAccountManagementTabs } from '@/utils/tabUtils'
 import { useUserStore } from '@/stores/pinastorge.js'
+import { useAuthStore } from '@/stores/authStore'
+
+// Inject function để update breadcrumb
+const updateBreadcrumbTab = inject('updateBreadcrumbTab', null)
 
 const userStore = useUserStore()
+const authStore = useAuthStore()
+
+// Check if current user is admin
+const isAdmin = computed(() => {
+    const admin = authStore.isAdmin
+    const role = authStore.getUserRole
+    console.log('Current user role:', role, 'isAdmin:', admin)
+    return admin
+})
 
 // State
-const activeTab = ref('all')
+const activeTab = ref('staff')
 const searchQuery = ref('')
 const roleFilter = ref('')
 const statusFilter = ref('')
@@ -196,6 +184,16 @@ const roleOptions = [
     { value: 'KHACH_HANG', label: 'Khách hàng' }
 ]
 
+// Tabs configuration
+const accountTabs = computed(() => {
+    const counts = {
+        staff: users.value.filter(u => u.role === 'ADMIN' || u.role === 'NHAN_VIEN').length,
+        customer: users.value.filter(u => u.role === 'KHACH_HANG').length,
+        locked: users.value.filter(u => !u.status).length
+    }
+    return createAccountManagementTabs(counts)
+})
+
 // Computed
 const filteredUsers = computed(() => {
     return users.value.filter(user => {
@@ -208,9 +206,13 @@ const filteredUsers = computed(() => {
         const matchesStatus = statusFilter.value === '' || user.status.toString() === statusFilter.value
 
         let matchesTab = true
-        if (activeTab.value === 'staff') matchesTab = user.isStaff
-        else if (activeTab.value === 'customer') matchesTab = !user.isStaff
-        else if (activeTab.value === 'locked') matchesTab = !user.status
+        if (activeTab.value === 'staff') {
+            matchesTab = user.isStaff
+        } else if (activeTab.value === 'customer') {
+            matchesTab = !user.isStaff && user.role === 'KHACH_HANG'
+        } else if (activeTab.value === 'locked') {
+            matchesTab = !user.status
+        }
 
         return matchesSearch && matchesRole && matchesStatus && matchesTab
     })
@@ -228,6 +230,11 @@ const paginatedUsers = computed(() => {
 
 // Methods
 const fetchUsers = async () => {
+    // Chỉ admin mới fetch danh sách users
+    if (!isAdmin.value) {
+        return
+    }
+
     // Gọi API để lấy dữ liệu từ server
     try {
         const response = await userStore.fetchAllUsers()
@@ -246,8 +253,56 @@ const resetFilter = () => {
     statusFilter.value = ''
 }
 
-const viewDetail = (user) => {
-    selectedUser.value = user
+const viewDetail = async (user) => {
+    // Fetch thông tin chi tiết user từ API để có đầy đủ thông tin đăng nhập
+    console.log('🔍 viewDetail - user ban đầu:', user)
+    try {
+        const response = await userStore.getUserById(user.id)
+        console.log('🔍 viewDetail - API response:', response)
+
+        // Kiểm tra cấu trúc response (có thể là response.data hoặc response trực tiếp)
+        let userData = null
+        if (response?.data?.data) {
+            // ResponseObject format: { success: true, data: {...}, message: "..." }
+            userData = response.data.data
+        } else if (response?.data) {
+            // Direct data
+            userData = response.data
+        } else if (response) {
+            // Response trực tiếp
+            userData = response
+        }
+
+        console.log('🔍 viewDetail - userData sau khi parse:', userData)
+
+        if (userData) {
+            selectedUser.value = {
+                ...user,
+                ...userData,
+                // Đảm bảo có thông tin đăng nhập
+                tenDangNhap: userData.tenDangNhap || user.tenDangNhap || user.phone || userData.phone || 'N/A',
+                matKhau: userData.matKhau || user.matKhau || '123456' // Mật khẩu mặc định nếu không có
+            }
+            console.log('🔍 viewDetail - selectedUser sau khi set:', selectedUser.value)
+        } else {
+            // Fallback: dùng dữ liệu hiện có
+            selectedUser.value = {
+                ...user,
+                tenDangNhap: user.tenDangNhap || user.phone || 'N/A',
+                matKhau: user.matKhau || '123456' // Mật khẩu mặc định
+            }
+            console.log('🔍 viewDetail - Fallback selectedUser:', selectedUser.value)
+        }
+    } catch (error) {
+        console.error('❌ Error fetching user details:', error)
+        // Fallback: dùng dữ liệu hiện có
+        selectedUser.value = {
+            ...user,
+            tenDangNhap: user.tenDangNhap || user.phone || 'N/A',
+            matKhau: user.matKhau || '123456' // Mật khẩu mặc định
+        }
+        console.log('🔍 viewDetail - Error fallback selectedUser:', selectedUser.value)
+    }
 }
 
 const openCreateModal = () => {
@@ -335,9 +390,23 @@ const goToPage = (page) => {
     currentPage.value = page
 }
 
+const handleTabChange = (tabValue) => {
+    activeTab.value = tabValue
+    currentPage.value = 1 // Reset về trang đầu khi đổi tab
+
+    // Update breadcrumb trong header
+    if (updateBreadcrumbTab) {
+        updateBreadcrumbTab(tabValue)
+    }
+}
+
 // Lifecycle
 onMounted(() => {
     fetchUsers()
+    // Set breadcrumb tab ban đầu
+    if (updateBreadcrumbTab) {
+        updateBreadcrumbTab(activeTab.value)
+    }
 })
 </script>
 
@@ -362,30 +431,7 @@ onMounted(() => {
     font-size: 1.5rem;
 }
 
-/* Tab navigation */
-.nav-tabs {
-    border-bottom: 2px solid #dee2e6;
-}
-
-.nav-tabs .nav-link {
-    color: #495057;
-    font-weight: 500;
-    border: none;
-    padding: 12px 20px;
-    transition: all 0.3s ease;
-}
-
-.nav-tabs .nav-link:hover {
-    color: #0d6efd;
-    border-color: transparent;
-}
-
-.nav-tabs .nav-link.active {
-    color: #0d6efd;
-    border-bottom: 3px solid #0d6efd;
-    background-color: transparent;
-    font-weight: 600;
-}
+/* Tab navigation - Đã được xử lý bởi TabNavigation component */
 
 /* Filter card */
 .filter-card {

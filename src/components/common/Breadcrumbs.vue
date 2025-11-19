@@ -9,7 +9,7 @@
             </li>
             <li v-for="(crumb, index) in items" :key="index" class="breadcrumb-item" :class="{ 'active': index === items.length - 1 }">
                 <i v-if="index === 0" class="bi bi-chevron-right separator"></i>
-                <router-link v-if="index < items.length - 1" :to="crumb.to" class="breadcrumb-link">
+                <router-link v-if="crumb.to" :to="crumb.to" class="breadcrumb-link">
                     {{ crumb.label }}
                 </router-link>
                 <span v-else class="breadcrumb-current">{{ crumb.label }}</span>
@@ -22,7 +22,22 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+const props = defineProps({
+    // Tab hiện tại (để hiển thị trong breadcrumb)
+    currentTab: {
+        type: String,
+        default: null
+    }
+})
+
 const route = useRoute()
+
+// Tab labels mapping
+const tabLabels = {
+    'staff': 'Nhân viên',
+    'customer': 'Khách hàng',
+    'locked': 'Tài khoản bị khóa'
+}
 
 // Route name to label mapping
 const routeLabels = {
@@ -46,16 +61,26 @@ const items = computed(() => {
     }
     
     const routeLabel = routeLabels[route.name]
-    if (routeLabel) {
-        return [routeLabel]
+    if (!routeLabel) {
+        // Fallback: Extract from path
+        const pathSegments = route.path.split('/').filter(Boolean)
+        return pathSegments.map((segment, index) => ({
+            label: segment.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
+            to: '/' + pathSegments.slice(0, index + 1).join('/')
+        }))
     }
     
-    // Fallback: Extract from path
-    const pathSegments = route.path.split('/').filter(Boolean)
-    return pathSegments.map((segment, index) => ({
-        label: segment.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
-        to: '/' + pathSegments.slice(0, index + 1).join('/')
-    }))
+    const breadcrumbItems = [routeLabel]
+    
+    // Thêm tab label nếu có
+    if (props.currentTab && tabLabels[props.currentTab]) {
+        breadcrumbItems.push({
+            label: tabLabels[props.currentTab],
+            to: null // Không có link cho tab
+        })
+    }
+    
+    return breadcrumbItems
 })
 </script>
 

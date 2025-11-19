@@ -1,79 +1,88 @@
 <!-- // Update ProductFilter.vue to use advancedSearchPage for pagination -->
 <template>
   <div class="product-filter">
-    <div class="filter-header">
-      <h3 class="filter-title">Bộ lọc sản phẩm</h3>
+    <div class="filter-header" @click="toggleCollapse">
+      <h3 class="filter-title">
+        <i class="bi bi-funnel"></i>
+        Bộ lọc sản phẩm
+      </h3>
+      <button class="collapse-toggle-btn" type="button" :aria-expanded="!isCollapsed">
+        <i class="bi" :class="isCollapsed ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+      </button>
     </div>
 
-    <div class="filter-content">
-      <div class="row g-3">
-        <!-- Tìm kiếm (Tên hoặc Mã sản phẩm) -->
-        <div class="col-md-4">
-          <div class="form-group">
-            <label class="form-label">Tìm kiếm</label>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Nhập tên hoặc mã sản phẩm"
-              v-model="localFilters.search"
-            />
-          </div>
-        </div>
-
-        <!-- Trạng thái -->
-        <div class="col-md-4">
-          <div class="form-group">
-            <label class="form-label">Trạng thái</label>
-            <select class="form-select" v-model="localFilters.trangThai">
-              <option value="">Tất cả trạng thái</option>
-              <option value="1">Hoạt động</option>
-              <option value="0">Ẩn</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Khoảng giá -->
-        <div class="col-md-8">
-          <div class="form-group">
-            <label class="form-label">Khoảng giá</label>
-            <div class="price-range">
-              <div class="range-inputs">
+    <transition name="collapse">
+      <div v-show="!isCollapsed" class="filter-body">
+        <div class="filter-content">
+          <div class="row g-3">
+            <!-- Hàng 1: Tìm kiếm và Trạng thái -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label">Tìm kiếm</label>
                 <input
-                  type="range"
-                  :min="minBound"
-                  :max="maxBound"
-                  step="1000000"
-                  v-model.number="localFilters.minPrice"
-                />
-                <input
-                  type="range"
-                  :min="minBound"
-                  :max="maxBound"
-                  step="1000000"
-                  v-model.number="localFilters.maxPrice"
+                  type="text"
+                  class="form-control"
+                  placeholder="Nhập tên hoặc mã sản phẩm"
+                  v-model="localFilters.search"
                 />
               </div>
-              <div class="d-flex justify-content-between small mt-1 text-muted">
-                <span>{{ formatCurrency(localFilters.minPrice || minBound) }}</span>
-                <span>{{ formatCurrency(localFilters.maxPrice || maxBound) }}</span>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" v-model="localFilters.trangThai">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="1">Hoạt động</option>
+                  <option value="0">Ẩn</option>
+                </select>
               </div>
-              
+            </div>
+
+            <!-- Hàng 2: Khoảng giá -->
+            <div class="col-12">
+              <div class="form-group">
+                <label class="form-label">Khoảng giá</label>
+                <div class="price-range">
+                  <div class="range-inputs">
+                    <input
+                      type="range"
+                      :min="minBound"
+                      :max="maxBound"
+                      step="1000000"
+                      v-model.number="localFilters.minPrice"
+                    />
+                    <input
+                      type="range"
+                      :min="minBound"
+                      :max="maxBound"
+                      step="1000000"
+                      v-model.number="localFilters.maxPrice"
+                    />
+                  </div>
+                  <div class="d-flex justify-content-between small mt-1 text-muted">
+                    <span>{{ formatCurrency(localFilters.minPrice || minBound) }}</span>
+                    <span>{{ formatCurrency(localFilters.maxPrice || maxBound) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="filter-footer d-flex justify-content-end gap-2">
-      <button class="btn btn-sm btn-outline-success" @click="resetFilters" :disabled="loading">
-        <i class="bi bi-arrow-clockwise" :class="{ spin: loading }" v-if="loading"></i>
-        Làm mới
-      </button>
-      <button class="btn btn-sm btn-success" @click="applyFilters" :disabled="loading">
-        <i class="bi bi-hourglass-split" v-if="loading"></i>
-        Áp dụng bộ lọc
-      </button>
-    </div>
+        <!-- Hàng 3: Nút hành động -->
+        <div class="filter-footer d-flex justify-content-end gap-2">
+          <button class="btn btn-sm btn-outline-success" @click="resetFilters" :disabled="loading">
+            <i class="bi bi-arrow-clockwise" :class="{ spin: loading }" v-if="loading"></i>
+            Làm mới
+          </button>
+          <button class="btn btn-sm btn-success" @click="applyFilters" :disabled="loading">
+            <i class="bi bi-hourglass-split" v-if="loading"></i>
+            Áp dụng bộ lọc
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -84,6 +93,13 @@ import { formatCurrency } from '@/utils/helpers'
 import { advancedSearch, advancedSearchPage } from '@/service/sanpham/SanPhamService'
 
 const emit = defineEmits(['filter', 'reset', 'loading', 'filtered-data'])
+
+// Collapsible state - mặc định thu gọn
+const isCollapsed = ref(true)
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+}
 
 const localFilters = ref({
   search: '',
@@ -289,14 +305,22 @@ const resetFilters = async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
 }
 
 .filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 14px 20px;
   border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.filter-header:hover {
+  background-color: #f8fafc;
 }
 
 .filter-title {
@@ -304,19 +328,54 @@ const resetFilters = async () => {
   font-weight: 600;
   margin: 0;
   color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-title i {
+  color: #16a34a;
+  font-size: 18px;
+}
+
+.collapse-toggle-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 18px;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collapse-toggle-btn:hover {
+  color: #16a34a;
+}
+
+.collapse-toggle-btn i {
+  transition: transform 0.3s ease;
+}
+
+.filter-body {
+  overflow: hidden;
 }
 
 .filter-content {
-  padding: 16px 24px;
+  padding: 16px 20px;
 }
 
 .price-range {
   position: relative;
+  margin-top: 8px;
 }
 
 .price-range .range-inputs {
   position: relative;
   height: 6px;
+  margin-bottom: 8px;
 }
 
 .price-range .range-inputs input[type='range'] {
@@ -338,6 +397,12 @@ const resetFilters = async () => {
   border-radius: 50%;
   background: #16a34a;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.price-range .range-inputs input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
 }
 
 .price-range .range-inputs::before {
@@ -359,23 +424,25 @@ const resetFilters = async () => {
   font-size: 14px;
   font-weight: 500;
   color: #64748b;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   display: block;
 }
 
 .form-control,
 .form-select {
-  height: 36px;
-  padding: 6px 12px;
+  height: 38px;
+  padding: 8px 12px;
   font-size: 14px;
   border-radius: 8px;
-  border-color: #e2e8f0;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
 }
 
 .form-control:focus,
 .form-select:focus {
   border-color: #16a34a;
-  box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  outline: none;
 }
 
 .btn-success {
@@ -418,9 +485,24 @@ const resetFilters = async () => {
 }
 
 .filter-footer {
-  padding: 16px;
+  padding: 14px 20px;
   border-top: 1px solid #f1f5f9;
   text-align: right;
+}
+
+/* Collapse transition */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.3s ease;
+  max-height: 1000px;
+  opacity: 1;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
 }
 
 /* Thêm style cho lỗi nếu cần */
@@ -428,5 +510,24 @@ const resetFilters = async () => {
   color: #dc3545;
   font-size: 12px;
   margin-top: 5px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filter-header {
+    padding: 12px 16px;
+  }
+
+  .filter-content {
+    padding: 12px 16px;
+  }
+
+  .filter-footer {
+    padding: 12px 16px;
+  }
+
+  .row .col-md-6 {
+    margin-bottom: 12px;
+  }
 }
 </style>

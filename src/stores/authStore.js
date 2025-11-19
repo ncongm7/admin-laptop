@@ -15,7 +15,25 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token,
     getUser: (state) => state.user,
     getUserId: (state) => state.user?.userId || state.user?.user_id || null,
-    getUserName: (state) => state.user?.hoTen || state.user?.ho_ten || state.user?.tenDangNhap || 'User'
+    getUserName: (state) => state.user?.hoTen || state.user?.ho_ten || state.user?.tenDangNhap || 'User',
+    getUserRole: (state) => {
+      if (!state.user) return null
+      // Check cả vaiTro và role (backend có thể trả về khác nhau)
+      return state.user.vaiTro || state.user.role || null
+    },
+    isAdmin: (state) => {
+      if (!state.user) return false
+      const role = state.user.vaiTro || state.user.role
+      return role === 'ADMIN' || role === 'Quản trị viên'
+    },
+    isNhanVien: (state) => {
+      if (!state.user) return false
+      const role = state.user.vaiTro || state.user.role
+      return role === 'NHAN_VIEN' || role === 'Nhân viên' || 
+             role === 'STAFF' || role === 'Nhân viên bán hàng' ||
+             role === 'MANAGER' || role === 'Quản lý' ||
+             role === 'CASHIER' || role === 'Thu ngân'
+    }
   },
 
   actions: {

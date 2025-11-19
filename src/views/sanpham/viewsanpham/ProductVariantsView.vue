@@ -936,8 +936,29 @@ const loadVisibleVariantImages = async () => {
 }
 
 const handleImageError = (event) => {
-  console.log('🔴 Image failed to load:', event.target.src)
-  event.target.src = 'https://via.placeholder.com/50x50?text=No+Image&color=999&background=f0f0f0'
+  const target = event.target
+  const currentSrc = target.src
+  
+  // Kiểm tra xem đã là fallback image chưa để tránh vòng lặp vô hạn
+  if (currentSrc.includes('via.placeholder.com') || currentSrc.includes('data:image') || target.dataset.fallbackSet === 'true') {
+    // Đã là fallback, không làm gì nữa để tránh vòng lặp
+    return
+  }
+  
+  console.log('🔴 Image failed to load:', currentSrc)
+  
+  // Sử dụng data URI thay vì external URL để tránh bị block
+  // Tạo một SVG placeholder đơn giản
+  const svgPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
+  
+  // Đánh dấu đã set fallback để tránh vòng lặp
+  target.dataset.fallbackSet = 'true'
+  target.src = svgPlaceholder
+  
+  // Nếu data URI cũng fail, ẩn image và hiển thị placeholder
+  target.onerror = () => {
+    target.style.display = 'none'
+  }
 }
 
 // Debug function to check variant data structure

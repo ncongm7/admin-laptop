@@ -24,6 +24,16 @@ export default {
     }
   },
 
+  async getMyAccount() {
+    try {
+      const response = await axios.get(`${API_URL}/me`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching my account:', error)
+      throw error
+    }
+  },
+
   async createUser(userData) {
     try {
       const response = await axios.post(API_URL, userData)

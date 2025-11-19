@@ -5,19 +5,11 @@
       <div class="card-body p-2">
         <div class="row g-2 mb-1">
           <div class="col-12 col-md-6">
-            <label class="form-label small mb-1"
-              >Mã khách hàng <span class="text-danger">*</span></label
-            >
+            <label class="form-label small mb-1">Mã khách hàng <span class="text-danger">*</span></label>
             <div class="input-group input-group-sm">
-              <input
-                type="text"
-                class="form-control form-control-sm"
-                :class="{ 'is-invalid': errors.maKhachHang }"
-                placeholder="Nhập mã khách hàng"
-                v-model="form.maKhachHang"
-                @blur="validateMaKhachHang"
-                :readonly="!!maKhachHang"
-              />
+              <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.maKhachHang }"
+                placeholder="Nhập mã khách hàng" v-model="form.maKhachHang" @blur="validateMaKhachHang"
+                :readonly="!!maKhachHang" />
             </div>
             <div v-if="errors.maKhachHang" class="invalid-feedback d-block small">
               {{ errors.maKhachHang }}
@@ -25,34 +17,18 @@
           </div>
 
           <div class="col-12 col-md-6">
-            <label class="form-label small mb-1"
-              >Họ và tên <span class="text-danger">*</span></label
-            >
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              :class="{ 'is-invalid': errors.hoTen }"
-              placeholder="Nhập họ và tên"
-              v-model="form.hoTen"
-              @blur="validateHoTen"
-            />
+            <label class="form-label small mb-1">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.hoTen }"
+              placeholder="Nhập họ và tên" v-model="form.hoTen" @blur="validateHoTen" />
             <div v-if="errors.hoTen" class="invalid-feedback d-block small">
               {{ errors.hoTen }}
             </div>
           </div>
 
           <div class="col-12 col-md-6">
-            <label class="form-label small mb-1"
-              >Số điện thoại <span class="text-danger">*</span></label
-            >
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              :class="{ 'is-invalid': errors.sdt }"
-              placeholder="Nhập số điện thoại"
-              v-model="form.sdt"
-              @blur="validateSDT"
-            />
+            <label class="form-label small mb-1">Số điện thoại <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.sdt }"
+              placeholder="Nhập số điện thoại" v-model="form.sdt" @blur="validateSDT" />
             <div v-if="errors.sdt" class="invalid-feedback d-block small">
               {{ errors.sdt }}
             </div>
@@ -60,13 +36,8 @@
 
           <div class="col-12 col-md-6">
             <label class="form-label small mb-1">Địa chỉ chi tiết</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              :class="{ 'is-invalid': errors.diaChi }"
-              placeholder="Nhập địa chỉ chi tiết"
-              v-model="form.diaChi"
-            />
+            <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.diaChi }"
+              placeholder="Nhập địa chỉ chi tiết" v-model="form.diaChi" />
             <div v-if="errors.diaChi" class="invalid-feedback d-block small">
               {{ errors.diaChi }}
             </div>
@@ -79,53 +50,35 @@
             <div class="position-relative">
               <!-- Input để hiển thị và tìm kiếm -->
               <div class="input-group input-group-sm">
-                <input
-                  type="text"
-                  class="form-control form-control-sm"
-                  :class="{ 'is-invalid': errors.tinh }"
-                  :value="selectedProvinceName"
-                  @input="handleProvinceSearch"
-                  @focus="showProvinceDropdown = true"
-                  @blur="handleProvinceBlur"
-                  :disabled="loadingProvinces"
-                  placeholder="Chọn tỉnh/thành phố"
-                  autocomplete="off"
-                />
+                <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.tinh }"
+                  :value="selectedProvinceName" @input="handleProvinceSearch" @focus="showProvinceDropdown = true"
+                  @blur="handleProvinceBlur" :disabled="loadingProvinces" placeholder="Chọn tỉnh/thành phố"
+                  autocomplete="off" />
                 <!-- Icon dropdown -->
-                <span
-                  class="input-group-text bg-white border-start-0"
-                  style="cursor: pointer; pointer-events: none; font-size: 0.875rem"
-                >
+                <span class="input-group-text bg-white border-start-0"
+                  style="cursor: pointer; pointer-events: none; font-size: 0.875rem">
                   <i class="fas fa-chevron-down" v-if="!showProvinceDropdown"></i>
                   <i class="fas fa-chevron-up" v-else></i>
                 </span>
               </div>
 
               <!-- Dropdown list hiển thị kết quả tìm kiếm (mở xuống phía dưới) -->
-              <div
-                v-if="showProvinceDropdown && !loadingProvinces"
-                class="dropdown-menu show w-100 position-absolute"
+              <div v-if="showProvinceDropdown && !loadingProvinces" class="dropdown-menu show w-100 position-absolute"
                 style="
                   max-height: 250px;
                   overflow-y: auto;
                   z-index: 9999;
                   top: 100%;
                   margin-top: 2px;
-                "
-              >
+                ">
                 <!-- Hiển thị thông báo nếu không có kết quả -->
                 <div v-if="filteredProvinces.length === 0" class="dropdown-item text-muted">
                   Không tìm thấy tỉnh/thành phố
                 </div>
                 <!-- Hiển thị danh sách tỉnh/thành phố đã lọc -->
-                <a
-                  v-for="province in filteredProvinces"
-                  :key="province.id"
-                  class="dropdown-item"
-                  href="javascript:void(0)"
-                  @mousedown.prevent="selectProvince(province)"
-                  :class="{ active: form.tinhCode == province.id }"
-                >
+                <a v-for="province in filteredProvinces" :key="province.id" class="dropdown-item"
+                  href="javascript:void(0)" @mousedown.prevent="selectProvince(province)"
+                  :class="{ active: form.tinhCode == province.id }">
                   {{ province.name }}
                 </a>
               </div>
@@ -148,53 +101,34 @@
             <div class="position-relative">
               <!-- Input để hiển thị và tìm kiếm -->
               <div class="input-group input-group-sm">
-                <input
-                  type="text"
-                  class="form-control form-control-sm"
-                  :class="{ 'is-invalid': errors.xa }"
-                  :value="selectedWardName"
-                  @input="handleWardSearch"
-                  @focus="handleWardFocus"
-                  @blur="handleWardBlur"
+                <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.xa }"
+                  :value="selectedWardName" @input="handleWardSearch" @focus="handleWardFocus" @blur="handleWardBlur"
                   :disabled="!form.tinhCode || loadingWards"
-                  :placeholder="!form.tinhCode ? 'Chọn tỉnh trước' : 'Chọn xã/phường'"
-                  autocomplete="off"
-                />
+                  :placeholder="!form.tinhCode ? 'Chọn tỉnh trước' : 'Chọn xã/phường'" autocomplete="off" />
                 <!-- Icon dropdown -->
-                <span
-                  class="input-group-text bg-white border-start-0"
-                  style="cursor: pointer; pointer-events: none; font-size: 0.875rem"
-                >
+                <span class="input-group-text bg-white border-start-0"
+                  style="cursor: pointer; pointer-events: none; font-size: 0.875rem">
                   <i class="fas fa-chevron-down" v-if="!showWardDropdown"></i>
                   <i class="fas fa-chevron-up" v-else></i>
                 </span>
               </div>
 
               <!-- Dropdown list hiển thị kết quả tìm kiếm (mở xuống phía dưới) -->
-              <div
-                v-if="showWardDropdown && !loadingWards && form.tinhCode"
-                class="dropdown-menu show w-100 position-absolute"
-                style="
+              <div v-if="showWardDropdown && !loadingWards && form.tinhCode"
+                class="dropdown-menu show w-100 position-absolute" style="
                   max-height: 250px;
                   overflow-y: auto;
                   z-index: 9999;
                   top: 100%;
                   margin-top: 2px;
-                "
-              >
+                ">
                 <!-- Hiển thị thông báo nếu không có kết quả -->
                 <div v-if="filteredWards.length === 0" class="dropdown-item text-muted">
                   Không tìm thấy xã/phường
                 </div>
                 <!-- Hiển thị danh sách xã/phường đã lọc -->
-                <a
-                  v-for="ward in filteredWards"
-                  :key="ward.id"
-                  class="dropdown-item"
-                  href="javascript:void(0)"
-                  @mousedown.prevent="selectWard(ward)"
-                  :class="{ active: form.xaCode == ward.name }"
-                >
+                <a v-for="ward in filteredWards" :key="ward.id" class="dropdown-item" href="javascript:void(0)"
+                  @mousedown.prevent="selectWard(ward)" :class="{ active: form.xaCode == ward.name }">
                   {{ ward.name }}
                 </a>
               </div>
@@ -209,11 +143,7 @@
               <i class="fas fa-spinner fa-spin"></i> Đang tải...
             </div>
             <!-- Thông báo hướng dẫn (không bắt buộc) -->
-            <div
-              v-if="!form.tinhCode && !loadingWards"
-              class="text-muted small mt-1"
-              style="font-size: 0.75rem"
-            >
+            <div v-if="!form.tinhCode && !loadingWards" class="text-muted small mt-1" style="font-size: 0.75rem">
               <i class="fas fa-info-circle"></i> Chọn tỉnh/thành phố trước
             </div>
           </div>
@@ -221,23 +151,11 @@
           <div class="col-md-12">
             <label class="form-label me-2 mb-1 d-block">Trạng thái</label>
             <div class="form-check form-check-inline">
-              <input
-                class="form-check-input"
-                type="radio"
-                id="macDinh"
-                :value="true"
-                v-model="form.macDinh"
-              />
+              <input class="form-check-input" type="radio" id="macDinh" :value="true" v-model="form.macDinh" />
               <label class="form-check-label" for="macDinh">Mặc Định</label>
             </div>
             <div class="form-check form-check-inline">
-              <input
-                class="form-check-input"
-                type="radio"
-                id="khongMacDinh"
-                :value="false"
-                v-model="form.macDinh"
-              />
+              <input class="form-check-input" type="radio" id="khongMacDinh" :value="false" v-model="form.macDinh" />
               <label class="form-check-label" for="khongMacDinh">Không Mặc Định</label>
             </div>
           </div>
@@ -260,6 +178,8 @@
 <script>
 // Import service để gọi API địa chỉ, tỉnh/thành phố và xã/phường
 import DiaChiService from '@/service/taikhoan/diaChiService'
+// Import service API miễn phí cho địa chỉ Việt Nam
+import VietnamAddressService from '@/service/taikhoan/vietnamAddressService'
 // Import service để gọi API khách hàng
 import KhachHangService from '@/service/taikhoan/khachHangService'
 import { useToast } from '@/composables/useToast'
@@ -556,7 +476,7 @@ export default {
     },
 
     /**
-     * Lấy danh sách tất cả tỉnh/thành phố từ API backend
+     * Lấy danh sách tất cả tỉnh/thành phố từ API miễn phí
      * Method này được gọi khi component mount để load danh sách tỉnh
      */
     async fetchProvinces() {
@@ -564,13 +484,12 @@ export default {
         // Bật trạng thái loading
         this.loadingProvinces = true
 
-        // Gọi API để lấy danh sách tỉnh/thành phố
-        // Response từ API: Array of {id: Integer, name: String, code: String}
-        const response = await DiaChiService.getAllProvinces()
+        // Gọi API miễn phí để lấy danh sách tỉnh/thành phố
+        // Response: Array of {id: String, code: String, name: String}
+        const provinces = await VietnamAddressService.getAllProvinces()
 
         // Gán dữ liệu vào mảng provinces
-        // response.data nếu response là axios response, hoặc response nếu là data trực tiếp
-        this.provinces = response.data || response || []
+        this.provinces = provinces || []
       } catch (error) {
         // Xử lý lỗi khi gọi API
         console.error('Lỗi khi lấy danh sách tỉnh/thành phố:', error)
@@ -629,21 +548,20 @@ export default {
       this.wards = []
       this.wardSearchText = ''
 
-      // Gọi API để lấy danh sách xã/phường theo mã tỉnh đã chọn
+      // Gọi API miễn phí để lấy danh sách xã/phường theo mã tỉnh đã chọn
       try {
         // Bật trạng thái loading
         this.loadingWards = true
 
-        // Chuyển đổi tinhCode sang Integer (API backend yêu cầu Integer)
-        const provinceId = parseInt(this.form.tinhCode)
+        // Sử dụng mã tỉnh (có thể là String hoặc Number)
+        const provinceCode = this.form.tinhCode
 
-        // Gọi API để lấy danh sách xã/phường
-        // Response từ API: Array of {id, districtId, districtCode, provinceId, provinceCode, name, shortname, code}
-        const response = await DiaChiService.getWardsByProvince(provinceId)
+        // Gọi API miễn phí để lấy danh sách xã/phường
+        // Response: Array of {id: String, code: String, name: String, districtCode: String}
+        const wards = await VietnamAddressService.getWardsByProvince(provinceCode)
 
         // Gán dữ liệu vào mảng wards
-        // response.data nếu response là axios response, hoặc response nếu là data trực tiếp
-        this.wards = response.data || response || []
+        this.wards = wards || []
       } catch (error) {
         // Xử lý lỗi khi gọi API
         console.error('Lỗi khi lấy danh sách xã/phường:', error)

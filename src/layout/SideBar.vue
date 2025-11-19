@@ -8,7 +8,7 @@
     <nav class="sidebar-menu">
       <ul class="nav flex-column">
         <MenuItem
-          v-for="item in menuItems"
+          v-for="item in filteredMenuItems"
           :key="item.id"
           :icon="item.icon"
           :label="item.label"
@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import MenuItem from './MenuItem.vue'
 
@@ -111,6 +111,29 @@ const menuItems = ref([
     to: '/quan-li-tra-hang'
   }
 ])
+
+// Filter menu items based on user role
+const filteredMenuItems = computed(() => {
+  const isAdmin = authStore.isAdmin
+  const isNhanVien = authStore.isNhanVien
+  
+  // Nếu chưa đăng nhập, không hiển thị menu
+  if (!authStore.isAuthenticated) {
+    return []
+  }
+  
+  // Admin: Hiển thị tất cả menu
+  if (isAdmin) {
+    return menuItems.value
+  }
+  
+  // Nhân viên: Hiển thị menu nhưng "Quản lý tài khoản" vẫn hiển thị (sẽ route khác trong component)
+  // Có thể ẩn một số menu nhạy cảm nếu cần
+  return menuItems.value.filter(item => {
+    // Nhân viên có thể xem tất cả menu, nhưng quyền truy cập sẽ được kiểm tra trong từng component
+    return true
+  })
+})
 
 function handleResize() {
   isMobile.value = window.innerWidth < 768

@@ -1,22 +1,34 @@
 <template>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Chi tiết người dùng</h5>
-                    <button type="button" class="btn-close btn-close-white" @click="$emit('close')"></button>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.self="$emit('close')"
+        @mousedown.self="$emit('close')" style="overflow: hidden;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document" @click.stop
+            style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" @click.stop style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-circle"></i>
+                        Chi tiết {{ user.isStaff ? 'nhân viên' : 'người dùng' }}
+                    </h5>
+                    <button type="button" class="btn-close" @click="$emit('close')"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
-                        <!-- Thông tin cơ bản -->
+                        <!-- Avatar & Actions -->
                         <div class="col-md-4 text-center">
-                            <img :src="user.avatar || '/images/default-avatar.jpg'" class="rounded-circle mb-3"
-                                width="150" height="150">
-                            <h4>{{ user.name }}</h4>
-                            <p class="text-muted">{{ formatRole(user.role) }}</p>
+                            <div class="avatar-container mb-3">
+                                <img :src="getAvatarUrl(user.avatar)" class="avatar-image" alt="Avatar"
+                                    @error="handleImageError">
+                            </div>
+                            <h4 class="user-name">{{ user.name || 'N/A' }}</h4>
+                            <p class="user-role">
+                                <span class="badge" :class="getRoleBadgeClass(user.role)">
+                                    {{ formatRole(user.role) }}
+                                </span>
+                            </p>
 
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary" @click="$emit('edit-user', user)">
+                            <div class="d-grid gap-2 mt-3">
+                                <button class="btn btn-outline-primary" @click="$emit('edit-user', user)"
+                                    v-if="user.isStaff">
                                     <i class="bi bi-pencil"></i> Chỉnh sửa
                                 </button>
                                 <button class="btn btn-outline-danger" @click="confirmToggleStatus">
@@ -26,116 +38,110 @@
                             </div>
                         </div>
 
-                        <!-- Chi tiết -->
+                        <!-- Thông tin chi tiết -->
                         <div class="col-md-8">
-                            <ul class="nav nav-tabs mb-4">
-                                <li class="nav-item">
-                                    <a class="nav-link active" data-bs-toggle="tab" href="#info">Thông tin</a>
-                                </li>
-                                <li class="nav-item" v-if="user.isStaff">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#staff-info">Nhân viên</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#activity">Hoạt động</a>
-                                </li>
-                            </ul>
+                            <div class="info-section">
+                                <h6 class="section-title">
+                                    <i class="bi bi-info-circle"></i>
+                                    Thông tin cơ bản
+                                </h6>
 
-                            <div class="tab-content">
-                                <!-- Tab Thông tin cơ bản -->
-                                <div class="tab-pane fade show active" id="info">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Email</label>
-                                            <p>{{ user.email || 'N/A' }}</p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Số điện thoại</label>
-                                            <p>{{ user.phone || 'N/A' }}</p>
-                                        </div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <label class="info-label">Email</label>
+                                        <p class="info-value">{{ user.email || 'N/A' }}</p>
                                     </div>
+                                    <div class="info-item">
+                                        <label class="info-label">Số điện thoại</label>
+                                        <p class="info-value">{{ user.phone || 'N/A' }}</p>
+                                    </div>
+                                    <div class="info-item">
+                                        <label class="info-label">Trạng thái</label>
+                                        <p class="info-value">
+                                            <span class="badge" :class="user.status ? 'bg-success' : 'bg-danger'">
+                                                {{ user.status ? 'Hoạt động' : 'Bị khóa' }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div class="info-item">
+                                        <label class="info-label">Ngày tạo</label>
+                                        <p class="info-value">{{ formatDate(user.created_at) }}</p>
+                                    </div>
+                                </div>
 
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Trạng thái</label>
-                                            <p>
-                                                <span class="badge" :class="user.status ? 'bg-success' : 'bg-danger'">
-                                                    {{ user.status ? 'Hoạt động' : 'Bị khóa' }}
-                                                </span>
-                                            </p>
+                                <!-- Thông tin đăng nhập (chỉ admin) -->
+                                <!-- Tạm thời hiển thị để test - sẽ bật lại v-if="isAdmin" sau -->
+                                <div class="mt-4"
+                                    style="border-top: 2px solid #e9ecef; padding-top: 20px; background: #f9fafb; border-radius: 8px; padding: 20px;">
+                                    <div v-if="!isAdmin" class="alert alert-warning mb-3">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        <strong>Debug:</strong> isAdmin = {{ isAdmin }}, role = {{ authStore.getUserRole
+                                        }}
+                                    </div>
+                                    <h6 class="section-title">
+                                        <i class="bi bi-key"></i>
+                                        Thông tin đăng nhập
+                                    </h6>
+                                    <div class="login-info-grid">
+                                        <div class="login-info-item">
+                                            <label class="login-label">
+                                                <i class="bi bi-person-badge"></i>
+                                                Tên đăng nhập
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" :value="displayUsername"
+                                                    readonly :id="'modal-username-' + user.id">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                    @click="copyToClipboard(displayUsername, 'modal-username-' + user.id)"
+                                                    title="Copy tên đăng nhập">
+                                                    <i class="bi bi-clipboard"></i>
+                                                    Copy
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Ngày tạo</label>
-                                            <p>{{ formatDate(user.created_at) }}</p>
+
+                                        <div class="login-info-item">
+                                            <label class="login-label">
+                                                <i class="bi bi-lock"></i>
+                                                Mật khẩu
+                                            </label>
+                                            <div class="input-group">
+                                                <input :type="showPassword ? 'text' : 'password'" class="form-control"
+                                                    :value="displayPassword" readonly :id="'modal-password-' + user.id">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                    @click="togglePassword"
+                                                    :title="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+                                                    <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                                                </button>
+                                                <button class="btn btn-outline-primary btn-sm" type="button"
+                                                    @click="copyToClipboard(displayPassword, 'modal-password-' + user.id)"
+                                                    title="Copy mật khẩu">
+                                                    <i class="bi bi-clipboard"></i>
+                                                    Copy
+                                                </button>
+                                            </div>
+                                            <small class="text-muted mt-1 d-block">
+                                                <i class="bi bi-info-circle"></i>
+                                                Mật khẩu mặc định: <strong>123456</strong> (nếu chưa đổi)
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Tab Thông tin nhân viên (nếu có) -->
-                                <div class="tab-pane fade" id="staff-info" v-if="user.isStaff">
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Chức vụ</label>
-                                            <p>{{ user.position || 'N/A' }}</p>
+                                <!-- Thông tin nhân viên (nếu có) -->
+                                <div v-if="user.isStaff" class="mt-4">
+                                    <h6 class="section-title">
+                                        <i class="bi bi-briefcase"></i>
+                                        Thông tin nhân viên
+                                    </h6>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <label class="info-label">Chức vụ</label>
+                                            <p class="info-value">{{ user.position || 'N/A' }}</p>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label text-muted">Ngày sinh</label>
-                                            <p>{{ user.birthday || 'N/A' }}</p>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label class="form-label text-muted">Địa chỉ</label>
-                                            <p>{{ user.address || 'N/A' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Tab Hoạt động -->
-                                <div class="tab-pane fade" id="activity">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <h5 class="card-title">Đơn hàng</h5>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <h2 class="mb-0">{{ user.orderCount || 0 }}</h2>
-                                                        <i class="bi bi-cart3 fs-1 text-primary"></i>
-                                                    </div>
-                                                    <router-link to="#" class="small">Xem tất cả</router-link>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6 mb-4">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <h5 class="card-title">Tổng chi tiêu</h5>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <h2 class="mb-0">{{ formatCurrency(user.totalSpent || 0) }}</h2>
-                                                        <i class="bi bi-currency-dollar fs-1 text-success"></i>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <h5 class="mb-3">Đánh giá gần đây</h5>
-                                    <div class="list-group">
-                                        <div v-for="review in user.recentReviews" :key="review.id"
-                                            class="list-group-item">
-                                            <div class="d-flex w-100 justify-content-between">
-                                                <h6 class="mb-1">{{ review.productName }}</h6>
-                                                <small>{{ formatDate(review.created_at) }}</small>
-                                            </div>
-                                            <div class="mb-1">
-                                                <i v-for="i in 5" :key="i" class="bi bi-star-fill"
-                                                    :class="i <= review.rating ? 'text-warning' : 'text-muted'"></i>
-                                            </div>
-                                            <p class="mb-1">{{ review.comment }}</p>
-                                        </div>
-                                        <div v-if="!user.recentReviews || user.recentReviews.length === 0"
-                                            class="text-center py-3 text-muted">
-                                            Không có đánh giá nào
+                                        <div class="info-item">
+                                            <label class="info-label">Địa chỉ</label>
+                                            <p class="info-value">{{ user.address || 'N/A' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -144,7 +150,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="$emit('close')">Đóng</button>
+                    <button type="button" class="btn btn-secondary" @click="$emit('close')">
+                        <i class="bi bi-x-circle"></i>
+                        Đóng
+                    </button>
                 </div>
             </div>
         </div>
@@ -152,62 +161,413 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 
-// Fake user data for demo
-const user = ref({
-    avatar: '',
-    name: 'Nguyễn Văn A',
-    role: 'admin',
-    status: true,
-    email: 'nguyenvana@gmail.com',
-    phone: '0987654321',
-    created_at: '2024-01-15',
-    isStaff: true,
-    position: 'Quản lý',
-    birthday: '1990-05-20',
-    address: '123 Đường ABC, Quận 1, TP.HCM',
-    orderCount: 12,
-    totalSpent: 15000000,
-    recentReviews: [
-        {
-            id: 1,
-            productName: 'iPhone 15 Pro Max',
-            created_at: '2024-06-01',
-            rating: 5,
-            comment: 'Sản phẩm rất tốt!'
-        },
-        {
-            id: 2,
-            productName: 'Samsung Galaxy S24',
-            created_at: '2024-05-20',
-            rating: 4,
-            comment: 'Khá hài lòng.'
-        }
-    ]
+const props = defineProps({
+    user: {
+        type: Object,
+        required: true,
+        default: () => ({
+            avatar: '',
+            name: '',
+            role: '',
+            status: true,
+            email: '',
+            phone: '',
+            created_at: '',
+            isStaff: false,
+            position: '',
+            address: '',
+            tenDangNhap: '',
+            matKhau: ''
+        })
+    }
+})
+
+const emit = defineEmits(['close', 'edit-user', 'toggle-status'])
+
+const authStore = useAuthStore()
+const showPassword = ref(false)
+const isAdmin = computed(() => {
+    const admin = authStore.isAdmin
+    const role = authStore.getUserRole
+    console.log('🔍 UserDetailModal - isAdmin:', admin, 'role:', role, 'user:', props.user)
+    return admin
+})
+
+// Computed properties để hiển thị thông tin đăng nhập
+const displayUsername = computed(() => {
+    // Ưu tiên: tenDangNhap > phone > 'N/A'
+    const username = props.user.tenDangNhap || props.user.phone || 'N/A'
+    console.log('🔍 displayUsername:', username, 'user object:', props.user)
+    return username
+})
+
+const displayPassword = computed(() => {
+    // Ưu tiên: matKhau > mật khẩu mặc định '123456'
+    const password = props.user.matKhau || '123456'
+    console.log('🔍 displayPassword:', password ? '***' : 'null', 'user object:', props.user)
+    return password
 })
 
 function formatRole(role) {
-    switch (role) {
-        case 'admin': return 'Quản trị viên';
-        case 'staff': return 'Nhân viên';
-        case 'customer': return 'Khách hàng';
-        default: return role;
+    if (!role) return 'N/A'
+    const roleMap = {
+        'ADMIN': 'Quản trị viên',
+        'NHAN_VIEN': 'Nhân viên',
+        'MANAGER': 'Quản lý',
+        'STAFF': 'Nhân viên',
+        'CASHIER': 'Thu ngân',
+        'CUSTOMER': 'Khách hàng',
+        'KHACH_HANG': 'Khách hàng'
     }
+    return roleMap[role] || role
 }
 
 function formatDate(date) {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('vi-VN');
+    if (!date) return 'N/A'
+    try {
+        const d = new Date(date)
+        return d.toLocaleDateString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        })
+    } catch {
+        return date
+    }
 }
 
-function formatCurrency(val) {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+function getRoleBadgeClass(role) {
+    if (!role) return 'bg-secondary'
+    const roleClassMap = {
+        'ADMIN': 'bg-danger',
+        'NHAN_VIEN': 'bg-primary',
+        'MANAGER': 'bg-info',
+        'STAFF': 'bg-primary',
+        'CASHIER': 'bg-warning',
+        'CUSTOMER': 'bg-success',
+        'KHACH_HANG': 'bg-success'
+    }
+    return roleClassMap[role] || 'bg-secondary'
+}
+
+function getAvatarUrl(avatar) {
+    if (!avatar) return '/images/default-avatar.jpg'
+    // Nếu là relative URL, thêm base URL
+    if (avatar.startsWith('/uploads/')) {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        return `${baseURL}${avatar}`
+    }
+    return avatar
+}
+
+function handleImageError(event) {
+    event.target.src = '/images/default-avatar.jpg'
 }
 
 function confirmToggleStatus() {
-    // Fake confirm
-    user.value.status = !user.value.status;
+    if (confirm(`Bạn có chắc muốn ${props.user.status ? 'khóa' : 'mở khóa'} tài khoản này?`)) {
+        emit('toggle-status', props.user)
+    }
+}
+
+function togglePassword() {
+    showPassword.value = !showPassword.value
+}
+
+async function copyToClipboard(text, inputId) {
+    if (!text || text === 'N/A') {
+        alert('Không có dữ liệu để copy')
+        return
+    }
+
+    try {
+        await navigator.clipboard.writeText(text)
+        const input = document.getElementById(inputId)
+        if (input) {
+            input.select()
+            input.setSelectionRange(0, 99999)
+        }
+        alert('Đã copy vào clipboard!')
+    } catch (err) {
+        console.error('Lỗi copy:', err)
+        const input = document.getElementById(inputId)
+        if (input) {
+            input.select()
+            input.setSelectionRange(0, 99999)
+            alert('Vui lòng copy thủ công (Ctrl+C)')
+        }
+    }
 }
 </script>
+
+<style scoped>
+.modal {
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.modal-dialog {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    margin: 1.75rem auto;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #2D7458 0%, #396E7C 100%);
+    color: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 24px;
+    border-bottom: none;
+}
+
+.modal-title {
+    font-weight: 700;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-title i {
+    font-size: 1.5rem;
+}
+
+.modal-body {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar cho modal */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #2D7458;
+    border-radius: 10px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #25634d;
+}
+
+.avatar-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.avatar-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.user-name {
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.user-role {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-weight: 700;
+    color: #2D7458;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title i {
+    font-size: 1.2rem;
+    color: #396E7C;
+}
+
+.info-section {
+    margin-bottom: 24px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 1rem;
+    color: #111827;
+    margin: 0;
+    font-weight: 500;
+}
+
+.login-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.login-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.login-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2D7458;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-label i {
+    font-size: 1.1rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.input-group .form-control {
+    flex: 1;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    background: #f9fafb;
+}
+
+.input-group .btn {
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.input-group .btn-sm {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 16px 24px;
+    flex-shrink: 0;
+}
+
+.modal-header {
+    flex-shrink: 0;
+}
+
+.btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: #fff;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+    border: 2px solid #2D7458;
+    color: #2D7458;
+}
+
+.btn-outline-primary:hover {
+    background: #2D7458;
+    color: #fff;
+}
+
+.btn-outline-danger {
+    border: 2px solid #dc2626;
+    color: #dc2626;
+}
+
+.btn-outline-danger:hover {
+    background: #dc2626;
+    color: #fff;
+}
+
+.badge {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .avatar-image {
+        width: 120px;
+        height: 120px;
+    }
+}
+</style>

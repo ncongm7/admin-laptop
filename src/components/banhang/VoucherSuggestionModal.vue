@@ -44,7 +44,7 @@
                                                 <h6 class="mb-0 me-2">{{ voucher.tenPhieuGiamGia }}</h6>
                                                 <span class="badge bg-warning text-dark">{{ voucher.ma }}</span>
                                             </div>
-                                            
+
                                             <!-- Số tiền giảm -->
                                             <div class="voucher-discount mb-2">
                                                 <span class="discount-amount text-success fw-bold fs-5">
@@ -54,7 +54,7 @@
                                                     {{ getDiscountTypeText(voucher) }}
                                                 </small>
                                             </div>
-                                            
+
                                             <!-- Điều kiện -->
                                             <div class="voucher-conditions">
                                                 <small class="text-muted d-block mb-1">
@@ -62,31 +62,29 @@
                                                     <strong>Điều kiện:</strong>
                                                     {{ getConditionText(voucher) }}
                                                 </small>
-                                                
+
                                                 <small class="text-muted d-block mb-1" v-if="voucher.ngayKetThuc">
                                                     <i class="bi bi-calendar-x"></i>
                                                     <strong>Hết hạn:</strong>
                                                     {{ formatDate(voucher.ngayKetThuc) }}
                                                 </small>
-                                                
+
                                                 <small class="text-muted d-block" v-if="voucher.soLuongDung !== null">
                                                     <i class="bi bi-box"></i>
                                                     <strong>Còn lại:</strong>
                                                     {{ voucher.soLuongDung }} lượt
                                                 </small>
                                             </div>
-                                            
+
                                             <!-- Mô tả -->
                                             <p v-if="voucher.moTa" class="text-muted small mt-2 mb-0">
                                                 {{ voucher.moTa }}
                                             </p>
                                         </div>
-                                        
+
                                         <!-- Nút áp dụng -->
                                         <div class="flex-shrink-0">
-                                            <button 
-                                                class="btn btn-success"
-                                                @click="handleApplyVoucher(voucher)"
+                                            <button class="btn btn-success" @click="handleApplyVoucher(voucher)"
                                                 :disabled="isApplying">
                                                 <i class="bi bi-check-circle"></i>
                                                 Áp dụng
@@ -164,12 +162,29 @@ const loadVoucherSuggestions = async () => {
     try {
         console.log('🔍 [VoucherSuggestionModal] Đang tải gợi ý voucher cho hóa đơn:', props.idHoaDon)
         const response = await layGoiYVoucher(props.idHoaDon)
-        
-        // Parse response - có thể là { data: [...] } hoặc trực tiếp [...]
-        const vouchersData = response?.data || response || []
-        vouchers.value = Array.isArray(vouchersData) ? vouchersData : []
-        
+
+        console.log('📦 [VoucherSuggestionModal] Response từ API:', response)
+
+        // Parse response - ResponseObject có cấu trúc: { isSuccess: true, data: [...], message: "..." }
+        // axios response.data đã là ResponseObject rồi, nên cần lấy response.data.data
+        let vouchersData = null
+        if (response?.data && Array.isArray(response.data)) {
+            // Nếu response.data là array trực tiếp
+            vouchersData = response.data
+        } else if (response?.data?.data && Array.isArray(response.data.data)) {
+            // Nếu response.data là ResponseObject { data: [...] }
+            vouchersData = response.data.data
+        } else if (Array.isArray(response)) {
+            // Nếu response là array trực tiếp
+            vouchersData = response
+        } else {
+            vouchersData = []
+        }
+
+        vouchers.value = vouchersData || []
+
         console.log('✅ [VoucherSuggestionModal] Đã tải', vouchers.value.length, 'voucher')
+        console.log('📋 [VoucherSuggestionModal] Danh sách voucher:', vouchers.value)
     } catch (error) {
         console.error('❌ [VoucherSuggestionModal] Lỗi khi tải gợi ý voucher:', error)
         // Toast sẽ được hiển thị từ parent component
@@ -193,7 +208,7 @@ const handleApplyVoucher = async (voucher) => {
         cancelText: 'Hủy',
         type: 'info'
     })
-    
+
     if (!confirmed) return
 
     isApplying.value = true
@@ -305,4 +320,3 @@ const getVoucherCardClass = (voucher) => {
     background: linear-gradient(to right, #ffffff 0%, #f0fff4 100%);
 }
 </style>
-

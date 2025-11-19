@@ -1,25 +1,12 @@
 <template>
   <div class="nhanvien-wrapper">
-    <!-- Header & Breadcrumb -->
-    <div class="header-breadcrumb">
-      <h1 class="main-title">Quản Lý Nhân Viên</h1>
-      <div class="breadcrumb">
-        <router-link to="/" class="breadcrumb-link">Trang chủ</router-link> /
-        <span>Nhân viên</span>
-      </div>
-    </div>
 
     <!-- Bộ Lọc Tìm Kiếm -->
     <div class="filter-card">
       <div class="filter-row filter-row-top">
         <div class="filter-col search-col">
           <label class="form-label">Tìm kiếm</label>
-          <input
-            type="text"
-            v-model="search"
-            class="form-control"
-            placeholder="Mã, tên, email, SDT..."
-          />
+          <input type="text" v-model="search" class="form-control" placeholder="Mã, tên, email, SDT..." />
         </div>
         <div class="filter-col status-col">
           <label class="form-label">Trạng thái</label>
@@ -39,13 +26,7 @@
           <button class="btn btn-success" @click="openAdd">Thêm Nhân Viên</button>
           <button class="btn btn-outline" @click="exportCsv">Xuất Excel</button>
           <button class="btn btn-outline" @click="triggerImport">Nhập từ Excel</button>
-          <input
-            ref="fileInput"
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            @change="handleFile"
-            style="display: none"
-          />
+          <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" @change="handleFile" style="display: none" />
         </div>
       </div>
     </div>
@@ -73,26 +54,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(user, idx) in paginatedUsers"
-                :key="user.id"
-                @click="showUserDetail(user)"
-                class="table-row-clickable"
-              >
+              <tr v-for="(user, idx) in paginatedUsers" :key="user.id" @click="showUserDetail(user)"
+                class="table-row-clickable">
                 <td>{{ idx + 1 + (currentPage - 1) * pageSize }}</td>
                 <td>
                   <div class="avatar-circle">
-                    <img
-                      v-if="user.avatar"
-                      :src="getAvatarUrl(user.avatar)"
-                      alt="avatar"
-                      class="avatar-img"
-                    />
-                    <i
-                      v-else
-                      class="bi bi-person-circle"
-                      style="font-size: 2rem; color: #bdbdbd"
-                    ></i>
+                    <img v-if="user.avatar" :src="getAvatarUrl(user.avatar)" alt="avatar" class="avatar-img" />
+                    <i v-else class="bi bi-person-circle" style="font-size: 2rem; color: #bdbdbd"></i>
                   </div>
                 </td>
                 <td class="user-code">
@@ -103,16 +71,12 @@
                 <td>{{ user.phone }}</td>
                 <td>{{ user.address }}</td>
                 <td>
-                  <span
-                    class="badge"
-                    :class="
-                      user.gender === 1
-                        ? 'bg-primary'
-                        : user.gender === 0
-                          ? 'bg-info'
-                          : 'bg-secondary'
-                    "
-                  >
+                  <span class="badge" :class="user.gender === 1
+                    ? 'bg-primary'
+                    : user.gender === 0
+                      ? 'bg-info'
+                      : 'bg-secondary'
+                    ">
                     {{ user.gender === 1 ? 'Nam' : user.gender === 0 ? 'Nữ' : 'Không xác định' }}
                   </span>
                 </td>
@@ -177,12 +141,8 @@
       <div class="modal-body" v-if="selectedUser">
         <div class="detail-avatar-section">
           <div class="detail-avatar-circle">
-            <img
-              v-if="selectedUser.avatar"
-              :src="getAvatarUrl(selectedUser.avatar)"
-              alt="avatar"
-              class="detail-avatar-img"
-            />
+            <img v-if="selectedUser.avatar" :src="getAvatarUrl(selectedUser.avatar)" alt="avatar"
+              class="detail-avatar-img" />
             <i v-else class="bi bi-person-circle" style="font-size: 4rem; color: #bdbdbd"></i>
           </div>
         </div>
@@ -205,16 +165,12 @@
           </div>
           <div class="detail-item">
             <label>Giới tính:</label>
-            <span
-              class="badge"
-              :class="
-                selectedUser.gender === 1
-                  ? 'bg-primary'
-                  : selectedUser.gender === 0
-                    ? 'bg-info'
-                    : 'bg-secondary'
-              "
-            >
+            <span class="badge" :class="selectedUser.gender === 1
+              ? 'bg-primary'
+              : selectedUser.gender === 0
+                ? 'bg-info'
+                : 'bg-secondary'
+              ">
               {{
                 selectedUser.gender === 1
                   ? 'Nam'
@@ -243,6 +199,64 @@
             <div class="detail-textarea">{{ selectedUser.danhGia }}</div>
           </div>
         </div>
+
+        <!-- Thông tin đăng nhập (chỉ admin) -->
+        <div v-if="isAdmin" class="login-info-section"
+          style="margin-top: 24px; padding-top: 20px; border-top: 2px solid #e9ecef; background: #f9fafb; border-radius: 8px; padding: 20px;">
+          <h6 class="section-title"
+            style="font-weight: 700; color: #2D7458; font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-key"></i>
+            Thông tin đăng nhập
+          </h6>
+          <div class="login-info-grid" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="login-info-item">
+              <label class="login-label"
+                style="font-size: 0.95rem; font-weight: 600; color: #2D7458; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-person-badge"></i>
+                Tên đăng nhập
+              </label>
+              <div class="input-group" style="display: flex; gap: 8px;">
+                <input type="text" class="form-control" :value="displayUsername" readonly
+                  :id="'nv-username-' + selectedUser.id"
+                  style="flex: 1; border-radius: 8px; border: 2px solid #e5e7eb; padding: 10px 14px; font-size: 0.95rem; background: #fff;">
+                <button class="btn btn-outline-secondary btn-sm" type="button"
+                  @click="copyToClipboard(displayUsername, 'nv-username-' + selectedUser.id)" title="Copy tên đăng nhập"
+                  style="border-radius: 8px; padding: 10px 14px; font-weight: 600; white-space: nowrap; font-size: 0.875rem;">
+                  <i class="bi bi-clipboard"></i>
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div class="login-info-item">
+              <label class="login-label"
+                style="font-size: 0.95rem; font-weight: 600; color: #2D7458; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-lock"></i>
+                Mật khẩu
+              </label>
+              <div class="input-group" style="display: flex; gap: 8px;">
+                <input :type="showPassword ? 'text' : 'password'" class="form-control" :value="displayPassword" readonly
+                  :id="'nv-password-' + selectedUser.id"
+                  style="flex: 1; border-radius: 8px; border: 2px solid #e5e7eb; padding: 10px 14px; font-size: 0.95rem; background: #fff;">
+                <button class="btn btn-outline-secondary btn-sm" type="button" @click="togglePassword"
+                  :title="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                  style="border-radius: 8px; padding: 10px 14px; font-weight: 600; white-space: nowrap; font-size: 0.875rem;">
+                  <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                </button>
+                <button class="btn btn-outline-primary btn-sm" type="button"
+                  @click="copyToClipboard(displayPassword, 'nv-password-' + selectedUser.id)" title="Copy mật khẩu"
+                  style="border-radius: 8px; padding: 10px 14px; font-weight: 600; white-space: nowrap; font-size: 0.875rem;">
+                  <i class="bi bi-clipboard"></i>
+                  Copy
+                </button>
+              </div>
+              <small class="text-muted mt-1 d-block" style="margin-top: 8px; color: #6b7280; font-size: 0.875rem;">
+                <i class="bi bi-info-circle"></i>
+                Mật khẩu mặc định: <strong>123456</strong> (nếu chưa đổi)
+              </small>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -252,8 +266,15 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { nhanVienApi, mapDtoToUi, mapEntityToRequest } from '@/service/ApiNhanVien'
+import { useAuthStore } from '@/stores/authStore'
+import { useUserStore } from '@/stores/pinastorge'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const userStore = useUserStore()
+
+const isAdmin = computed(() => authStore.isAdmin)
+const showPassword = ref(false)
 
 const search = ref('')
 const statusFilter = ref('all')
@@ -267,12 +288,32 @@ const users = reactive([])
 
 async function loadUsers() {
   try {
-    const { data } = await nhanVienApi.listAll()
-    users.splice(0, users.length, ...data.map(mapDtoToUi))
+    const response = await nhanVienApi.listAll()
+    // Kiểm tra response và data có tồn tại không
+    if (!response || !response.data) {
+      console.warn('Response từ API không hợp lệ:', response)
+      users.splice(0, users.length)
+      return
+    }
+
+    const data = response.data
+    // Kiểm tra data có phải là array không
+    if (!Array.isArray(data)) {
+      console.warn('Data từ API không phải là array:', data)
+      users.splice(0, users.length)
+      return
+    }
+
+    // Map dữ liệu và cập nhật users
+    const mappedUsers = data.map(mapDtoToUi).filter(Boolean) // Filter để loại bỏ null/undefined
+    users.splice(0, users.length, ...mappedUsers)
+
     console.log('Dữ liệu nhân viên từ backend:', data.slice(0, 2)) // Log 2 nhân viên đầu để debug
-    console.log('Dữ liệu sau map:', users.value.slice(0, 2)) // Log 2 nhân viên đầu sau map
+    console.log('Dữ liệu sau map:', mappedUsers.slice(0, 2)) // Log 2 nhân viên đầu sau map
   } catch (e) {
     console.error('Lỗi tải nhân viên:', e)
+    // Đảm bảo users được reset về mảng rỗng khi có lỗi
+    users.splice(0, users.length)
   }
 }
 
@@ -337,9 +378,106 @@ function getAvatarUrl(avatar) {
   return avatar
 }
 
-function showUserDetail(user) {
+const displayUsername = computed(() => {
+  if (!selectedUser.value) return 'N/A'
+  return selectedUser.value.tenDangNhap || selectedUser.value.phone || 'N/A'
+})
+
+const displayPassword = computed(() => {
+  if (!selectedUser.value) return '123456'
+  return selectedUser.value.matKhau || '123456'
+})
+
+function togglePassword() {
+  showPassword.value = !showPassword.value
+}
+
+async function copyToClipboard(text, inputId) {
+  if (!text || text === 'N/A') {
+    alert('Không có dữ liệu để copy')
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(text)
+    const input = document.getElementById(inputId)
+    if (input) {
+      input.select()
+      input.setSelectionRange(0, 99999)
+    }
+    alert('Đã copy vào clipboard!')
+  } catch (err) {
+    console.error('Lỗi copy:', err)
+    const input = document.getElementById(inputId)
+    if (input) {
+      input.select()
+      input.setSelectionRange(0, 99999)
+      alert('Vui lòng copy thủ công (Ctrl+C)')
+    }
+  }
+}
+
+async function showUserDetail(user) {
   selectedUser.value = user
   showDetailModal.value = true
+
+  // Fetch thông tin đăng nhập từ API nếu là admin
+  if (isAdmin.value) {
+    try {
+      // Lấy thông tin NhanVien đầy đủ để có maTaiKhoan
+      const nhanVienResponse = await nhanVienApi.getOne(user.id)
+      const nhanVienData = nhanVienResponse?.data || nhanVienResponse
+
+      // Lấy taiKhoanId từ NhanVien
+      const taiKhoanId = nhanVienData?.maTaiKhoan?.id || nhanVienData?.maTaiKhoanId
+
+      if (taiKhoanId) {
+        // Gọi API để lấy thông tin đăng nhập từ TaiKhoan
+        const response = await userStore.fetchUserById(taiKhoanId)
+        console.log('🔍 showUserDetail - API response:', response)
+
+        // Parse response - fetchUserById trả về dữ liệu từ ApiUser.getUserById
+        // ApiUser.getUserById trả về response.data (đã được parse từ axios)
+        let userData = null
+        if (response?.data?.data) {
+          // Nếu response có cấu trúc { data: { data: {...} } }
+          userData = response.data.data
+        } else if (response?.data) {
+          // Nếu response có cấu trúc { data: {...} }
+          userData = response.data
+        } else if (response) {
+          // Nếu response là object trực tiếp
+          userData = response
+        }
+
+        if (userData) {
+          selectedUser.value = {
+            ...user,
+            ...userData,
+            tenDangNhap: userData.tenDangNhap || user.tenDangNhap || user.phone || 'N/A',
+            matKhau: userData.matKhau || user.matKhau || '123456'
+          }
+          console.log('🔍 showUserDetail - selectedUser sau khi fetch:', selectedUser.value)
+        }
+      } else {
+        console.warn('⚠️ Không tìm thấy taiKhoanId cho nhân viên:', user.id)
+        // Fallback: dùng dữ liệu hiện có
+        selectedUser.value = {
+          ...user,
+          tenDangNhap: user.tenDangNhap || user.phone || 'N/A',
+          matKhau: user.matKhau || '123456'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user login info:', error)
+      // Fallback: dùng dữ liệu hiện có
+      selectedUser.value = {
+        ...user,
+        tenDangNhap: user.tenDangNhap || user.phone || 'N/A',
+        matKhau: user.matKhau || '123456'
+      }
+    }
+  }
 }
 
 function closeDetailModal() {
@@ -472,8 +610,8 @@ function exportCsv() {
             <td style="width: 120px;">Trạng Thái</td>
           </tr>
           ${rows
-            .map(
-              (row, idx) => `
+        .map(
+          (row, idx) => `
             <tr class="data-row">
               <td style="text-align: center;">${String(idx + 1).padStart(3, '0')}</td>
               <td>${row['Mã Nhân Viên']}</td>
@@ -485,8 +623,8 @@ function exportCsv() {
               <td style="text-align: center;">${row['Trạng Thái']}</td>
             </tr>
           `,
-            )
-            .join('')}
+        )
+        .join('')}
           <tr>
             <td colspan="8" style="height: 20px;"></td>
           </tr>
@@ -732,28 +870,8 @@ function splitCsvLine(line) {
   min-height: 100vh;
   padding: 24px 0 32px 0;
 }
-.header-breadcrumb {
-  margin-bottom: 18px;
-}
-.main-title {
-  font-size: 2.1rem;
-  font-weight: 800;
-  margin-bottom: 2px;
-  background: linear-gradient(90deg, #1aaf5d, #22c55e);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.breadcrumb {
-  font-size: 1.1rem;
-  color: #1aaf5d;
-  margin-bottom: 12px;
-}
-.breadcrumb-link {
-  color: #1aaf5d;
-  text-decoration: underline;
-  cursor: pointer;
-}
+
+/* Header & Breadcrumb đã được chuyển lên Header component */
 .filter-card {
   background: #ffffffcc;
   backdrop-filter: blur(6px);
@@ -763,17 +881,20 @@ function splitCsvLine(line) {
   margin-bottom: 18px;
   border: 1px solid #e8f5e9;
 }
+
 .filter-row {
   display: flex;
   flex-wrap: nowrap;
   gap: 18px;
   align-items: flex-end;
 }
+
 .filter-col {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+
 .search-col {
   flex: 2;
   min-width: 260px;
@@ -783,6 +904,7 @@ function splitCsvLine(line) {
   position: relative;
   justify-content: flex-end;
 }
+
 .status-col {
   flex: 1.2;
   min-width: 180px;
@@ -790,22 +912,26 @@ function splitCsvLine(line) {
   flex-direction: column;
   justify-content: flex-end;
 }
+
 .status-radio-group {
   display: flex;
   gap: 12px;
   align-items: center;
   margin-top: 2px;
 }
+
 .total-label {
   font-size: 1.1em;
   color: #1aaf5d;
   font-weight: 700;
 }
+
 .total-number {
   font-size: 1.1em;
   color: #1aaf5d;
   font-weight: 800;
 }
+
 .btn {
   border-radius: 10px;
   font-weight: 700;
@@ -820,26 +946,32 @@ function splitCsvLine(line) {
     color 0.18s ease;
   cursor: pointer;
 }
+
 .btn:active {
   transform: translateY(1px);
 }
+
 .btn-success {
   background: #1aaf5d;
   color: #fff;
 }
+
 .btn-success:hover {
   background: #178f4a;
 }
+
 .btn-outline {
   background: #fff;
   color: #16a34a;
   border: 1.5px solid #16a34a;
   box-shadow: 0 2px 6px #16a34a22;
 }
+
 .btn-outline:hover {
   background: #16a34a;
   color: #fff;
 }
+
 .card {
   border-radius: 16px;
   box-shadow: 0 10px 28px #00000014;
@@ -847,6 +979,7 @@ function splitCsvLine(line) {
   border: 1px solid #eef7f1;
   margin-bottom: 18px;
 }
+
 .table {
   width: 100%;
   border-radius: 10px;
@@ -854,6 +987,7 @@ function splitCsvLine(line) {
   background: #fff;
   margin-bottom: 0;
 }
+
 .table th,
 .table td {
   vertical-align: middle;
@@ -861,24 +995,29 @@ function splitCsvLine(line) {
   padding: 12px 6px;
   font-size: 1em;
 }
+
 .table th {
   color: #16a34a;
   font-weight: 700;
   background: #f4f6fb;
   border-bottom: 2px solid #e3eafc;
 }
+
 .table-hover tbody tr:hover {
   background: #ecfdf5;
 }
+
 .custom-table tbody tr:nth-child(even) {
   background: #fafafa;
 }
+
 .user-code {
   color: #1aaf5d;
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
+
 /* Avatar styles */
 .avatar-circle {
   width: 40px;
@@ -928,6 +1067,7 @@ function splitCsvLine(line) {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -939,6 +1079,8 @@ function splitCsvLine(line) {
   width: 90%;
   max-width: 700px;
   max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   box-shadow:
     0 20px 60px rgba(26, 175, 93, 0.15),
@@ -952,6 +1094,7 @@ function splitCsvLine(line) {
     opacity: 0;
     transform: translateY(30px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1010,6 +1153,28 @@ function splitCsvLine(line) {
 .modal-body {
   padding: 30px;
   background: #fafbfc;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar cho modal */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #2D7458;
+  border-radius: 10px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #25634d;
 }
 
 .detail-avatar-section {
@@ -1050,6 +1215,7 @@ function splitCsvLine(line) {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1130,6 +1296,7 @@ function splitCsvLine(line) {
   gap: 8px;
   justify-content: center;
 }
+
 .status-badge {
   font-size: 1em;
   padding: 6px 18px;
@@ -1141,28 +1308,34 @@ function splitCsvLine(line) {
   letter-spacing: 0.5px;
   box-shadow: 0 1px 4px #ffcdd233;
 }
+
 .status-badge.active {
   background: #e7f9ef;
   color: #16a34a;
   border: 1.5px solid #bfe7d2;
 }
+
 .status-badge.inactive {
   background: #ffeaea;
   color: #e53935;
   border: 1.5px solid #ffcdd2;
 }
+
 .switch {
   position: relative;
   display: inline-block;
   width: 38px;
   height: 22px;
 }
+
 .switch input {
   display: none;
 }
+
 .slider.round {
   border-radius: 22px;
 }
+
 .slider {
   position: absolute;
   cursor: pointer;
@@ -1174,6 +1347,7 @@ function splitCsvLine(line) {
   transition: 0.4s;
   border-radius: 22px;
 }
+
 .slider:before {
   position: absolute;
   content: '';
@@ -1185,18 +1359,22 @@ function splitCsvLine(line) {
   transition: 0.4s;
   border-radius: 50%;
 }
-.switch input:checked + .slider {
+
+.switch input:checked+.slider {
   background-color: #1aaf5d;
 }
-.switch input:checked + .slider:before {
+
+.switch input:checked+.slider:before {
   transform: translateX(16px);
 }
+
 .action-btn-group {
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
 }
+
 .btn-action-edit {
   background: #fffef2;
   color: #d97706;
@@ -1206,10 +1384,12 @@ function splitCsvLine(line) {
   border: 1px solid #fde68a;
   box-shadow: 0 2px 6px #f59e0b22;
 }
+
 .btn-action-edit:hover {
   background: #f59e0b;
   color: #fff;
 }
+
 .btn-action-delete {
   background: #fff5f5;
   color: #dc2626;
@@ -1219,10 +1399,12 @@ function splitCsvLine(line) {
   border: 1px solid #fecaca;
   box-shadow: 0 2px 6px #ef444422;
 }
+
 .btn-action-delete:hover {
   background: #ef4444;
   color: #fff;
 }
+
 .pagination-row {
   display: flex;
   align-items: center;
@@ -1233,12 +1415,14 @@ function splitCsvLine(line) {
   border-top: 1px solid #e3eafc;
   font-size: 1em;
 }
+
 .page-size-select select {
   border-radius: 6px;
   border: 1px solid #e3eafc;
   padding: 2px 8px;
   margin: 0 4px;
 }
+
 .pagination-controls button {
   border: none;
   background: #1aaf5d;
@@ -1250,25 +1434,30 @@ function splitCsvLine(line) {
   cursor: pointer;
   transition: background 0.18s;
 }
+
 .pagination-controls button:disabled {
   background: #bdbdbd;
   cursor: not-allowed;
 }
+
 .page-info {
   color: #888;
   font-size: 0.98em;
 }
+
 .table-header-row {
   padding: 16px 24px 0 24px;
   font-size: 1.08em;
   font-weight: 600;
   color: #222;
 }
+
 .table-total-label {
   color: #888;
   font-size: 1em;
   font-weight: 500;
 }
+
 .custom-table {
   border-radius: 10px;
   overflow: hidden;
@@ -1276,6 +1465,7 @@ function splitCsvLine(line) {
   margin-bottom: 0;
   width: 100%;
 }
+
 .custom-table th,
 .custom-table td {
   vertical-align: middle;
@@ -1284,18 +1474,21 @@ function splitCsvLine(line) {
   font-size: 1em;
   border-bottom: 1.5px solid #e3eafc;
 }
+
 .custom-table th {
   color: #222;
   font-weight: 700;
   background: #f4f6fb;
   border-bottom: 2px solid #e3eafc;
 }
+
 .user-code-link {
   color: #1aaf5d;
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
+
 .filter-row-top {
   display: flex;
   flex-direction: row;
@@ -1303,6 +1496,7 @@ function splitCsvLine(line) {
   align-items: flex-end;
   margin-bottom: 0;
 }
+
 .filter-row-bottom {
   display: flex;
   flex-direction: row;
@@ -1311,6 +1505,7 @@ function splitCsvLine(line) {
   margin-top: 10px;
   gap: 12px;
 }
+
 .total-label-form {
   font-size: 1.1em;
   color: #1aaf5d;
@@ -1318,6 +1513,7 @@ function splitCsvLine(line) {
   margin-left: 2px;
   margin-bottom: 0;
 }
+
 .btn-row-form {
   display: flex;
   flex-direction: row;
@@ -1325,37 +1521,45 @@ function splitCsvLine(line) {
   justify-content: flex-end;
   flex: 1;
 }
+
 @media (max-width: 1024px) {
   .filter-row {
     flex-wrap: wrap;
     gap: 8px;
   }
+
   .filter-row-top,
   .filter-row-bottom {
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
   }
+
   .pagination-row {
     flex-direction: column;
     gap: 8px;
   }
 }
+
 @media (max-width: 768px) {
   .nhanvien-wrapper {
     padding: 8px 0 12px 0;
   }
+
   .main-title {
     font-size: 1.3rem;
   }
+
   .filter-card {
     padding: 8px;
   }
+
   .table th,
   .table td {
     font-size: 0.95em;
     padding: 8px 2px;
   }
+
   .pagination-row {
     font-size: 0.95em;
   }
