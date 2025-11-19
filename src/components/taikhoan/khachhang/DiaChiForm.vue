@@ -188,11 +188,15 @@ import { useConfirm } from '@/composables/useConfirm'
 export default {
   // Tên component
   name: 'DiaChiForm',
-  // Props: nhận mã khách hàng từ component cha
+  // Props: nhận mã khách hàng và thông tin khách hàng từ component cha
   props: {
     maKhachHang: {
       type: String,
       default: '',
+    },
+    customerInfo: {
+      type: Object,
+      default: null,
     },
   },
   data() {
@@ -317,13 +321,20 @@ export default {
     // Gán mã khách hàng từ props vào form nếu có
     if (this.maKhachHang) {
       this.form.maKhachHang = this.maKhachHang
-      // Gọi API để lấy thông tin khách hàng và tự động điền họ tên, số điện thoại
+    }
+    
+    // Nếu có thông tin khách hàng từ props, tự động điền vào form
+    if (this.customerInfo) {
+      this.fillCustomerInfo()
+    } else if (this.maKhachHang) {
+      // Nếu không có customerInfo nhưng có maKhachHang, thử lấy từ API
       this.fetchCustomerInfo()
     }
+    
     // Gọi API để lấy danh sách tỉnh/thành phố khi component được mount
     this.fetchProvinces()
   },
-  // Watch: theo dõi sự thay đổi của props maKhachHang
+  // Watch: theo dõi sự thay đổi của props maKhachHang và customerInfo
   watch: {
     /**
      * Theo dõi sự thay đổi của prop maKhachHang
@@ -332,8 +343,22 @@ export default {
     maKhachHang(newVal) {
       if (newVal) {
         this.form.maKhachHang = newVal
-        // Gọi API để lấy thông tin khách hàng và tự động điền họ tên, số điện thoại
-        this.fetchCustomerInfo()
+        // Nếu có customerInfo, ưu tiên dùng customerInfo
+        if (this.customerInfo) {
+          this.fillCustomerInfo()
+        } else {
+          // Gọi API để lấy thông tin khách hàng và tự động điền họ tên, số điện thoại
+          this.fetchCustomerInfo()
+        }
+      }
+    },
+    /**
+     * Theo dõi sự thay đổi của prop customerInfo
+     * Khi có thông tin khách hàng mới, tự động điền vào form
+     */
+    customerInfo(newVal) {
+      if (newVal) {
+        this.fillCustomerInfo()
       }
     },
   },
@@ -411,6 +436,31 @@ export default {
       // Địa chỉ chi tiết, tỉnh/thành phố, xã/phường không bắt buộc nên không validate
       return isValid
     },
+    /**
+     * Điền thông tin khách hàng từ props customerInfo vào form
+     * Method này được gọi khi có customerInfo từ props
+     */
+    fillCustomerInfo() {
+      if (!this.customerInfo) {
+        return
+      }
+      
+      // Tự động điền mã khách hàng
+      if (this.customerInfo.maKhachHang) {
+        this.form.maKhachHang = this.customerInfo.maKhachHang
+      }
+      
+      // Tự động điền họ tên (ưu tiên từ customerInfo, nếu form chưa có)
+      if (this.customerInfo.hoTen && !this.form.hoTen) {
+        this.form.hoTen = this.customerInfo.hoTen
+      }
+      
+      // Tự động điền số điện thoại (ưu tiên từ customerInfo, nếu form chưa có)
+      if (this.customerInfo.soDienThoai && !this.form.sdt) {
+        this.form.sdt = this.customerInfo.soDienThoai
+      }
+    },
+
     /**
      * Lấy thông tin khách hàng theo mã khách hàng từ API backend
      * Tự động điền họ tên và số điện thoại vào form
@@ -653,8 +703,11 @@ export default {
       // Xóa tất cả lỗi validation
       this.errors = {}
 
-      // Nếu có mã khách hàng, tự động load lại thông tin khách hàng (họ tên, số điện thoại)
-      if (this.form.maKhachHang) {
+      // Nếu có customerInfo từ props, ưu tiên dùng customerInfo
+      if (this.customerInfo) {
+        this.fillCustomerInfo()
+      } else if (this.form.maKhachHang) {
+        // Nếu không có customerInfo, thử lấy từ API
         this.fetchCustomerInfo()
       }
     },
