@@ -217,6 +217,7 @@
           <div class="modal-body">
             <DiaChiForm
               :maKhachHang="form.maKhachHang"
+              :customerInfo="savedCustomer"
               @close="closeAddressModal"
               @success="handleAddressSuccess"
             />
@@ -286,6 +287,7 @@ export default {
       isGeneratingCode: false,
       showAddressModal: false,
       addressList: [],
+      savedCustomer: null, // Lưu thông tin khách hàng đã được lưu vào DB
       errors: {
         maKhachHang: '',
         hoTen: '',
@@ -298,7 +300,7 @@ export default {
     // Khởi tạo toast và confirm composables
     const { success: showSuccess, error: showError, warning: showWarning } = useToast()
     const { showConfirm } = useConfirm()
-    
+
     // Lưu vào this để sử dụng trong methods
     this.showSuccess = showSuccess
     this.showError = showError
@@ -391,6 +393,9 @@ export default {
           }
         }
 
+        // Lưu thông tin khách hàng đã được lưu
+        this.savedCustomer = newCustomer
+
         this.showSuccess('Thêm khách hàng thành công!')
         this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
         this.$emit('close') // đóng form
@@ -449,6 +454,10 @@ export default {
         soDienThoai: '',
         email: '',
       }
+      // Reset saved customer
+      this.savedCustomer = null
+      // Reset address list
+      this.addressList = []
     },
     async generateCustomerCode() {
       try {
@@ -518,12 +527,77 @@ export default {
 
       return isValidMaKhachHang && isValidHoTen && isValidSoDienThoai && isValidEmail
     },
-    showAddAddressModal() {
-      if (!this.form.maKhachHang) {
-        this.showWarning('Vui lòng nhập mã khách hàng trước!')
+    async showAddAddressModal() {
+      // Validate form khách hàng trước
+      if (!this.validateForm()) {
+        this.showWarning('Vui lòng điền đầy đủ thông tin khách hàng trước khi thêm địa chỉ')
         return
       }
-      this.showAddressModal = true
+
+      // Kiểm tra xem khách hàng đã được lưu vào DB chưa
+      // Nếu chưa có savedCustomer hoặc mã khách hàng thay đổi, cần lưu khách hàng trước
+      const needToSave =
+        !this.savedCustomer || this.savedCustomer.maKhachHang !== this.form.maKhachHang
+
+      if (needToSave) {
+        try {
+          // Chuẩn hóa dữ liệu
+          const payload = {
+            maKhachHang: this.form.maKhachHang.trim(),
+            hoTen: this.form.hoTen.trim(),
+            soDienThoai: this.form.soDienThoai.trim(),
+            email: this.form.email && this.form.email.trim() ? this.form.email.trim() : null,
+            gioiTinh: this.form.gioiTinh,
+            ngaySinh: this.form.ngaySinh && this.form.ngaySinh.trim() ? this.form.ngaySinh : null,
+            trangThai: this.form.trangThai,
+          }
+
+          const response = await khachHangService.addKhachHang(payload)
+          const responseData = response?.data || response
+
+          // Tạo object khách hàng đã lưu
+          const newCustomer = {
+            ...payload,
+            ...responseData,
+            maKhachHang: responseData?.maKhachHang || payload.maKhachHang,
+            hoTen: responseData?.hoTen || payload.hoTen,
+            soDienThoai: responseData?.soDienThoai || payload.soDienThoai,
+            email: responseData?.email || payload.email,
+            diemTichLuy: responseData?.diemTichLuy || 0,
+          }
+
+          // Nếu response không có id, thử lấy lại thông tin khách hàng từ backend
+          if (!newCustomer.id && newCustomer.maKhachHang) {
+            try {
+              await new Promise((resolve) => setTimeout(resolve, 300))
+              const customerInfo = await khachHangService.getByMaKhachHang(newCustomer.maKhachHang)
+              const customerData = customerInfo?.data || customerInfo
+              if (customerData) {
+                Object.assign(newCustomer, customerData)
+              }
+            } catch (error) {
+              console.warn('Không thể lấy lại thông tin khách hàng từ backend:', error)
+            }
+          }
+
+          // Lưu thông tin khách hàng đã được lưu
+          this.savedCustomer = newCustomer
+
+          // Hiển thị thông báo
+          this.showSuccess('Đã lưu thông tin khách hàng!')
+
+          // Mở modal thêm địa chỉ
+          this.showAddressModal = true
+        } catch (error) {
+          console.error(error)
+          const errorMessage =
+            error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng'
+          this.showError(errorMessage)
+        }
+      } else {
+        // Khách hàng đã được lưu, mở modal luôn
+        this.showAddressModal = true
+      }
     },
     closeAddressModal() {
       this.showAddressModal = false
@@ -544,6 +618,12 @@ export default {
     handleAddressSuccess() {
       this.fetchAddresses()
       this.closeAddressModal()
+      // Sau khi lưu địa chỉ thành công, emit success với thông tin khách hàng để cập nhật vào hóa đơn
+      // và đóng form khách hàng để quay lại màn hình bán hàng
+      if (this.savedCustomer) {
+        this.$emit('success', this.savedCustomer)
+      }
+      this.$emit('close')
     },
     async deleteAddress(addressId) {
       const confirmed = await this.showConfirm({
@@ -551,13 +631,13 @@ export default {
         message: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
         confirmText: 'Xóa',
         cancelText: 'Hủy',
-        type: 'warning'
+        type: 'warning',
       })
-      
+
       if (!confirmed) {
         return
       }
-      
+
       try {
         await DiaChiService.deleteDiaChi(addressId)
         this.fetchAddresses()
