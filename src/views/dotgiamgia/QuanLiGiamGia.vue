@@ -2,54 +2,78 @@
   <main class="container">
     <h1>Quản lý Đợt Giảm Giá</h1>
 
+    <!-- Thanh công cụ -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex gap-2">
         <input v-model="q" class="form-control" placeholder="Tìm theo mã / tên…" style="max-width: 280px" />
         <select v-model="status" class="form-select" style="max-width: 160px">
-          <option value="">Tất cả trạng thái</option>
+          <option value="">Tất cả hiệu lực</option>
           <option :value="0">Sắp diễn ra</option>
           <option :value="1">Đang hiệu lực</option>
           <option :value="2">Hết hạn</option>
+        </select>
+        <select v-model="active" class="form-select" style="max-width: 140px">
+          <option value="">Tất cả hoạt động</option>
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
     </div>
 
-   <table class="table table-bordered table-hover">
-  <thead class="table-light">
-    <tr>
-      <th>#</th>
-      <th>Tên Đợt</th>
-      <th>Giá trị (VND)</th>
-      <th>Mô tả</th>
-      <th>Bắt đầu</th>
-      <th>Kết thúc</th>
-      <th>Trạng thái</th>
-      <!-- Đồng bộ width 220px như bên Phiếu Giảm Giá -->
-      <th style="width: 220px">Hành động</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr v-for="(it, idx) in paged" :key="it.id">
-      <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
-      <td>{{ it.tenKm }}</td>
-      <td>{{ showCurrency(it.giaTri) }}</td>
-      <td>{{ it.moTa }}</td>
-      <td>{{ showDate(it.ngayBatDau) }}</td>
-      <td>{{ showDate(it.ngayKetThuc) }}</td>
-      <td>{{ showTrangThai(it.trangThai) }}</td>
-      <!-- Đồng bộ bố cục nút: d-flex gap-2, cùng kiểu class và thứ tự -->
-      <td class="d-flex gap-2">
-        <button class="btn btn-info" @click="viewProducts(it.id)">Chi tiết</button>
-        <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
-        <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
-      </td>
-    </tr>
-    <tr v-if="paged.length === 0">
-      <td colspan="8" class="text-center text-muted">Không có dữ liệu</td>
-    </tr>
-  </tbody>
-</table>
+    <!-- Bảng danh sách -->
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Tên Đợt</th>
+          <th>Giá trị (VND)</th>
+          <th>Mô tả</th>
+          <th>Bắt đầu</th>
+          <th>Kết thúc</th>
+          <th>Hiệu lực</th>
+          <th>Hoạt động</th>
+          <th style="width: 220px">Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- dùng paged để hiển thị theo trang -->
+        <tr v-for="(it, idx) in paged" :key="it.id">
+          <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
+          <td>{{ it.tenKm }}</td>
+          <td>{{ showCurrency(it.giaTri) }}</td>
+          <td>{{ it.moTa }}</td>
+          <td>{{ showDate(it.ngayBatDau) }}</td>
+          <td>{{ showDate(it.ngayKetThuc) }}</td>
+          <!-- Hiệu lực theo thời gian (FE tính) -->
+          <td>
+            <span
+              v-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 0"
+             >Sắp diễn ra</span>
+            <span
+              v-else-if="calcTrangThaiTinh(it.ngayBatDau, it.ngayKetThuc, nowMs) === 1"
+              >Đang hiệu lực</span>
+            <span
+              v-else
+              >Hết hạn</span>
+          </td>
+
+          <!-- Hoạt động (công tắc quản trị: 1=Bật, khác=Tắt) -->
+          <td>
+            <span v-if="it.trangThai === 1">Bật</span>
+            <span v-else >Tắt</span>
+          </td>
+          <td class="d-flex gap-2">
+            <button class="btn btn-info" @click="viewProducts(it.id)">Chi tiết</button>
+            <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
+            <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
+          </td>
+        </tr>
+        <tr v-if="paged.length === 0">
+          <td colspan="9" class="text-center text-muted">Không có dữ liệu</td>
+        </tr>
+      </tbody>
+    </table>
 
 
     <div class="d-flex align-items-center justify-content-between mt-2">
@@ -68,11 +92,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDotGiamGias, deleteDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
+
+// === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
+const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
+  const s = Date.parse(startIso)
+  const e = Date.parse(endIso)
+  if (isNaN(s) || isNaN(e)) return null
+  return nowMs < s ? 0 : nowMs > e ? 2 : 1
+}
+
+// Tick nhẹ để UI tự đổi nhãn mỗi 30s (có thể bỏ nếu không cần)
+const nowMs = ref(Date.now())
+let timerId
+let serverOffsetMs = 0 // nếu không dùng giờ server, cứ để 0
 
 const router = useRouter()
 const { success: showSuccess, error: showError } = useToast()
@@ -81,12 +118,19 @@ const list = ref([])
 const q = ref('')
 
 // --- state phân trang ---
-const page = ref(1)
-const pageSize = ref(5)
+const page = ref(1)       // 1-based
+const pageSize = ref(5)   // số dòng mỗi trang
 
+// Nạp danh sách
 const fetchList = async () => {
   try {
     const res = await getDotGiamGias()
+    // Lấy giờ server nếu có
+    const serverDateStr = res?.headers?.date || res?.headers?.Date
+    if (serverDateStr) {
+      const serverNow = new Date(serverDateStr).getTime()
+      serverOffsetMs = Date.now() - serverNow
+    }
     list.value = res?.data ?? res ?? []
     page.value = 1
   } catch (e) {
@@ -94,8 +138,9 @@ const fetchList = async () => {
   }
 }
 
-//
+// Lọc realtime ở client
 const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
+const active = ref('') // '' = tất cả; 1 = Bật; 0 = Tắt
 
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
@@ -103,29 +148,40 @@ const filtered = computed(() => {
     // text
     const textOk =
       !s ||
-      (x. tenKm|| '').toLowerCase().includes(s)
+      (x.tenKm || '').toLowerCase().includes(s)
 
-    const cur = Number(x.trangThai)
-    const statusOk = status.value === '' || cur === Number(status.value)
+    // hiệu lực theo thời gian (đã có)
+    const stTime = calcTrangThaiTinh(x.ngayBatDau, x.ngayKetThuc, nowMs.value)
+    const statusOk = status.value === '' || stTime === Number(status.value)
 
-    return textOk && statusOk
+    // hoạt động theo công tắc quản trị (1=Bật, khác=Tắt)
+    const activeOk =
+      active.value === '' ||
+      (Number(active.value) === 1 ? x.trangThai === 1 : x.trangThai !== 1)
+
+    return textOk && statusOk && activeOk
   })
 })
+// Tính trang & cắt trang
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
 const paged = computed(() => {
   const start = (page.value - 1) * pageSize.value
   return filtered.value.slice(start, start + pageSize.value)
 })
 
+// Chuyển trang
 const prevPage = () => { if (page.value > 1) page.value-- }
 const nextPage = () => { if (page.value < totalPages.value) page.value++ }
 
-watch(q, () => { page.value = 1 })
+// Khi gõ tìm kiếm -> quay về trang 1
+watch([q, status, active], () => { page.value = 1 })
 
 // Điều hướng
 const goToAdd = () => router.push('/dot-giam-gia/add')
-const edit = (id) => router.push(`/dot-giam-gia/edit/${id}`)
 const viewProducts = (id) => router.push(`/chi-tiet-giam-gia/${id}`)
+const edit = (id) => router.push(`/dot-giam-gia/edit/${id}`)
+
+// Xóa
 const remove = async (id) => {
   const confirmed = await showConfirm({
     title: 'Xác nhận xóa đợt giảm giá',
@@ -134,13 +190,14 @@ const remove = async (id) => {
     cancelText: 'Hủy',
     type: 'warning'
   })
-  
+
   if (!confirmed) return
-  
+
   try {
-    await deleteDotGiamGia(id)
-    showSuccess('Xóa thành công!')
+    const resp = await deleteDotGiamGia(id)
+    alert(resp?.message || 'Xóa thành công!')
     await fetchList()
+    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
     if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
@@ -149,8 +206,7 @@ const remove = async (id) => {
   }
 }
 
-
-//Định dạng hiển thị
+// Helpers hiển thị
 const showCurrency = (v) => {
   if (v === null || v === undefined) return ''
   const number = parseFloat(v)
@@ -158,17 +214,49 @@ const showCurrency = (v) => {
   return new Intl.NumberFormat('vi-VN').format(number)
 }
 
-const showTrangThai = (n) => (n === 0 ? 'Sắp diễn ra' : n === 1 ? 'Đang hiệu lực' : n === 2 ? 'Hết hạn' : n)
-
 const showDate = (v) => {
   if (!v) return ''
   const d = new Date(String(v))
   if (isNaN(d)) return String(v)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-onMounted(fetchList)
+function scheduleTick() {
+  clearTimeout(timerId)
+  const now = Date.now() - serverOffsetMs
+
+  // Tìm mốc start/end gần nhất trong tương lai
+  const deltas = []
+  for (const x of list.value) {
+    const s = Date.parse(x.ngayBatDau)
+    const e = Date.parse(x.ngayKetThuc)
+    if (!isNaN(s) && s > now) deltas.push(s - now)
+    if (!isNaN(e) && e > now) deltas.push(e - now)
+  }
+
+  // Fallback 30s nếu không có mốc nào (UI vẫn "đập nhịp")
+  const nextDelta = deltas.length ? Math.min(...deltas) : 30000
+
+  // Đợi đến mốc (đệm 20ms), nhưng không quá 30s
+  const wait = Math.max(50, Math.min(nextDelta + 20, 30000))
+  timerId = setTimeout(() => {
+    nowMs.value = Date.now() - serverOffsetMs
+    scheduleTick()
+  }, wait)
+}
+
+onMounted(async () => {
+  await fetchList()
+  scheduleTick()
+})
+
+onUnmounted(() => {
+  clearTimeout(timerId)
+})
+
+// Khi danh sách đổi (refetch / xoá / thêm), lên lịch lại
+watch(list, () => scheduleTick())
 </script>
 
 <style scoped>
