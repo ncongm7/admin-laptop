@@ -35,7 +35,20 @@
                             </small>
                         </div>
                         <div class="product-price-stock">
-                            <span class="price">{{ formatCurrency(product.giaBan) }}</span>
+                            <div class="price-container">
+                                <span v-if="product.coGiamGia && product.giaGiam" class="price price-discounted">
+                                    {{ formatCurrency(product.giaGiam) }}
+                                </span>
+                                <span v-else class="price">
+                                    {{ formatCurrency(product.giaBan) }}
+                                </span>
+                                <span v-if="product.coGiamGia && product.giaGoc" class="price-original">
+                                    <del>{{ formatCurrency(product.giaGoc) }}</del>
+                                </span>
+                                <span v-if="product.coGiamGia && product.phanTramGiam" class="discount-badge">
+                                    <span class="badge bg-danger">-{{ product.phanTramGiam }}%</span>
+                                </span>
+                            </div>
                             <span class="stock" :class="getStockClass(product.soLuongTon)">
                                 <i class="bi bi-box"></i> Tồn: {{ product.soLuongTon || 0 }}
                             </span>
@@ -232,10 +245,31 @@ const getStockClass = (stock) => {
     align-items: center;
 }
 
+.price-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
 .price {
     font-size: 1rem;
     font-weight: 700;
     color: #dc3545;
+}
+
+.price-discounted {
+    color: #dc3545;
+}
+
+.price-original {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 400;
+}
+
+.discount-badge {
+    margin-top: 0.1rem;
 }
 
 .stock {
