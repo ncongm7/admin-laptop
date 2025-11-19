@@ -48,6 +48,11 @@ const KhachHangService = {
   generateCode: () => {
     return axios.get(`${API_URL}/generate-code`)
   },
+
+  // Lấy thông tin khách hàng theo mã khách hàng
+  getByMaKhachHang: (maKhachHang) => {
+    return axios.get(`${API_URL}/by-ma/${maKhachHang}`)
+  },
 }
 
 export default KhachHangService

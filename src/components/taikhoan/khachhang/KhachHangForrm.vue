@@ -48,8 +48,44 @@
           <label class="form-label">Email</label>
           <input type="email" class="form-control" placeholder="Email" v-model="form.email" />
         </div>
+      </div>
 
-        <!-- Quản lý địa chỉ -->
+      <!-- Cột phải -->
+      <div class="col-md-6">
+        <div class="mb-4">
+          <label class="form-label">Trạng thái</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" :value="0" v-model="form.trangThai" />
+            <label class="form-check-label">Không hoạt động</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" :value="1" v-model="form.trangThai" />
+            <label class="form-check-label">Hoạt động</label>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Giới tính</label>
+          <div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" :value="1" v-model="form.gioiTinh" />
+              <label class="form-check-label">Nam</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" :value="0" v-model="form.gioiTinh" />
+              <label class="form-check-label">Nữ</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Ngày sinh</label>
+          <input type="date" class="form-control" v-model="form.ngaySinh" />
+        </div>
+      </div>
+
+      <!-- Quản lý địa chỉ - Chiếm toàn bộ chiều rộng -->
+      <div class="col-12">
         <div class="mb-3">
           <div class="card">
             <div class="card-body">
@@ -99,10 +135,10 @@
                         class="btn btn-outline-primary"
                         @click="setDefaultAddress(address.id)"
                       >
-                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star">Mặc định</i>
                       </button>
                       <button class="btn btn-outline-danger" @click="deleteAddress(address.id)">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-trash">Xoá</i>
                       </button>
                     </div>
                   </div>
@@ -110,45 +146,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Cột phải -->
-      <div class="col-md-6">
-        <div class="mb-4">
-          <label class="form-label">Trạng thái</label>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" :value="0" v-model="form.trangThai" />
-            <label class="form-check-label">Không hoạt động</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" :value="1" v-model="form.trangThai" />
-            <label class="form-check-label">Hoạt động</label>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label class="form-label">Giới tính</label>
-          <div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" :value="1" v-model="form.gioiTinh" />
-              <label class="form-check-label">Nam</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" :value="0" v-model="form.gioiTinh" />
-              <label class="form-check-label">Nữ</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Ngày sinh</label>
-          <input type="date" class="form-control" v-model="form.ngaySinh" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Ghi chú</label>
-          <textarea class="form-control" rows="2" v-model="form.note"></textarea>
         </div>
       </div>
     </div>
@@ -160,13 +157,13 @@
       tabindex="-1"
       style="background-color: rgba(0, 0, 0, 0.5)"
     >
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Thêm Địa Chỉ</h5>
+          <div class="modal-header py-2">
+            <h6 class="modal-title mb-0">Thêm Địa Chỉ</h6>
             <button type="button" class="btn-close" @click="closeAddressModal"></button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body p-2" style="max-height: 80vh; overflow-y: auto">
             <DiaChiForm
               :maKhachHang="form.maKhachHang"
               @close="closeAddressModal"
@@ -183,6 +180,8 @@
 import khachHangService from '@/service/taikhoan/khachHangService'
 import DiaChiService from '@/service/taikhoan/diaChiService'
 import DiaChiForm from './DiaChiForm.vue'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 export default {
   name: 'KhachHangForm',
@@ -202,11 +201,21 @@ export default {
         ngaySinh: '',
         trangThai: 0,
         totalSpent: 0,
-        note: '',
       },
       showAddressModal: false,
       addressList: [],
     }
+  },
+  created() {
+    // Khởi tạo toast và confirm composables
+    const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+    const { showConfirm } = useConfirm()
+    
+    // Lưu vào this để sử dụng trong methods
+    this.showSuccess = showSuccess
+    this.showError = showError
+    this.showWarning = showWarning
+    this.showConfirm = showConfirm
   },
   mounted() {
     if (this.data) {
@@ -245,7 +254,7 @@ export default {
         console.log('fetchCustomer: Dữ liệu đã cập nhật vào form:', this.form)
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết khách hàng', error)
-        alert('Lỗi khi tải thông tin khách hàng')
+        this.showError('Lỗi khi tải thông tin khách hàng')
       }
     },
     async handleUpdate() {
@@ -253,30 +262,32 @@ export default {
         if (this.form.id) {
           //  Gọi API update
           await khachHangService.updateKhachHang(this.form.id, this.form)
-          alert(' Cập nhật khách hàng thành công!')
+          this.showSuccess('Cập nhật khách hàng thành công!')
           // Emit event để thông báo cho parent component
           this.$emit('update-success')
         } else {
           //  Gọi API thêm mới
           const res = await khachHangService.addKhachHang(this.form)
           this.form.id = res.data.id
-          alert(' Thêm mới khách hàng thành công!')
+          this.showSuccess('Thêm mới khách hàng thành công!')
           // Emit event để thông báo cho parent component
           this.$emit('update-success')
         }
       } catch (error) {
         console.error(error)
-        alert(' Lỗi khi lưu khách hàng!')
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng!'
+        this.showError(errorMessage)
       }
     },
     async handleSaveAndNew() {
       try {
         await khachHangService.addKhachHang(this.form)
-        alert('Lưu khách hàng thành công!')
+        this.showSuccess('Lưu khách hàng thành công!')
         this.resetForm()
       } catch (error) {
         console.error(error)
-        alert('Lỗi khi lưu khách hàng')
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng'
+        this.showError(errorMessage)
       }
     },
     resetForm() {
@@ -300,7 +311,7 @@ export default {
     },
     showAddAddressModal() {
       if (!this.form.maKhachHang) {
-        alert('Vui lòng nhập mã khách hàng trước!')
+        this.showWarning('Vui lòng nhập mã khách hàng trước!')
         return
       }
       this.showAddressModal = true
@@ -341,24 +352,32 @@ export default {
         })
 
         this.fetchAddresses()
-        alert('Đã đặt làm địa chỉ mặc định')
+        this.showSuccess('Đã đặt làm địa chỉ mặc định')
       } catch (error) {
         console.error('Error setting default address:', error)
-        alert('Có lỗi xảy ra')
+        this.showError('Có lỗi xảy ra khi đặt địa chỉ mặc định')
       }
     },
     async deleteAddress(addressId) {
-      if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
+      const confirmed = await this.showConfirm({
+        title: 'Xác nhận xóa địa chỉ',
+        message: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        type: 'warning'
+      })
+      
+      if (!confirmed) {
         return
       }
 
       try {
         await DiaChiService.deleteDiaChi(addressId)
         this.fetchAddresses()
-        alert('Đã xóa địa chỉ thành công')
+        this.showSuccess('Đã xóa địa chỉ thành công')
       } catch (error) {
         console.error('Error deleting address:', error)
-        alert('Có lỗi xảy ra')
+        this.showError('Có lỗi xảy ra khi xóa địa chỉ')
       }
     },
   },

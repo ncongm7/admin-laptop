@@ -95,6 +95,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDotGiamGias, deleteDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 
 // === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
 const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
@@ -110,6 +112,8 @@ let timerId
 let serverOffsetMs = 0 // nếu không dùng giờ server, cứ để 0
 
 const router = useRouter()
+const { success: showSuccess, error: showError } = useToast()
+const { showConfirm } = useConfirm()
 const list = ref([])
 const q = ref('')
 
@@ -179,7 +183,16 @@ const edit = (id) => router.push(`/dot-giam-gia/edit/${id}`)
 
 // Xóa
 const remove = async (id) => {
-  if (!confirm('Bạn có chắc muốn xóa không?')) return
+  const confirmed = await showConfirm({
+    title: 'Xác nhận xóa đợt giảm giá',
+    message: 'Bạn có chắc chắn muốn xóa đợt giảm giá này?',
+    confirmText: 'Xóa',
+    cancelText: 'Hủy',
+    type: 'warning'
+  })
+
+  if (!confirmed) return
+
   try {
     const resp = await deleteDotGiamGia(id)
     alert(resp?.message || 'Xóa thành công!')
@@ -188,6 +201,8 @@ const remove = async (id) => {
     if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa đợt giảm giá'
+    showError(errorMessage)
   }
 }
 

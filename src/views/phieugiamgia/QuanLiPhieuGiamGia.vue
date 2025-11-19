@@ -104,6 +104,11 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVouchers, deleteVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+
+const { success: showSuccess, error: showError } = useToast()
+const { showConfirm } = useConfirm()
 
 // === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
 const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
@@ -198,15 +203,26 @@ const edit = (id) => router.push(`/phieu-giam-gia2/edit/${id}`)
 
 // Xóa
 const remove = async (id) => {
-  if (!confirm('Bạn có chắc muốn xóa không?')) return
+  const confirmed = await showConfirm({
+    title: 'Xác nhận xóa phiếu giảm giá',
+    message: 'Bạn có chắc chắn muốn xóa phiếu giảm giá này?',
+    confirmText: 'Xóa',
+    cancelText: 'Hủy',
+    type: 'warning'
+  })
+  
+  if (!confirmed) return
+  
   try {
     const resp = await deleteVoucher(id)
-    alert(resp?.message || 'Xóa thành công!')
+    showSuccess(resp?.message || 'Xóa thành công!')
     await fetchList()
     // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
     if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa phiếu giảm giá'
+    showError(errorMessage)
   }
 }
 
