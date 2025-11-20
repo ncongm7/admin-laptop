@@ -12,7 +12,21 @@
           </div>
           <div class="card-body" v-if="dotGiamGia">
             <p><strong>Tên:</strong> {{ dotGiamGia.tenKm }}</p>
-            <p><strong>Giá trị:</strong> {{ showCurrency(dotGiamGia.giaTri) }} VND</p>
+            <p>
+              <strong>Loại:</strong>
+              <span v-if="dotGiamGia.loaiDotGiamGia === 1" class="badge bg-info">%</span>
+              <span v-else class="badge bg-secondary">VND</span>
+            </p>
+            <p>
+              <strong>Giá trị:</strong>
+              <span v-if="dotGiamGia.loaiDotGiamGia === 1">
+                {{ (+dotGiamGia.giaTri || 0).toLocaleString('vi-VN') }}%
+                <span v-if="dotGiamGia.soTienGiamToiDa" class="text-muted small">
+                  (tối đa {{ showCurrency(dotGiamGia.soTienGiamToiDa) }})
+                </span>
+              </span>
+              <span v-else>{{ showCurrency(dotGiamGia.giaTri) }} VND</span>
+            </p>
             <p><strong>Bắt đầu:</strong> {{ showDate(dotGiamGia.ngayBatDau) }}</p>
             <p><strong>Kết thúc:</strong> {{ showDate(dotGiamGia.ngayKetThuc) }}</p>
             <p><strong>Trạng thái:</strong> {{ dotGiamGia.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}</p>
@@ -306,9 +320,9 @@ const remove = async (chiTietId) => {
     cancelText: 'Hủy',
     type: 'warning'
   })
-  
+
   if (!confirmed) return
-  
+
   try {
     await deleteDotGiamGiaChiTiet(chiTietId)
     showSuccess('Xóa thành công!')

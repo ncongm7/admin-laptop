@@ -36,8 +36,10 @@
                             class="btn-copy-bill" 
                             @click.stop="confirmCopy(bill)" 
                             title="Copy hóa đơn"
+                            :disabled="isCopying || getBillItemsCount(bill) === 0"
                             v-if="getBillItemsCount(bill) > 0">
-                            <i class="bi bi-files"></i>
+                            <span v-if="isCopying && copyingBillId === bill.id" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-files"></i>
                         </button>
                         <button class="btn-close-bill" @click.stop="confirmRemove(bill)" title="Xóa hóa đơn">
                             <i class="bi bi-x"></i>
@@ -69,6 +71,14 @@ const props = defineProps({
         default: () => []
     },
     selectedBillId: {
+        type: String,
+        default: null
+    },
+    isCopying: {
+        type: Boolean,
+        default: false
+    },
+    copyingBillId: {
         type: String,
         default: null
     }
@@ -250,9 +260,14 @@ const formatCurrency = (value) => {
     transition: all 0.2s;
 }
 
-.btn-copy-bill:hover {
+.btn-copy-bill:hover:not(:disabled) {
     background: #0dcaf0;
     color: white;
+}
+
+.btn-copy-bill:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-close-bill {
@@ -281,6 +296,15 @@ const formatCurrency = (value) => {
 .alert-sm {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
+}
+
+/* Draft badge */
+.is-draft {
+    border-left: 3px solid #ffc107;
+}
+
+.is-draft .tab-title {
+    position: relative;
 }
 
 /* Responsive */

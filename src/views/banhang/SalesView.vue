@@ -33,6 +33,8 @@
           <TransactionTabs
             :bills="danhSachHoaDonCho"
             :selectedBillId="hoaDonHienTai?.id"
+            :isCopying="isCopyingBill"
+            :copyingBillId="copyingBillId"
             @select-bill="chonHoaDon"
             @remove-bill="xoaHoaDonCho"
             @create-new="taoHoaDonMoi"
@@ -68,6 +70,16 @@
             @update-item="handleUpdateItem"
           />
         </div>
+      </div>
+    </div>
+
+    <!-- Thống kê & Lịch sử giao dịch -->
+    <div class="row g-3 mt-3">
+      <div class="col-lg-6">
+        <SalesQuickStats />
+      </div>
+      <div class="col-lg-6">
+        <RecentTransactions />
       </div>
     </div>
 
@@ -198,6 +210,8 @@ import CustomerInfo from '@/components/banhang/CustomerInfo.vue'
 import ModalThanhToan from '@/components/banhang/ModalThanhToan.vue'
 import VoucherSuggestionModal from '@/components/banhang/VoucherSuggestionModal.vue'
 import InvoicePrint from '@/components/banhang/InvoicePrint.vue'
+import SalesQuickStats from '@/components/banhang/SalesQuickStats.vue'
+import RecentTransactions from '@/components/banhang/RecentTransactions.vue'
 import KhachHangFormDN from '@/components/taikhoan/khachhang/KhachHangFormDN.vue'
 import './SalesView.css'
 
@@ -399,9 +413,25 @@ const handleUpdateItem = (updatedHoaDon) => {
   }
 }
 
+// State cho copy hóa đơn
+const isCopyingBill = ref(false)
+const copyingBillId = ref(null)
+
 // Xử lý copy hóa đơn
 const handleCopyBill = async (sourceBill) => {
-  await copyBill(sourceBill)
+  if (!sourceBill || !sourceBill.id) {
+    return
+  }
+  
+  isCopyingBill.value = true
+  copyingBillId.value = sourceBill.id
+  
+  try {
+    await copyBill(sourceBill)
+  } finally {
+    isCopyingBill.value = false
+    copyingBillId.value = null
+  }
 }
 
 // Xử lý sau khi in hóa đơn

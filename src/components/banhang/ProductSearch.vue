@@ -363,7 +363,12 @@
         </div>
 
         <!-- Modal backdrop -->
-        <div v-if="showVariantModal || showQuantityModal || showProductDetailModal" class="modal-backdrop fade show"></div>
+        <div 
+            v-if="showVariantModal || showQuantityModal || showProductDetailModal" 
+            class="modal-backdrop fade show"
+            style="z-index: 9998; pointer-events: auto;"
+            @click="handleBackdropClick"
+        ></div>
 
         <!-- Modal chi tiết sản phẩm -->
         <ProductDetailModal
@@ -1015,6 +1020,19 @@ const openProductDetailModal = (product) => {
 const closeProductDetailModal = () => {
     showProductDetailModal.value = false
     selectedProductForDetail.value = null
+}
+
+/**
+ * Xử lý click vào backdrop
+ */
+const handleBackdropClick = () => {
+    if (showProductDetailModal.value) {
+        closeProductDetailModal()
+    } else if (showVariantModal.value) {
+        closeVariantModal()
+    } else if (showQuantityModal.value) {
+        closeQuantityModal()
+    }
 }
 
 /**

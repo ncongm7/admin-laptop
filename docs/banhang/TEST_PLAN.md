@@ -1,551 +1,443 @@
-# Kế Hoạch Kiểm Thử - Module Bán Hàng
+# 🧪 TEST PLAN - MODULE BÁN HÀNG
 
-## Tổng quan
+## 📋 TỔNG QUAN
 
-Dự án hiện tại **chưa có test framework** được cấu hình. Tài liệu này cung cấp:
-1. Đề xuất test framework phù hợp
-2. Danh sách test case nên tạo (nếu có framework)
-3. Kịch bản kiểm thử thủ công (end-to-end)
-
----
-
-## 1. Đề xuất Test Framework
-
-### Option 1: Vitest (Khuyến nghị)
-
-**Lý do**:
-- Tương thích tốt với Vite
-- Hỗ trợ Vue 3 Composition API
-- Fast và dễ cấu hình
-- Có thể test component, composable, service
-
-**Cài đặt**:
-```bash
-npm install -D vitest @vue/test-utils @vitest/ui jsdom
-```
-
-**Cấu hình** (`vitest.config.js`):
-```js
-import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
-
-export default defineConfig({
-  plugins: [vue()],
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    coverage: {
-      provider: 'v8'
-    }
-  }
-})
-```
-
-### Option 2: Jest + Vue Test Utils
-
-**Lý do**:
-- Phổ biến, nhiều tài liệu
-- Hỗ trợ tốt Vue 3
-
-**Cài đặt**:
-```bash
-npm install -D jest @vue/test-utils @babel/preset-env
-```
-
-### Option 3: Cypress (E2E)
-
-**Lý do**:
-- Test end-to-end tốt
-- Có thể test flow thực tế
-
-**Cài đặt**:
-```bash
-npm install -D cypress
-```
+**Mục đích**: Test toàn bộ chức năng module bán hàng tại quầy  
+**Phạm vi**: Tất cả các tính năng đã implement  
+**Người test**: _______________  
+**Ngày test**: _______________  
 
 ---
 
-## 2. Danh sách Test Case (Nếu có Framework)
+## ✅ TEST CASE 1: IN HÓA ĐƠN
 
-### 2.1. Unit Tests - Composables
+### 1.1. In hóa đơn từ SalesView
+- [ ] **Bước 1**: Mở trang bán hàng (`/ban-hang`)
+- [ ] **Bước 2**: Tạo hóa đơn mới và thêm sản phẩm
+- [ ] **Bước 3**: Click nút "In hóa đơn" ở header
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal preview hóa đơn
+  - Tự động mở dialog in
+  - Hóa đơn hiển thị đầy đủ thông tin
 
-#### `useBillManagement.test.js`
+### 1.2. In hóa đơn sau thanh toán
+- [ ] **Bước 1**: Tạo hóa đơn và thêm sản phẩm
+- [ ] **Bước 2**: Thanh toán hóa đơn
+- [ ] **Kết quả mong đợi**: 
+  - Tự động mở dialog in sau khi thanh toán thành công
+  - Hóa đơn hiển thị đúng thông tin thanh toán
 
-```javascript
-describe('useBillManagement', () => {
-  test('taoHoaDonMoi - tạo hóa đơn mới thành công', async () => {
-    // Test case
-  })
-  
-  test('taoHoaDonMoi - giới hạn 10 hóa đơn', async () => {
-    // Test case
-  })
-  
-  test('chonHoaDon - chọn hóa đơn từ danh sách', async () => {
-    // Test case
-  })
-  
-  test('xoaHoaDonCho - xóa hóa đơn chờ', async () => {
-    // Test case
-  })
-  
-  test('copyBill - copy hóa đơn', async () => {
-    // Test case
-  })
-})
-```
+### 1.3. In hóa đơn từ QuanLiHoaDon
+- [ ] **Bước 1**: Mở trang quản lý hóa đơn (`/quan-li-hoa-don`)
+- [ ] **Bước 2**: Click nút in (icon printer) ở cột "Hành động"
+- [ ] **Kết quả mong đợi**: 
+  - Mở cửa sổ mới với hóa đơn HTML
+  - Tự động mở dialog in
+  - Nếu popup bị chặn, tải file HTML về máy
 
-#### `useProductManagement.test.js`
+### 1.4. In hóa đơn từ RecentTransactions
+- [ ] **Bước 1**: Mở component RecentTransactions (nếu có trong SalesView)
+- [ ] **Bước 2**: Click nút in ở một giao dịch
+- [ ] **Kết quả mong đợi**: 
+  - Mở cửa sổ mới với hóa đơn
+  - Tự động mở dialog in
 
-```javascript
-describe('useProductManagement', () => {
-  test('confirmAddProduct - thêm sản phẩm thành công', async () => {
-    // Test case
-  })
-  
-  test('confirmAddProduct - số lượng vượt tồn kho', async () => {
-    // Test case
-  })
-  
-  test('handleDeleteItem - xóa sản phẩm', async () => {
-    // Test case
-  })
-})
-```
-
-#### `useSerialValidation.test.js`
-
-```javascript
-describe('useSerialValidation', () => {
-  test('xacThucMotSerial - serial hợp lệ', async () => {
-    // Test case
-  })
-  
-  test('xacThucMotSerial - serial không hợp lệ', async () => {
-    // Test case
-  })
-  
-  test('daQuetDu - kiểm tra đã quét đủ serial', () => {
-    // Test case
-  })
-})
-```
-
-### 2.2. Component Tests
-
-#### `ProductSearch.test.js`
-
-```javascript
-describe('ProductSearch', () => {
-  test('tìm kiếm sản phẩm', async () => {
-    // Test case
-  })
-  
-  test('pagination hoạt động đúng', async () => {
-    // Test case
-  })
-  
-  test('quét mã vạch tự động thêm sản phẩm', async () => {
-    // Test case
-  })
-  
-  test('keyboard shortcuts hoạt động', async () => {
-    // Test case
-  })
-})
-```
-
-#### `InvoiceDetails.test.js`
-
-```javascript
-describe('InvoiceDetails', () => {
-  test('hiển thị danh sách sản phẩm', () => {
-    // Test case
-  })
-  
-  test('sửa số lượng sản phẩm', async () => {
-    // Test case
-  })
-  
-  test('xóa sản phẩm', async () => {
-    // Test case
-  })
-  
-  test('hiển thị serial đã quét', () => {
-    // Test case
-  })
-})
-```
-
-#### `ModalThanhToan.test.js`
-
-```javascript
-describe('ModalThanhToan', () => {
-  test('quét serial thành công', async () => {
-    // Test case
-  })
-  
-  test('không thể thanh toán nếu chưa quét đủ serial', async () => {
-    // Test case
-  })
-  
-  test('tính tiền thừa/thiếu đúng', () => {
-    // Test case
-  })
-})
-```
-
-### 2.3. Integration Tests
-
-#### `SalesFlow.test.js`
-
-```javascript
-describe('Sales Flow Integration', () => {
-  test('Flow hoàn chỉnh: Tạo đơn → Thêm SP → Thanh toán', async () => {
-    // Test case
-  })
-  
-  test('Flow với voucher: Tạo đơn → Áp voucher → Thanh toán', async () => {
-    // Test case
-  })
-})
-```
-
-### 2.4. Utility Tests
-
-#### `validation.test.js`
-
-```javascript
-describe('validation utilities', () => {
-  test('sanitizeInput - loại bỏ script tags', () => {
-    expect(sanitizeInput('<script>alert(1)</script>')).toBe('')
-  })
-  
-  test('validatePhoneNumber - số điện thoại hợp lệ', () => {
-    expect(validatePhoneNumber('0912345678')).toBe(true)
-  })
-  
-  test('validateQuantity - số lượng hợp lệ', () => {
-    expect(validateQuantity(5)).toBe(true)
-    expect(validateQuantity(0)).toBe(false)
-  })
-})
-```
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-## 3. Kịch Bản Kiểm Thử Thủ Công (E2E)
+## ✅ TEST CASE 2: SỬA SỐ LƯỢNG SẢN PHẨM
 
-### Kịch bản 1: Tạo hóa đơn và thanh toán cơ bản
+### 2.1. Sửa số lượng hợp lệ
+- [ ] **Bước 1**: Tạo hóa đơn và thêm sản phẩm (ví dụ: 2 cái)
+- [ ] **Bước 2**: Click nút "Sửa" (icon pencil) bên cạnh sản phẩm
+- [ ] **Bước 3**: Nhập số lượng mới (ví dụ: 5) trong modal
+- [ ] **Bước 4**: Click "Xác nhận"
+- [ ] **Kết quả mong đợi**: 
+  - Modal đóng
+  - Số lượng sản phẩm cập nhật thành 5
+  - Tổng tiền tự động cập nhật
+  - Hiển thị thông báo thành công
 
-**Mục tiêu**: Kiểm tra flow bán hàng cơ bản
+### 2.2. Sửa số lượng vượt quá tồn kho
+- [ ] **Bước 1**: Click nút "Sửa" sản phẩm có tồn kho = 3
+- [ ] **Bước 2**: Nhập số lượng = 10
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị lỗi: "Số lượng không được vượt quá tồn kho (3)"
+  - Tự động điều chỉnh về 3
+  - Nút "Xác nhận" bị disable
 
-**Bước thực hiện**:
+### 2.3. Sửa số lượng = 0 hoặc âm
+- [ ] **Bước 1**: Click nút "Sửa"
+- [ ] **Bước 2**: Nhập số lượng = 0 hoặc -1
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị lỗi validation
+  - Nút "Xác nhận" bị disable
 
-1. ✅ **Đăng nhập vào hệ thống**
-   - **Pass**: Hiển thị màn hình bán hàng
-   - **Fail**: Không đăng nhập được
+### 2.4. Keyboard shortcut (E)
+- [ ] **Bước 1**: Chọn sản phẩm đầu tiên trong hóa đơn
+- [ ] **Bước 2**: Nhấn phím `E`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal sửa số lượng cho sản phẩm đầu tiên
 
-2. ✅ **Tạo hóa đơn mới**
-   - Click "Tạo Đơn Mới"
-   - **Pass**: Hóa đơn mới xuất hiện trong danh sách chờ, tổng tiền = 0
-   - **Fail**: Không tạo được hóa đơn
-
-3. ✅ **Tìm kiếm sản phẩm**
-   - Nhập tên sản phẩm vào ô tìm kiếm
-   - **Pass**: Hiển thị danh sách sản phẩm phù hợp
-   - **Fail**: Không có kết quả hoặc lỗi
-
-4. ✅ **Thêm sản phẩm vào hóa đơn**
-   - Chọn sản phẩm, chọn biến thể, nhập số lượng = 1
-   - Click "Xác nhận"
-   - **Pass**: Sản phẩm xuất hiện trong chi tiết hóa đơn, tổng tiền cập nhật
-   - **Fail**: Không thêm được hoặc lỗi
-
-5. ✅ **Thêm khách hàng**
-   - Nhập SĐT khách hàng
-   - Chọn khách hàng từ kết quả
-   - **Pass**: Thông tin khách hàng hiển thị, điểm tích lũy hiển thị
-   - **Fail**: Không tìm thấy hoặc không gán được
-
-6. ✅ **Thanh toán**
-   - Click "THANH TOÁN"
-   - Chọn phương thức thanh toán "Tiền mặt"
-   - **Quét Serial** cho sản phẩm (bắt buộc)
-   - Nhập số tiền khách đưa
-   - Click "Xác nhận thanh toán"
-   - **Pass**: Thanh toán thành công, hóa đơn biến mất khỏi danh sách chờ
-   - **Fail**: Lỗi thanh toán hoặc không quét được serial
-
-7. ✅ **In hóa đơn**
-   - Trong "Lịch sử giao dịch", tìm hóa đơn vừa thanh toán
-   - Click "In lại hóa đơn"
-   - **Pass**: Mở hộp thoại in hoặc tải PDF
-   - **Fail**: Không in được
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-### Kịch bản 2: Quét mã vạch tự động
+## ✅ TEST CASE 3: XEM CHI TIẾT SẢN PHẨM
 
-**Mục tiêu**: Kiểm tra tính năng quét mã vạch/QR
+### 3.1. Mở modal chi tiết từ ProductSearch
+- [ ] **Bước 1**: Tìm kiếm sản phẩm trong ProductSearch
+- [ ] **Bước 2**: Click nút "Chi tiết" (icon info-circle) trên product card
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal ProductDetailModal
+  - Hiển thị ảnh sản phẩm
+  - Hiển thị thông số kỹ thuật
+  - Hiển thị danh sách biến thể
 
-**Bước thực hiện**:
+### 3.2. Chọn biến thể từ modal
+- [ ] **Bước 1**: Mở modal chi tiết sản phẩm
+- [ ] **Bước 2**: Click nút "Chọn" ở một biến thể có tồn kho > 0
+- [ ] **Kết quả mong đợi**: 
+  - Modal đóng
+  - Mở modal chọn số lượng cho biến thể đó
+  - Sau khi chọn số lượng, sản phẩm được thêm vào hóa đơn
 
-1. ✅ **Bật quét mã vạch**
-   - Click nút quét mã (biểu tượng camera)
-   - **Pass**: Camera mở, hiển thị khung quét
-   - **Fail**: Không mở được camera
+### 3.3. Keyboard shortcut (D)
+- [ ] **Bước 1**: Chọn một product card trong kết quả tìm kiếm
+- [ ] **Bước 2**: Nhấn phím `D`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal chi tiết sản phẩm
 
-2. ✅ **Quét mã vạch sản phẩm**
-   - Đưa mã vạch vào khung camera
-   - **Pass**: Tự động tìm sản phẩm và thêm vào hóa đơn, phát âm thanh
-   - **Fail**: Không nhận diện được hoặc không tìm thấy sản phẩm
-
-3. ✅ **Quét nhiều sản phẩm liên tiếp**
-   - Quét 3 sản phẩm khác nhau
-   - **Pass**: Tất cả 3 sản phẩm được thêm vào hóa đơn
-   - **Fail**: Thiếu sản phẩm hoặc lỗi
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
-
----
-
-### Kịch bản 3: Áp dụng voucher và điểm tích lũy
-
-**Mục tiêu**: Kiểm tra tính năng voucher và điểm
-
-**Bước thực hiện**:
-
-1. ✅ **Tạo hóa đơn với sản phẩm**
-   - Tạo đơn, thêm sản phẩm có tổng tiền >= 1,000,000 VND
-   - **Pass**: Tổng tiền hiển thị đúng
-
-2. ✅ **Áp dụng voucher**
-   - Click "Chọn Khuyến Mãi"
-   - Chọn voucher giảm 10%
-   - **Pass**: Voucher được áp dụng, tổng tiền giảm đúng
-   - **Fail**: Không áp dụng được hoặc tính sai
-
-3. ✅ **Sử dụng điểm tích lũy**
-   - Tích checkbox "Dùng điểm tích lũy"
-   - **Pass**: Điểm được quy đổi thành tiền, tổng tiền giảm
-   - **Fail**: Không sử dụng được điểm
-
-4. ✅ **Xóa voucher**
-   - Click nút "X" bên cạnh voucher
-   - **Pass**: Voucher bị xóa, tổng tiền tăng lại
-   - **Fail**: Không xóa được
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-### Kịch bản 4: Sửa số lượng và xóa sản phẩm
+## ✅ TEST CASE 4: QUÉT MÃ VẠCH/QR CODE
 
-**Mục tiêu**: Kiểm tra tính năng chỉnh sửa hóa đơn
+### 4.1. Quét bằng camera
+- [ ] **Bước 1**: Click nút "Quét mã vạch/QR" (icon upc-scan) trong ProductSearch
+- [ ] **Bước 2**: Đưa mã vạch/QR vào khung camera
+- [ ] **Kết quả mong đợi**: 
+  - Camera bật và quét được mã
+  - Tự động tìm sản phẩm theo mã
+  - Nếu tìm thấy, tự động thêm vào hóa đơn
+  - Hiển thị thông báo thành công
 
-**Bước thực hiện**:
+### 4.2. Nhập mã thủ công
+- [ ] **Bước 1**: Bật chế độ quét (hoặc không)
+- [ ] **Bước 2**: Nhập mã vạch/IMEI vào ô tìm kiếm
+- [ ] **Bước 3**: Nhấn Enter hoặc đợi debounce
+- [ ] **Kết quả mong đợi**: 
+  - Tự động tìm sản phẩm
+  - Nếu tìm thấy, thêm vào hóa đơn
 
-1. ✅ **Thêm sản phẩm vào hóa đơn**
-   - Thêm sản phẩm với số lượng = 1
+### 4.3. Quét liên tục
+- [ ] **Bước 1**: Bật camera quét
+- [ ] **Bước 2**: Quét nhiều mã liên tiếp
+- [ ] **Kết quả mong đợi**: 
+  - Mỗi lần quét thành công, sản phẩm được thêm vào hóa đơn
+  - Không bị lỗi khi quét nhanh
 
-2. ✅ **Sửa số lượng**
-   - Click nút "Sửa" (bút chì)
-   - Nhập số lượng mới = 3
-   - Click "Lưu thay đổi"
-   - **Pass**: Số lượng cập nhật, thành tiền cập nhật đúng
-   - **Fail**: Không sửa được hoặc tính sai
+### 4.4. Quét mã không tồn tại
+- [ ] **Bước 1**: Quét/nhập mã không có trong hệ thống
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị thông báo: "Không tìm thấy sản phẩm"
+  - Không thêm sản phẩm vào hóa đơn
 
-3. ✅ **Sửa số lượng vượt tồn kho**
-   - Sửa số lượng = 999 (vượt tồn kho)
-   - **Pass**: Hiển thị lỗi, không cho sửa
-   - **Fail**: Cho phép sửa
-
-4. ✅ **Xóa sản phẩm**
-   - Click nút "Xóa" (thùng rác)
-   - Xác nhận xóa
-   - **Pass**: Sản phẩm biến mất, tổng tiền cập nhật
-   - **Fail**: Không xóa được
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
-
----
-
-### Kịch bản 5: Giới hạn 10 hóa đơn chờ
-
-**Mục tiêu**: Kiểm tra giới hạn số lượng hóa đơn
-
-**Bước thực hiện**:
-
-1. ✅ **Tạo 10 hóa đơn chờ**
-   - Tạo liên tiếp 10 hóa đơn mới
-   - **Pass**: Tất cả 10 hóa đơn xuất hiện trong danh sách
-
-2. ✅ **Thử tạo hóa đơn thứ 11**
-   - Click "Tạo Đơn Mới"
-   - **Pass**: Hiển thị thông báo "Đã đạt giới hạn", nút bị disable
-   - **Fail**: Cho phép tạo thêm
-
-3. ✅ **Thanh toán 1 hóa đơn**
-   - Thanh toán 1 trong 10 hóa đơn
-   - **Pass**: Hóa đơn biến mất, còn 9 hóa đơn
-
-4. ✅ **Tạo hóa đơn mới sau khi thanh toán**
-   - Click "Tạo Đơn Mới"
-   - **Pass**: Tạo được hóa đơn mới (tổng = 10 hóa đơn)
-   - **Fail**: Vẫn không cho tạo
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-### Kịch bản 6: Responsive Design
+## ✅ TEST CASE 5: TÌM KIẾM NÂNG CAO
 
-**Mục tiêu**: Kiểm tra giao diện trên các thiết bị khác nhau
+### 5.1. Mở modal tìm kiếm nâng cao
+- [ ] **Bước 1**: Click nút "Tìm kiếm nâng cao" (icon funnel) trong ProductSearch
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal AdvancedProductSearch
+  - Hiển thị các bộ lọc: từ khóa, giá, tồn kho, sắp xếp
 
-**Bước thực hiện**:
+### 5.2. Lọc theo khoảng giá
+- [ ] **Bước 1**: Mở tìm kiếm nâng cao
+- [ ] **Bước 2**: Nhập giá từ: 5,000,000, giá đến: 20,000,000
+- [ ] **Bước 3**: Click "Tìm kiếm"
+- [ ] **Kết quả mong đợi**: 
+  - Chỉ hiển thị sản phẩm có giá trong khoảng 5-20 triệu
 
-1. ✅ **Desktop (1920x1080)**
-   - Mở màn hình bán hàng
-   - **Pass**: Layout 3 cột hiển thị đầy đủ, không bị cắt
+### 5.3. Lọc theo tồn kho
+- [ ] **Bước 1**: Mở tìm kiếm nâng cao
+- [ ] **Bước 2**: Chọn "Còn hàng" trong dropdown "Tình trạng tồn kho"
+- [ ] **Bước 3**: Click "Tìm kiếm"
+- [ ] **Kết quả mong đợi**: 
+  - Chỉ hiển thị sản phẩm còn tồn kho > 0
 
-2. ✅ **Tablet (768x1024)**
-   - Resize browser về tablet size
-   - **Pass**: Layout chuyển sang 1 cột, các nút đủ lớn để chạm
+### 5.4. Sắp xếp
+- [ ] **Bước 1**: Mở tìm kiếm nâng cao
+- [ ] **Bước 2**: Chọn "Giá (thấp → cao)" trong dropdown "Sắp xếp"
+- [ ] **Bước 3**: Click "Tìm kiếm"
+- [ ] **Kết quả mong đợi**: 
+  - Sản phẩm được sắp xếp theo giá tăng dần
 
-3. ✅ **Mobile (375x667)**
-   - Resize browser về mobile size
-   - **Pass**: Layout responsive, input fields đủ lớn (44px), không bị zoom khi focus
+### 5.5. Lưu bộ lọc yêu thích
+- [ ] **Bước 1**: Mở tìm kiếm nâng cao
+- [ ] **Bước 2**: Thiết lập các bộ lọc
+- [ ] **Bước 3**: Click "Lưu" trong phần "Bộ lọc yêu thích"
+- [ ] **Bước 4**: Đóng modal và mở lại
+- [ ] **Kết quả mong đợi**: 
+  - Bộ lọc đã lưu xuất hiện trong dropdown
+  - Có thể chọn và áp dụng lại
 
-**Kết quả mong đợi**: ✅ Tất cả bước pass
+### 5.6. Keyboard shortcut (Ctrl+F)
+- [ ] **Bước 1**: Ở trang bán hàng, nhấn `Ctrl+F`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal tìm kiếm nâng cao
 
----
-
-### Kịch bản 7: Validation và Bảo mật
-
-**Mục tiêu**: Kiểm tra validation input và bảo mật
-
-**Bước thực hiện**:
-
-1. ✅ **Nhập script tag vào tìm kiếm**
-   - Nhập `<script>alert(1)</script>` vào ô tìm kiếm
-   - **Pass**: Script tag bị loại bỏ, không thực thi
-   - **Fail**: Script thực thi
-
-2. ✅ **Nhập số lượng không hợp lệ**
-   - Nhập số lượng = -1 hoặc 0
-   - **Pass**: Hiển thị lỗi, không cho thêm
-   - **Fail**: Cho phép thêm
-
-3. ✅ **Nhập serial không hợp lệ**
-   - Nhập serial = "ABC" (quá ngắn)
-   - **Pass**: Hiển thị lỗi "Serial không hợp lệ"
-   - **Fail**: Chấp nhận serial không hợp lệ
-
-4. ✅ **Spam API (debounce)**
-   - Gõ liên tục vào ô tìm kiếm (10 lần/giây)
-   - **Pass**: API chỉ được gọi sau khi dừng gõ 300ms
-   - **Fail**: API được gọi mỗi lần gõ
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-### Kịch bản 8: Giảm giá đặc biệt (Quản lý)
+## ✅ TEST CASE 6: COPY HÓA ĐƠN
 
-**Mục tiêu**: Kiểm tra tính năng giảm giá đặc biệt
+### 6.1. Copy hóa đơn có sản phẩm
+- [ ] **Bước 1**: Tạo hóa đơn và thêm 3 sản phẩm
+- [ ] **Bước 2**: Gán khách hàng cho hóa đơn
+- [ ] **Bước 3**: Click nút "Copy" (icon files) trên tab hóa đơn trong TransactionTabs
+- [ ] **Kết quả mong đợi**: 
+  - Tạo hóa đơn mới
+  - Copy tất cả 3 sản phẩm vào hóa đơn mới
+  - Copy thông tin khách hàng
+  - Hóa đơn mới được chọn làm hóa đơn hiện tại
+  - Hiển thị thông báo thành công
 
-**Bước thực hiện**:
+### 6.2. Copy hóa đơn không có sản phẩm
+- [ ] **Bước 1**: Tạo hóa đơn trống (chưa thêm sản phẩm)
+- [ ] **Bước 2**: Click nút "Copy"
+- [ ] **Kết quả mong đợi**: 
+  - Tạo hóa đơn mới trống
+  - Copy thông tin khách hàng (nếu có)
 
-1. ✅ **Đăng nhập với quyền quản lý**
-   - Đăng nhập với role MANAGER/ADMIN
-   - **Pass**: Có thể thấy nút "Giảm giá đặc biệt"
+### 6.3. Copy khi đã đạt giới hạn 10 hóa đơn
+- [ ] **Bước 1**: Tạo đủ 10 hóa đơn chờ
+- [ ] **Bước 2**: Click nút "Copy" trên một hóa đơn
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị cảnh báo: "Đã đạt giới hạn tối đa 10 hóa đơn chờ"
+  - Không tạo hóa đơn mới
 
-2. ✅ **Đăng nhập với quyền nhân viên**
-   - Đăng nhập với role NHAN_VIEN
-   - **Pass**: Không thấy nút hoặc bị disable
-
-3. ✅ **Áp dụng giảm giá theo sản phẩm**
-   - Chọn sản phẩm, nhập giá trị giảm = 100,000 VND
-   - Nhập lý do: "Khách hàng VIP"
-   - Click "Xác nhận giảm giá"
-   - **Pass**: Giá sản phẩm giảm, tổng tiền cập nhật
-   - **Fail**: Không áp dụng được
-
-4. ✅ **Áp dụng giảm giá vượt giới hạn**
-   - Nhập giá trị giảm = 1,000,000 VND (vượt 50% giá sản phẩm)
-   - **Pass**: Hiển thị lỗi, không cho áp dụng
-   - **Fail**: Cho phép áp dụng
-
-**Kết quả mong đợi**: ✅ Tất cả bước pass
-
----
-
-## 4. Checklist Kiểm Thử
-
-### Functional Testing
-
-- [ ] Tạo hóa đơn mới
-- [ ] Thêm sản phẩm vào hóa đơn
-- [ ] Sửa số lượng sản phẩm
-- [ ] Xóa sản phẩm
-- [ ] Tìm kiếm sản phẩm
-- [ ] Quét mã vạch/QR
-- [ ] Tìm kiếm nâng cao
-- [ ] Quản lý khách hàng
-- [ ] Áp dụng voucher
-- [ ] Sử dụng điểm tích lũy
-- [ ] Thanh toán
-- [ ] Quét Serial/IMEI
-- [ ] In hóa đơn
-- [ ] Copy hóa đơn
-- [ ] Lưu draft
-- [ ] Giảm giá đặc biệt
-
-### UI/UX Testing
-
-- [ ] Pagination hoạt động
-- [ ] Lazy load ảnh
-- [ ] Badges hiển thị đúng
-- [ ] Keyboard shortcuts
-- [ ] Tooltip hiển thị
-- [ ] Animation mượt mà
-- [ ] Responsive design (Desktop/Tablet/Mobile)
-
-### Security Testing
-
-- [ ] Input sanitization
-- [ ] XSS protection
-- [ ] Permission check
-- [ ] API spam prevention
-
-### Performance Testing
-
-- [ ] Debounce search
-- [ ] Pagination giới hạn số bản ghi
-- [ ] Lazy load ảnh
-- [ ] Auto-save draft không lag
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-## 5. Kết luận
+## ✅ TEST CASE 7: LƯU DRAFT TỰ ĐỘNG
 
-### Nếu có test framework:
+### 7.1. Auto-save mỗi 30 giây
+- [ ] **Bước 1**: Tạo hóa đơn và thêm sản phẩm
+- [ ] **Bước 2**: Đợi 30 giây (không làm gì)
+- [ ] **Bước 3**: Mở DevTools > Application > Local Storage
+- [ ] **Kết quả mong đợi**: 
+  - Có key `banhang_draft_bills` trong localStorage
+  - Chứa thông tin hóa đơn đã tạo
 
-- **Unit tests**: ~30 test cases
-- **Component tests**: ~20 test cases
-- **Integration tests**: ~10 test cases
-- **Coverage target**: 80%+
+### 7.2. Khôi phục draft khi reload
+- [ ] **Bước 1**: Tạo hóa đơn và thêm sản phẩm
+- [ ] **Bước 2**: Reload trang (F5)
+- [ ] **Kết quả mong đợi**: 
+  - Hóa đơn được khôi phục từ localStorage (nếu backend chưa có)
+  - Hoặc load từ backend (nếu backend đã có)
+  - Hiển thị badge "Draft" trên hóa đơn chưa thanh toán
 
-### Nếu không có test framework:
+### 7.3. Manual save draft
+- [ ] **Bước 1**: Tạo hóa đơn
+- [ ] **Bước 2**: Click nút "Lưu tạm" trong InvoiceDetails
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị thông báo: "Hóa đơn đã được lưu tạm!"
+  - Lưu vào localStorage
 
-- **Manual testing**: 8 kịch bản E2E
-- **Checklist**: 30+ mục cần kiểm tra
-- **Thời gian ước tính**: 4-6 giờ cho 1 lần test đầy đủ
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
 
 ---
 
-**Cập nhật lần cuối**: 2024-12-01
+## ✅ TEST CASE 8: SALES QUICK STATS
 
+### 8.1. Hiển thị thống kê
+- [ ] **Bước 1**: Mở component SalesQuickStats (nếu có trong SalesView)
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị doanh thu hôm nay
+  - Hiển thị số đơn đã bán
+  - Hiển thị giá trị đơn trung bình
+  - Hiển thị biểu đồ doanh thu theo giờ
+  - Hiển thị top sản phẩm bán chạy
+
+### 8.2. Refresh stats
+- [ ] **Bước 1**: Click nút refresh (icon arrow-clockwise)
+- [ ] **Kết quả mong đợi**: 
+  - Reload lại dữ liệu thống kê
+  - Hiển thị loading indicator
+
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
+
+---
+
+## ✅ TEST CASE 9: RECENT TRANSACTIONS
+
+### 9.1. Hiển thị 10 giao dịch gần nhất
+- [ ] **Bước 1**: Mở component RecentTransactions
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị danh sách 10 giao dịch gần nhất
+  - Mỗi item hiển thị: mã hóa đơn, ngày, tổng tiền, trạng thái
+
+### 9.2. Tìm kiếm hóa đơn
+- [ ] **Bước 1**: Nhập mã hóa đơn vào ô tìm kiếm
+- [ ] **Bước 2**: Nhấn Enter hoặc click nút tìm
+- [ ] **Kết quả mong đợi**: 
+  - Lọc danh sách theo mã hóa đơn
+  - Hiển thị kết quả phù hợp
+
+### 9.3. Xem chi tiết giao dịch
+- [ ] **Bước 1**: Click vào một giao dịch trong danh sách
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal chi tiết hóa đơn
+  - Hiển thị đầy đủ thông tin: sản phẩm, khách hàng, thanh toán
+
+### 9.4. In lại hóa đơn
+- [ ] **Bước 1**: Click nút in (icon printer) trên một giao dịch
+- [ ] **Kết quả mong đợi**: 
+  - Mở cửa sổ mới với hóa đơn
+  - Tự động mở dialog in
+
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
+
+---
+
+## ✅ TEST CASE 10: RESPONSIVE DESIGN
+
+### 10.1. Tablet (768px - 1024px)
+- [ ] **Bước 1**: Resize browser về 1024px width
+- [ ] **Kết quả mong đợi**: 
+  - Layout vẫn hiển thị tốt
+  - Các cột không bị chồng lên nhau
+  - Buttons vẫn click được
+
+### 10.2. Mobile (< 768px)
+- [ ] **Bước 1**: Resize browser về 375px width (iPhone)
+- [ ] **Kết quả mong đợi**: 
+  - Layout chuyển sang dạng stack (cột dọc)
+  - Buttons đủ lớn để touch
+  - Text không bị cắt
+  - Modal full screen hoặc responsive
+
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
+
+---
+
+## ✅ TEST CASE 11: KEYBOARD SHORTCUTS
+
+### 11.1. Ctrl+F: Mở tìm kiếm nâng cao
+- [ ] **Bước 1**: Nhấn `Ctrl+F` ở trang bán hàng
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal AdvancedProductSearch
+
+### 11.2. Esc: Đóng modal
+- [ ] **Bước 1**: Mở một modal bất kỳ
+- [ ] **Bước 2**: Nhấn `Esc`
+- [ ] **Kết quả mong đợi**: 
+  - Modal đóng
+
+### 11.3. Enter: Chọn sản phẩm
+- [ ] **Bước 1**: Chọn một product card trong kết quả tìm kiếm
+- [ ] **Bước 2**: Nhấn `Enter`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal chọn biến thể
+
+### 11.4. D: Xem chi tiết sản phẩm
+- [ ] **Bước 1**: Chọn một product card
+- [ ] **Bước 2**: Nhấn `D`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal ProductDetailModal
+
+### 11.5. E: Sửa số lượng
+- [ ] **Bước 1**: Chọn sản phẩm đầu tiên trong hóa đơn
+- [ ] **Bước 2**: Nhấn `E`
+- [ ] **Kết quả mong đợi**: 
+  - Mở modal sửa số lượng
+
+### 11.6. Del: Xóa sản phẩm
+- [ ] **Bước 1**: Chọn sản phẩm trong hóa đơn
+- [ ] **Bước 2**: Nhấn `Delete`
+- [ ] **Kết quả mong đợi**: 
+  - Hiển thị confirm dialog
+  - Sau khi confirm, xóa sản phẩm
+
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
+
+---
+
+## ✅ TEST CASE 12: MODAL THANH TOÁN
+
+### 12.1. Preview hóa đơn
+- [ ] **Bước 1**: Tạo hóa đơn và click "Thanh toán"
+- [ ] **Kết quả mong đợi**: 
+  - Modal thanh toán mở
+  - Hiển thị preview hóa đơn ở trên
+  - Hiển thị đầy đủ sản phẩm, tổng tiền
+
+### 12.2. Quét serial và auto-focus
+- [ ] **Bước 1**: Mở modal thanh toán
+- [ ] **Bước 2**: Quét serial cho sản phẩm đầu tiên
+- [ ] **Kết quả mong đợi**: 
+  - Phát âm thanh beep khi quét thành công
+  - Tự động focus vào input serial của sản phẩm tiếp theo
+
+### 12.3. Thanh toán tiền mặt
+- [ ] **Bước 1**: Chọn phương thức "Tiền mặt"
+- [ ] **Bước 2**: Nhập số tiền khách đưa
+- [ ] **Kết quả mong đợi**: 
+  - Tự động tính tiền thừa
+  - Hiển thị số tiền trả lại
+
+### 12.4. Thanh toán thành công
+- [ ] **Bước 1**: Quét đủ serial cho tất cả sản phẩm
+- [ ] **Bước 2**: Chọn phương thức thanh toán và xác nhận
+- [ ] **Kết quả mong đợi**: 
+  - Thanh toán thành công
+  - Tự động in hóa đơn
+  - Xóa hóa đơn khỏi danh sách chờ
+  - Hiển thị thông báo thành công
+
+**Trạng thái**: ✅ PASS / ❌ FAIL  
+**Ghi chú**: ________________________________
+
+---
+
+## 📊 TỔNG KẾT TEST
+
+**Tổng số test cases**: 12  
+**Đã test**: ___ / 12  
+**Pass**: ___ / 12  
+**Fail**: ___ / 12  
+**Tỷ lệ pass**: ___%
+
+**Các lỗi phát hiện**:
+1. ________________________________
+2. ________________________________
+3. ________________________________
+
+**Ghi chú tổng thể**:
+________________________________
+________________________________
+________________________________
+
+---
+
+**Người test**: _______________  
+**Ngày hoàn thành**: _______________

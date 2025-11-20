@@ -190,7 +190,20 @@
 
 ### 7.7. Giảm giá đặc biệt (Chỉ dành cho quản lý)
 
-1. Click nút **"Giảm giá đặc biệt"** (nếu có quyền)
+**Lưu ý**: Chỉ ADMIN, QUẢN LÝ, TRƯỞNG CA mới có quyền sử dụng tính năng này.
+
+1. Trong danh sách sản phẩm của hóa đơn, click nút **"Giảm giá đặc biệt"** (biểu tượng tag) bên cạnh sản phẩm
+2. Chọn loại giảm giá:
+   - **Theo phần trăm**: Nhập % giảm (0-100%)
+   - **Theo số tiền**: Nhập số tiền giảm (không vượt quá giá gốc)
+3. Nhập **lý do giảm giá** (bắt buộc, tối thiểu 10 ký tự)
+4. Xem **giá sau giảm** được tính tự động
+5. Click **"Xác nhận giảm giá"**
+
+**Lưu ý**:
+- Giảm giá > 50% cần xác nhận từ quản lý
+- Tất cả thay đổi giá đều được ghi log để kiểm tra
+- Lý do giảm giá là bắt buộc để đảm bảo minh bạch
 2. Chọn loại giảm giá:
    - Giảm giá theo sản phẩm (tối đa 50% giá sản phẩm)
    - Giảm giá tổng hóa đơn (tối đa 20% tổng tiền)

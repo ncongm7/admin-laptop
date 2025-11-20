@@ -178,14 +178,16 @@
 
             <h6>Danh sách sản phẩm</h6>
             <div class="table-responsive">
-              <table class="table table-hover">
-                <thead>
+              <table class="table table-hover table-bordered">
+                <thead class="table-light">
                   <tr>
-                    <th>STT</th>
-                    <th>Sản phẩm</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                    <th>Thành tiền</th>
+                    <th style="width: 50px">STT</th>
+                    <th style="min-width: 180px">Mã CTSP</th>
+                    <th style="min-width: 200px">Sản phẩm</th>
+                    <th style="min-width: 150px">Thông số</th>
+                    <th class="text-center" style="width: 80px">SL</th>
+                    <th class="text-end" style="width: 120px">Đơn giá</th>
+                    <th class="text-end" style="width: 120px">Thành tiền</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -193,12 +195,48 @@
                     v-for="(item, index) in selectedTransaction.hoaDonChiTiet || selectedTransaction.chiTietList || []"
                     :key="item.id"
                   >
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ item.tenSanPham }}</td>
-                    <td>{{ item.soLuong }}</td>
-                    <td>{{ formatCurrency(item.donGia) }}</td>
-                    <!-- TODO: Backend nên trả về thanhTien, nếu không FE tính = donGia * soLuong -->
-                    <td class="fw-bold">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</td>
+                    <td class="text-center">{{ index + 1 }}</td>
+                    <td>
+                      <!-- Mã CTSP - NỔI BẬT -->
+                      <span class="ctsp-badge-small">
+                        <i class="bi bi-tag-fill me-1"></i>
+                        <code class="ctsp-code-text">{{ getCTSPCode(item) }}</code>
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{{ item.tenSanPham || item.tenSP || 'N/A' }}</strong>
+                    </td>
+                    <td>
+                      <!-- Thông số biến thể -->
+                      <div v-if="getCTSPSpecs(item)" class="ctsp-specs-cell">
+                        <div class="spec-item-small" v-if="getCTSPSpecs(item).cpu">
+                          <i class="bi bi-cpu"></i> {{ getCTSPSpecs(item).cpu }}
+                        </div>
+                        <div class="spec-item-small" v-if="getCTSPSpecs(item).ram">
+                          <i class="bi bi-memory"></i> {{ getCTSPSpecs(item).ram }}
+                        </div>
+                        <div class="spec-item-small" v-if="getCTSPSpecs(item).storage">
+                          <i class="bi bi-hdd"></i> {{ getCTSPSpecs(item).storage }}
+                        </div>
+                        <div class="spec-item-small" v-if="getCTSPSpecs(item).color">
+                          <i class="bi bi-palette"></i> {{ getCTSPSpecs(item).color }}
+                        </div>
+                      </div>
+                      <span v-else class="text-muted small">-</span>
+                      
+                      <!-- Serial numbers (nếu có) -->
+                      <div v-if="getSerialsForItem(item)" class="mt-1">
+                        <small class="text-info">
+                          <i class="bi bi-upc-scan"></i>
+                          <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx">
+                            {{ serial }}<span v-if="idx < getSerialsForItem(item).length - 1">, </span>
+                          </span>
+                        </small>
+                      </div>
+                    </td>
+                    <td class="text-center">{{ item.soLuong || 0 }}</td>
+                    <td class="text-end">{{ formatCurrency(item.donGia) }}</td>
+                    <td class="text-end fw-bold text-danger">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -311,6 +349,65 @@ const getStatusText = (transaction) => {
     return 'Đã hủy'
   }
   return 'Chưa thanh toán'
+}
+
+/**
+ * Lấy mã CTSP từ item
+ */
+const getCTSPCode = (item) => {
+  return item.maCtsp || 
+         item.maCTSP || 
+         item.maChiTietSanPham || 
+         item.chiTietSanPham?.maCTSP || 
+         item.chiTietSanPham?.maCtsp || 
+         'N/A'
+}
+
+/**
+ * Lấy thông số CTSP từ item
+ */
+const getCTSPSpecs = (item) => {
+  if (!item) return null
+  
+  const ctsp = item.chiTietSanPham || item.ctsp || item
+  const specs = {}
+  
+  if (ctsp.tenCpu || item.tenCpu) {
+    specs.cpu = ctsp.tenCpu || item.tenCpu
+  }
+  
+  if (ctsp.tenRam || item.tenRam) {
+    specs.ram = ctsp.tenRam || item.tenRam
+  }
+  
+  if (ctsp.dungLuongOCung || item.dungLuongOCung) {
+    specs.storage = ctsp.dungLuongOCung || item.dungLuongOCung
+  }
+  
+  if (ctsp.tenMauSac || item.tenMauSac) {
+    specs.color = ctsp.tenMauSac || item.tenMauSac
+  }
+  
+  return Object.keys(specs).length > 0 ? specs : null
+}
+
+/**
+ * Lấy serial numbers cho item (nếu có)
+ */
+const getSerialsForItem = (item) => {
+  // Kiểm tra từ backend response
+  if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
+    return item.serialNumbers.map(s => {
+      return s.serialNumber || s.serialNo || s.serial_no || s
+    })
+  }
+  
+  // Kiểm tra từ chiTietSanPham
+  if (item.chiTietSanPham?.serials && Array.isArray(item.chiTietSanPham.serials)) {
+    return item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s)
+  }
+  
+  return null
 }
 
 /**
@@ -604,6 +701,58 @@ onMounted(() => {
   .transaction-actions .btn {
     flex: 1;
   }
+}
+
+/* CTSP Code - NỔI BẬT */
+.ctsp-badge-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.ctsp-code-text {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* CTSP Specs */
+.ctsp-specs-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.spec-item-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  background: #f0f4ff;
+  color: #4a5568;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid #cbd5e0;
+  width: fit-content;
+}
+
+.spec-item-small i {
+  color: #667eea;
+  font-size: 0.75rem;
 }
 </style>
 

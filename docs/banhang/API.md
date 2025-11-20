@@ -553,6 +553,50 @@ Authorization: Bearer {token}
 
 ---
 
+## 8. Quản lý giá đặc biệt (Price Override)
+
+### 8.1. Cập nhật giá đặc biệt cho sản phẩm
+
+**Endpoint**: `PUT /api/v1/ban-hang/hoa-don/cap-nhat-gia-dac-biet/{idHoaDonChiTiet}`
+
+**Request Body**:
+```json
+{
+  "giaMoi": 15000000,
+  "lyDo": "Khách hàng VIP, giảm giá 10%",
+  "loaiGiamGia": "percent",
+  "giaTriGiam": 10
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "donGia": 15000000,
+    "giamGiaDacBiet": {
+      "soTienGiam": 1666666.67,
+      "lyDo": "Khách hàng VIP, giảm giá 10%",
+      "ngayTao": "2024-12-01T10:00:00",
+      "nhanVienId": "uuid"
+    }
+  }
+}
+```
+
+**Lưu ý**:
+- Chỉ ADMIN, QUANLY, TRUONGCA mới có quyền giảm giá
+- Bắt buộc phải có lý do giảm giá (tối thiểu 10 ký tự, tối đa 500 ký tự)
+- Giảm giá > 50% cần xác nhận từ quản lý
+- Tất cả thay đổi giá đều được ghi log
+
+**Service**: `TODO: Tạo service capNhatGiaDacBiet() trong hoaDonService.js`
+
+**Component**: `PriceOverrideModal.vue`
+
+---
+
 ## ⚠️ TODO - Backend cần bổ sung/đảm bảo
 
 ### 1. Điểm tích lũy (Points)

@@ -12,11 +12,16 @@
           <input
             type="text"
             class="form-control"
+            :class="{ 'is-invalid': searchError }"
             v-model="searchKeyword"
-            @input="handleSearch"
+            @input="handleSearchInput"
             placeholder="Nhập SĐT hoặc tên..."
             @keyup.enter="searchCustomer"
+            maxlength="100"
           />
+          <div v-if="searchError" class="invalid-feedback d-block small">
+            {{ searchError }}
+          </div>
           <button class="btn btn-outline-secondary" @click="searchCustomer">
             <i class="bi bi-search"></i>
           </button>
@@ -111,6 +116,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { timKiemKhachHang } from '@/service/banhang/banHangService'
+import { sanitizeInput, debounce as debounceUtil } from '@/utils/validation'
 
 const props = defineProps({
   customer: {
@@ -127,6 +133,7 @@ const searchResults = ref([])
 const showSearchResults = ref(false)
 const isSearching = ref(false)
 const selectedCustomer = ref(null)
+const searchError = ref('')
 
 // Debounce timer
 let searchTimeout = null
@@ -153,7 +160,19 @@ watch(
 )
 
 // Methods
-const handleSearch = () => {
+const handleSearchInput = () => {
+  // Sanitize input
+  searchKeyword.value = sanitizeInput(searchKeyword.value)
+  
+  // Validate
+  searchError.value = ''
+  
+  if (searchKeyword.value.length > 100) {
+    searchError.value = 'Từ khóa tìm kiếm không được vượt quá 100 ký tự'
+    return
+  }
+  
+  // Clear previous timeout
   clearTimeout(searchTimeout)
 
   if (!searchKeyword.value || searchKeyword.value.trim().length < 2) {
@@ -162,9 +181,14 @@ const handleSearch = () => {
     return
   }
 
+  // Debounce search
   searchTimeout = setTimeout(() => {
     searchCustomer()
   }, 300)
+}
+
+const handleSearch = () => {
+  handleSearchInput()
 }
 
 const searchCustomer = async () => {

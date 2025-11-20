@@ -54,6 +54,31 @@ export const getHoaDonDetail = async (idHoaDon) => {
 }
 
 /**
+ * Lấy số lượng hóa đơn theo trạng thái
+ * @returns {Promise} { total, CHO_THANH_TOAN, DA_THANH_TOAN, DA_HUY, DANG_GIAO, HOAN_THANH }
+ */
+export const getHoaDonStatusCounts = async () => {
+    try {
+        console.log('📊 [HoaDonService] Lấy số lượng hóa đơn theo trạng thái')
+        
+        // TODO: Backend cần tạo endpoint GET /api/v1/hoa-don/status-counts
+        // Tạm thời return null để fallback về client-side calculation
+        const response = await axiosInstance.get(`${API_BASE}/status-counts`)
+        
+        console.log('✅ [HoaDonService] Status counts:', response.data)
+        return response.data
+    } catch (error) {
+        // Nếu API chưa có, fallback về null để dùng client-side
+        if (error.response?.status === 404) {
+            console.warn('⚠️ [HoaDonService] API status-counts chưa có, dùng client-side calculation')
+            return null
+        }
+        console.error('❌ [HoaDonService] Lỗi khi lấy status counts:', error)
+        throw error
+    }
+}
+
+/**
  * Xác nhận đơn hàng online
  * @param {String} idHoaDon - UUID của hóa đơn
  * @param {String} nhanVienId - UUID của nhân viên (optional)

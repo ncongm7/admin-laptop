@@ -16,12 +16,7 @@
 
                 <!-- Body -->
                 <div class="modal-body" v-if="loading">
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-3">Đang tải chi tiết hóa đơn...</p>
-                    </div>
+                    <SkeletonLoader type="card" :lines="8" :line-widths="['100%', '80%', '100%', '60%', '100%', '90%', '100%', '70%']" />
                 </div>
 
                 <div class="modal-body" v-else-if="error">
@@ -152,22 +147,63 @@
                             <table class="table table-bordered table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>#</th>
-                                        <th>Mã CTSP</th>
-                                        <th>Tên sản phẩm</th>
-                                        <th class="text-center">Số lượng</th>
-                                        <th class="text-end">Đơn giá</th>
-                                        <th class="text-end">Thành tiền</th>
+                                        <th style="width: 50px">#</th>
+                                        <th style="min-width: 200px">Mã CTSP & Thông tin</th>
+                                        <th style="min-width: 250px">Tên sản phẩm</th>
+                                        <th style="min-width: 150px">Thông số biến thể</th>
+                                        <th class="text-center" style="width: 100px">SL</th>
+                                        <th class="text-end" style="width: 120px">Đơn giá</th>
+                                        <th class="text-end" style="width: 120px">Thành tiền</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, index) in hoaDon.chiTietList" :key="item.id">
-                                        <td>{{ index + 1 }}</td>
-                                        <td class="fw-semibold">{{ item.maCtsp }}</td>
-                                        <td>{{ item.tenSanPham }}</td>
-                                        <td class="text-center">{{ item.soLuong }}</td>
+                                    <tr v-for="(item, index) in hoaDon.chiTietList || hoaDon.hoaDonChiTiet || []" :key="item.id">
+                                        <td class="text-center">{{ index + 1 }}</td>
+                                        <td>
+                                            <!-- Mã CTSP - NỔI BẬT -->
+                                            <div class="ctsp-code-cell">
+                                                <span class="ctsp-badge-small">
+                                                    <i class="bi bi-tag-fill me-1"></i>
+                                                    <code class="ctsp-code-text">{{ getCTSPCode(item) }}</code>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="product-name-cell">
+                                                <strong>{{ item.tenSanPham || item.tenSP || 'N/A' }}</strong>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <!-- Thông số biến thể -->
+                                            <div v-if="getCTSPSpecs(item)" class="ctsp-specs-cell">
+                                                <div class="spec-item-small" v-if="getCTSPSpecs(item).cpu">
+                                                    <i class="bi bi-cpu"></i> {{ getCTSPSpecs(item).cpu }}
+                                                </div>
+                                                <div class="spec-item-small" v-if="getCTSPSpecs(item).ram">
+                                                    <i class="bi bi-memory"></i> {{ getCTSPSpecs(item).ram }}
+                                                </div>
+                                                <div class="spec-item-small" v-if="getCTSPSpecs(item).storage">
+                                                    <i class="bi bi-hdd"></i> {{ getCTSPSpecs(item).storage }}
+                                                </div>
+                                                <div class="spec-item-small" v-if="getCTSPSpecs(item).color">
+                                                    <i class="bi bi-palette"></i> {{ getCTSPSpecs(item).color }}
+                                                </div>
+                                            </div>
+                                            <span v-else class="text-muted small">-</span>
+                                            
+                                            <!-- Serial numbers (nếu có) -->
+                                            <div v-if="getSerialsForItem(item)" class="mt-1">
+                                                <small class="text-info">
+                                                    <i class="bi bi-upc-scan"></i>
+                                                    <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx">
+                                                        {{ serial }}<span v-if="idx < getSerialsForItem(item).length - 1">, </span>
+                                                    </span>
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">{{ item.soLuong || 0 }}</td>
                                         <td class="text-end">{{ formatCurrency(item.donGia) }}</td>
-                                        <td class="text-end fw-semibold">{{ formatCurrency(item.thanhTien) }}</td>
+                                        <td class="text-end fw-semibold text-danger">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -239,6 +275,9 @@
                     <button type="button" class="btn btn-primary" @click="printInvoice">
                         <i class="bi bi-printer"></i> In hóa đơn
                     </button>
+                    <button type="button" class="btn btn-info text-white" @click="openSendEmail">
+                        <i class="bi bi-envelope"></i> Gửi email
+                    </button>
                 </div>
             </div>
         </div>
@@ -248,6 +287,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getHoaDonDetail } from '@/service/hoaDonService'
+import { inHoaDon } from '@/service/banhang/hoaDonService'
+import { useToast } from '@/composables/useToast'
+import SkeletonLoader from '@/components/common/SkeletonLoader.vue'
+import SendEmailModal from './SendEmailModal.vue'
 
 const props = defineProps({
     idHoaDon: {
@@ -261,6 +304,44 @@ const emit = defineEmits(['close'])
 const hoaDon = ref(null)
 const loading = ref(false)
 const error = ref(null)
+
+// Serial/IMEI view
+const expandedSerials = ref({})
+
+const toggleSerialView = (index) => {
+  expandedSerials.value[index] = !expandedSerials.value[index]
+}
+
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    showSuccess('Đã copy vào clipboard!')
+  } catch (err) {
+    console.error('Lỗi khi copy:', err)
+    showError('Không thể copy!')
+  }
+}
+
+// Send email
+const showSendEmailModal = ref(false)
+
+const openSendEmail = () => {
+  if (!hoaDon.value) {
+    showError('Không có thông tin hóa đơn!')
+    return
+  }
+  showSendEmailModal.value = true
+}
+
+const closeSendEmailModal = () => {
+  showSendEmailModal.value = false
+}
+
+const handleEmailSent = () => {
+  closeSendEmailModal()
+}
+
+const { success: showSuccess, error: showError } = useToast()
 
 // Load data
 onMounted(async () => {
@@ -287,8 +368,41 @@ const close = () => {
     emit('close')
 }
 
-const printInvoice = () => {
-    alert('Chức năng in hóa đơn đang được phát triển!')
+const printInvoice = async () => {
+    if (!hoaDon.value?.id) {
+        showError('Không có thông tin hóa đơn để in!')
+        return
+    }
+    
+    try {
+        const blob = await inHoaDon(hoaDon.value.id)
+        
+        const url = URL.createObjectURL(blob)
+        const printWindow = window.open(url, '_blank')
+        
+        if (printWindow) {
+            printWindow.onload = () => {
+                printWindow.print()
+                setTimeout(() => {
+                    URL.revokeObjectURL(url)
+                }, 1000)
+            }
+            showSuccess('Đang mở hộp thoại in...')
+        } else {
+            // Fallback: download
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `HoaDon_${hoaDon.value.ma || hoaDon.value.id}.html`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+            showSuccess('Đã tải hóa đơn thành công!')
+        }
+    } catch (err) {
+        console.error('❌ Lỗi khi in hóa đơn:', err)
+        showError('Không thể in hóa đơn. Vui lòng thử lại!')
+    }
 }
 
 const formatCurrency = (value) => {
@@ -332,6 +446,65 @@ const getStatusBadgeClass = (trangThai) => {
     }
     return classes[trangThai] || 'bg-secondary'
 }
+
+/**
+ * Lấy mã CTSP từ item
+ */
+const getCTSPCode = (item) => {
+    return item.maCtsp || 
+           item.maCTSP || 
+           item.maChiTietSanPham || 
+           item.chiTietSanPham?.maCTSP || 
+           item.chiTietSanPham?.maCtsp || 
+           'N/A'
+}
+
+/**
+ * Lấy thông số CTSP từ item
+ */
+const getCTSPSpecs = (item) => {
+    if (!item) return null
+    
+    const ctsp = item.chiTietSanPham || item.ctsp || item
+    const specs = {}
+    
+    if (ctsp.tenCpu || item.tenCpu) {
+        specs.cpu = ctsp.tenCpu || item.tenCpu
+    }
+    
+    if (ctsp.tenRam || item.tenRam) {
+        specs.ram = ctsp.tenRam || item.tenRam
+    }
+    
+    if (ctsp.dungLuongOCung || item.dungLuongOCung) {
+        specs.storage = ctsp.dungLuongOCung || item.dungLuongOCung
+    }
+    
+    if (ctsp.tenMauSac || item.tenMauSac) {
+        specs.color = ctsp.tenMauSac || item.tenMauSac
+    }
+    
+    return Object.keys(specs).length > 0 ? specs : null
+}
+
+/**
+ * Lấy serial numbers cho item (nếu có)
+ */
+const getSerialsForItem = (item) => {
+    // Kiểm tra từ backend response
+    if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
+        return item.serialNumbers.map(s => {
+            return s.serialNumber || s.serialNo || s.serial_no || s
+        })
+    }
+    
+    // Kiểm tra từ chiTietSanPham
+    if (item.chiTietSanPham?.serials && Array.isArray(item.chiTietSanPham.serials)) {
+        return item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s)
+    }
+    
+    return null
+}
 </script>
 
 <style scoped>
@@ -354,6 +527,67 @@ const getStatusBadgeClass = (trangThai) => {
 
 .table td, .table th {
     vertical-align: middle;
+}
+
+/* CTSP Code - NỔI BẬT */
+.ctsp-code-cell {
+    padding: 0.25rem 0;
+}
+
+.ctsp-badge-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.6rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.ctsp-code-text {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* CTSP Specs */
+.ctsp-specs-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.spec-item-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.4rem;
+    background: #f0f4ff;
+    color: #4a5568;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid #cbd5e0;
+    width: fit-content;
+}
+
+.spec-item-small i {
+    color: #667eea;
+    font-size: 0.75rem;
+}
+
+.product-name-cell {
+    font-weight: 600;
+    color: #212529;
 }
 </style>
 
