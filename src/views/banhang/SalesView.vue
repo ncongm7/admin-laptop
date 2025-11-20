@@ -4,6 +4,14 @@
     <div class="sales-header">
       <h2 class="page-title"><i class="bi bi-shop"></i> Bán hàng tại quầy</h2>
       <div class="header-actions">
+        <!-- Nút in hóa đơn (chỉ hiện khi có hóa đơn) -->
+        <InvoicePrint
+          v-if="hoaDonHienTai"
+          :hoaDon="hoaDonHienTai"
+          :allowDraft="true"
+          @printed="handleInvoicePrinted"
+          class="me-2"
+        />
         <button
           class="btn btn-success btn-lg"
           @click="taoHoaDonMoi"
@@ -28,6 +36,7 @@
             @select-bill="chonHoaDon"
             @remove-bill="xoaHoaDonCho"
             @create-new="taoHoaDonMoi"
+            @copy-bill="handleCopyBill"
           />
 
           <!-- Thông tin Khách hàng -->
@@ -56,6 +65,7 @@
             @complete-payment="openPaymentModal"
             @save-draft="handleSaveDraft"
             @cancel-bill="handleCancelBill"
+            @update-item="handleUpdateItem"
           />
         </div>
       </div>
@@ -187,6 +197,7 @@ import InvoiceDetails from '@/components/banhang/InvoiceDetails.vue'
 import CustomerInfo from '@/components/banhang/CustomerInfo.vue'
 import ModalThanhToan from '@/components/banhang/ModalThanhToan.vue'
 import VoucherSuggestionModal from '@/components/banhang/VoucherSuggestionModal.vue'
+import InvoicePrint from '@/components/banhang/InvoicePrint.vue'
 import KhachHangFormDN from '@/components/taikhoan/khachhang/KhachHangFormDN.vue'
 import './SalesView.css'
 
@@ -219,6 +230,9 @@ const {
   loadDanhSachHoaDonCho,
   capNhatHoaDon,
   xoaHoaDonSauThanhToan,
+  copyBill,
+  startAutoSave,
+  stopAutoSave,
 } = useBillManagement()
 
 // ==================== QUẢN LÝ SẢN PHẨM ====================
@@ -378,6 +392,24 @@ const handleRemoveVoucher = async () => {
   }
 }
 
+// Xử lý cập nhật sản phẩm (sửa số lượng)
+const handleUpdateItem = (updatedHoaDon) => {
+  if (updatedHoaDon) {
+    capNhatHoaDon(updatedHoaDon)
+  }
+}
+
+// Xử lý copy hóa đơn
+const handleCopyBill = async (sourceBill) => {
+  await copyBill(sourceBill)
+}
+
+// Xử lý sau khi in hóa đơn
+const handleInvoicePrinted = () => {
+  // Có thể thêm logic sau khi in hóa đơn (ví dụ: log, thông báo, etc.)
+  console.log('✅ Đã in hóa đơn:', hoaDonHienTai.value?.ma || hoaDonHienTai.value?.id)
+}
+
 // ==================== COMPUTED - TRẠNG THÁI LOADING TỔNG HỢP ====================
 const isLoading = computed(() => {
   return (
@@ -405,5 +437,14 @@ onMounted(async () => {
 
   // Load danh sách hóa đơn chờ
   await loadDanhSachHoaDonCho()
+
+  // Bật auto-save draft
+  startAutoSave()
+})
+
+// Cleanup khi unmount
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  stopAutoSave()
 })
 </script>

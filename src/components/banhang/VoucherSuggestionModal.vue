@@ -165,17 +165,15 @@ const loadVoucherSuggestions = async () => {
 
         console.log('📦 [VoucherSuggestionModal] Response từ API:', response)
 
-        // Parse response - ResponseObject có cấu trúc: { isSuccess: true, data: [...], message: "..." }
-        // axios response.data đã là ResponseObject rồi, nên cần lấy response.data.data
+        // Parse response - layGoiYVoucher đã return response.data (là ResponseObject)
+        // ResponseObject có cấu trúc: { isSuccess: true, data: [...], message: "..." }
+        // Vậy response đã là ResponseObject, cần lấy response.data
         let vouchersData = null
         if (response?.data && Array.isArray(response.data)) {
-            // Nếu response.data là array trực tiếp
+            // Nếu response.data là array (ResponseObject.data)
             vouchersData = response.data
-        } else if (response?.data?.data && Array.isArray(response.data.data)) {
-            // Nếu response.data là ResponseObject { data: [...] }
-            vouchersData = response.data.data
         } else if (Array.isArray(response)) {
-            // Nếu response là array trực tiếp
+            // Nếu response là array trực tiếp (fallback)
             vouchersData = response
         } else {
             vouchersData = []

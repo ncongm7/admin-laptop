@@ -25,10 +25,18 @@ export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon) {
 
       const response = await apDungVoucher(hoaDonHienTai.value.id, payload)
 
+      // apDungVoucher return response.data (là ResponseObject)
+      // ResponseObject có cấu trúc: { isSuccess: true, data: HoaDonResponse, message: "..." }
+      // Cần lấy response.data để lấy HoaDonResponse
       if (response && response.data) {
         // Cập nhật hóa đơn
         capNhatHoaDon(response.data)
 
+        showSuccess('Áp dụng voucher thành công!')
+        console.log('Voucher đã áp dụng:', idPhieuGiamGia || voucherCode)
+      } else if (response) {
+        // Fallback: nếu response là HoaDonResponse trực tiếp
+        capNhatHoaDon(response)
         showSuccess('Áp dụng voucher thành công!')
         console.log('Voucher đã áp dụng:', idPhieuGiamGia || voucherCode)
       }
@@ -66,10 +74,18 @@ export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon) {
 
       const response = await suDungDiemTichLuy(hoaDonHienTai.value.id, payload)
 
+      // suDungDiemTichLuy return response.data (là ResponseObject)
+      // ResponseObject có cấu trúc: { isSuccess: true, data: HoaDonResponse, message: "..." }
+      // Cần lấy response.data để lấy HoaDonResponse
       if (response && response.data) {
         // Cập nhật hóa đơn
         capNhatHoaDon(response.data)
 
+        showSuccess(`Sử dụng ${points} điểm tích lũy thành công!`)
+        console.log('Điểm tích lũy đã sử dụng:', points)
+      } else if (response) {
+        // Fallback: nếu response là HoaDonResponse trực tiếp
+        capNhatHoaDon(response)
         showSuccess(`Sử dụng ${points} điểm tích lũy thành công!`)
         console.log('Điểm tích lũy đã sử dụng:', points)
       }

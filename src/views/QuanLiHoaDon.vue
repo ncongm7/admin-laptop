@@ -226,6 +226,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { getHoaDons, xacNhanDonHang as xacNhanDonHangAPI, huyDonHang as huyDonHangAPI } from '@/service/hoaDonService'
+import { inHoaDon } from '@/service/banhang/hoaDonService'
+import { useToast } from '@/composables/useToast'
 import ChiTietHoaDonModal from '@/components/hoadon/ChiTietHoaDonModal.vue'
 
 // State
@@ -395,8 +397,80 @@ const closeDetailModal = () => {
   selectedHoaDonId.value = null
 }
 
-const printInvoice = (hoaDon) => {
-  alert(`In hóa đơn: ${hoaDon.ma}`)
+// Toast
+const { success: showSuccess, error: showError } = useToast()
+
+/**
+ * In hóa đơn
+ */
+const printInvoice = async (hoaDon) => {
+  if (!hoaDon?.id) {
+    showError('Không có thông tin hóa đơn để in!')
+    return
+  }
+
+  try {
+    const blob = await inHoaDon(hoaDon.id)
+
+    // Backend trả về HTML, không phải PDF
+    const contentType = blob.type || 'text/html'
+    const isHTML = contentType.includes('html') || contentType.includes('text')
+
+    if (isHTML) {
+      const url = URL.createObjectURL(blob)
+      const printWindow = window.open(url, '_blank')
+
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print()
+          setTimeout(() => {
+            URL.revokeObjectURL(url)
+          }, 1000)
+        }
+      } else {
+        // Fallback: download nếu popup bị chặn
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `HoaDon_${hoaDon.ma || hoaDon.id}.html`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        showSuccess('Đã tải hóa đơn về máy!')
+        return
+      }
+
+      showSuccess('Đang mở hộp thoại in...')
+    } else {
+      // Fallback cho PDF nếu backend thay đổi
+      const url = URL.createObjectURL(blob)
+      const printWindow = window.open(url, '_blank')
+
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print()
+          setTimeout(() => {
+            URL.revokeObjectURL(url)
+          }, 1000)
+        }
+      } else {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `HoaDon_${hoaDon.ma || hoaDon.id}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        showSuccess('Đã tải hóa đơn về máy!')
+        return
+      }
+
+      showSuccess('Đang mở hộp thoại in...')
+    }
+  } catch (err) {
+    console.error('❌ Lỗi khi in hóa đơn:', err)
+    showError('Không thể in hóa đơn. Vui lòng thử lại!')
+  }
 }
 
 const scanQR = () => {

@@ -1,9 +1,9 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
-import { taoHoaDonChoMoi, layDanhSachHoaDonCho, huyHoaDon } from '@/service/banhang/banHangService'
+import { taoHoaDonChoMoi, layDanhSachHoaDonCho, huyHoaDon, themSanPhamVaoHoaDon, capNhatKhachHang } from '@/service/banhang/banHangService'
 
 /**
  * Chuẩn hóa dữ liệu hóa đơn từ backend về format frontend
@@ -37,6 +37,11 @@ export function useBillManagement() {
   const danhSachHoaDonCho = ref([])
   const hoaDonHienTai = ref(null)
   const isLoading = ref(false)
+  
+  // Auto-save draft
+  let autoSaveInterval = null
+  const AUTO_SAVE_INTERVAL = 30000 // 30 giây
+  const DRAFT_STORAGE_KEY = 'banhang_draft_bills'
 
   /**
    * Số lượng hóa đơn chờ tối đa
@@ -194,16 +199,106 @@ export function useBillManagement() {
   }
 
   /**
-   * Lưu tạm hóa đơn
+   * Lưu tạm hóa đơn vào localStorage
+   */
+  const saveDraftToLocalStorage = () => {
+    try {
+      const drafts = danhSachHoaDonCho.value.map((bill) => ({
+        id: bill.id,
+        ma: bill.ma,
+        khachHang: bill.khachHang,
+        hoaDonChiTiet: bill.hoaDonChiTiet || [],
+        tongTien: bill.tongTien || 0,
+        tongTienSauGiam: bill.tongTienSauGiam || bill.tongTien || 0,
+        idPhieuGiamGia: bill.idPhieuGiamGia || null,
+        tienDuocGiam: bill.tienDuocGiam || 0,
+        savedAt: new Date().toISOString(),
+      }))
+      
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts))
+      console.log('💾 [Draft] Đã lưu', drafts.length, 'hóa đơn tạm vào localStorage')
+    } catch (error) {
+      console.error('❌ [Draft] Lỗi khi lưu draft:', error)
+    }
+  }
+
+  /**
+   * Khôi phục hóa đơn tạm từ localStorage
+   */
+  const restoreDraftsFromLocalStorage = async () => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY)
+      if (!saved) {
+        console.log('💾 [Draft] Không có draft nào được lưu')
+        return
+      }
+
+      const drafts = JSON.parse(saved)
+      if (!Array.isArray(drafts) || drafts.length === 0) {
+        console.log('💾 [Draft] Danh sách draft trống')
+        return
+      }
+
+      console.log('💾 [Draft] Đang khôi phục', drafts.length, 'hóa đơn tạm...')
+
+      // Load danh sách hóa đơn chờ từ backend trước
+      await loadDanhSachHoaDonCho()
+
+      // Kiểm tra xem các draft có còn tồn tại trên backend không
+      // Nếu có, không cần khôi phục từ localStorage
+      // Nếu không, có thể hiển thị thông báo hoặc bỏ qua
+      
+      // Xóa draft cũ sau khi đã load từ backend
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
+      console.log('💾 [Draft] Đã xóa draft cũ sau khi load từ backend')
+    } catch (error) {
+      console.error('❌ [Draft] Lỗi khi khôi phục draft:', error)
+    }
+  }
+
+  /**
+   * Lưu tạm hóa đơn (manual)
    */
   const handleSaveDraft = () => {
-    console.log('Lưu tạm hóa đơn')
-    // Hóa đơn đã tự động lưu tạm khi tạo mới (trang_thai = 0)
+    if (!hoaDonHienTai.value) {
+      showWarning('Chưa có hóa đơn để lưu!')
+      return
+    }
+
+    saveDraftToLocalStorage()
     showSuccess('Hóa đơn đã được lưu tạm!')
   }
 
   /**
-   * Load danh sách hóa đơn chờ
+   * Bật auto-save draft
+   */
+  const startAutoSave = () => {
+    // Dừng interval cũ nếu có
+    stopAutoSave()
+
+    // Tạo interval mới
+    autoSaveInterval = setInterval(() => {
+      if (danhSachHoaDonCho.value.length > 0) {
+        saveDraftToLocalStorage()
+      }
+    }, AUTO_SAVE_INTERVAL)
+
+    console.log('⏰ [Draft] Đã bật auto-save (mỗi', AUTO_SAVE_INTERVAL / 1000, 'giây)')
+  }
+
+  /**
+   * Dừng auto-save draft
+   */
+  const stopAutoSave = () => {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+      autoSaveInterval = null
+      console.log('⏰ [Draft] Đã tắt auto-save')
+    }
+  }
+
+  /**
+   * Load danh sách hóa đơn chờ (có khôi phục draft nếu cần)
    */
   const loadDanhSachHoaDonCho = async () => {
     const nhanVienId = authStore.getUserId
@@ -304,11 +399,25 @@ export function useBillManagement() {
 
       console.log('✅ Đã load', danhSachHoaDonCho.value.length, 'hóa đơn chờ')
       console.log('🎯 Hóa đơn hiện tại:', hoaDonHienTai.value)
+
+      // Đánh dấu các hóa đơn là draft (nếu chưa thanh toán)
+      danhSachHoaDonCho.value.forEach((bill) => {
+        if (bill.trangThaiThanhToan === 0 || bill.trangThai === 'CHO_THANH_TOAN') {
+          bill.isDraft = true
+        }
+      })
+
+      // Khôi phục draft từ localStorage nếu không có hóa đơn từ backend
+      if (danhSachHoaDonCho.value.length === 0) {
+        await restoreDraftsFromLocalStorage()
+      }
     } catch (error) {
       console.error('❌ Lỗi khi load danh sách hóa đơn chờ:', error)
       console.error('Error response:', error.response?.data)
       console.error('Error message:', error.message)
-      // Không hiển thị alert để không làm phiền user khi vào trang
+      
+      // Nếu lỗi, thử khôi phục từ localStorage
+      await restoreDraftsFromLocalStorage()
     }
   }
 
@@ -319,6 +428,11 @@ export function useBillManagement() {
     // Chuẩn hóa dữ liệu trước khi cập nhật
     const normalizedBill = normalizeHoaDon(updatedBill)
 
+    // Đánh dấu là draft nếu chưa thanh toán
+    if (normalizedBill.trangThaiThanhToan === 0 || normalizedBill.trangThai === 'CHO_THANH_TOAN') {
+      normalizedBill.isDraft = true
+    }
+
     // Cập nhật hóa đơn hiện tại
     hoaDonHienTai.value = normalizedBill
 
@@ -327,6 +441,9 @@ export function useBillManagement() {
     if (index > -1) {
       danhSachHoaDonCho.value[index] = normalizedBill
     }
+
+    // Tự động lưu draft sau khi cập nhật
+    saveDraftToLocalStorage()
   }
 
   /**
@@ -342,6 +459,102 @@ export function useBillManagement() {
 
     // Chọn hóa đơn tiếp theo hoặc để trống
     hoaDonHienTai.value = danhSachHoaDonCho.value[0] || null
+  }
+
+  /**
+   * Copy hóa đơn chờ thành hóa đơn mới
+   * Giữ nguyên sản phẩm và khách hàng, reset trạng thái thanh toán
+   */
+  const copyBill = async (sourceBill) => {
+    if (!sourceBill) {
+      showError('Không có hóa đơn để copy!')
+      return
+    }
+
+    // Kiểm tra giới hạn
+    if (daDatGioiHan.value) {
+      showWarning(
+        `Đã đạt giới hạn tối đa ${MAX_HOA_DON_CHO} hóa đơn chờ! Vui lòng thanh toán hoặc xóa bớt hóa đơn chờ.`,
+      )
+      return
+    }
+
+    const nhanVienId = authStore.getUserId
+    if (!nhanVienId) {
+      showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại!')
+      router.push('/login')
+      return
+    }
+
+    isLoading.value = true
+    try {
+      // 1. Tạo hóa đơn mới
+      const payload = {
+        nhanVienId: nhanVienId,
+        khachHangId: sourceBill.khachHang?.id || sourceBill.khachHangId || null,
+      }
+
+      console.log('📋 [copyBill] Tạo hóa đơn mới từ hóa đơn:', sourceBill.id)
+      const response = await taoHoaDonChoMoi(payload)
+
+      if (!response || !response.data) {
+        throw new Error('Không thể tạo hóa đơn mới!')
+      }
+
+      const newBill = normalizeHoaDon(response.data)
+      console.log('✅ [copyBill] Đã tạo hóa đơn mới:', newBill.id)
+
+      // 2. Copy sản phẩm từ hóa đơn cũ
+      const chiTietList = sourceBill.hoaDonChiTiet || sourceBill.chiTietList || []
+      
+      if (chiTietList.length > 0) {
+        console.log(`📦 [copyBill] Đang copy ${chiTietList.length} sản phẩm...`)
+        
+        for (const item of chiTietList) {
+          try {
+            const addProductPayload = {
+              chiTietSanPhamId: item.idChiTietSanPham || item.chiTietSanPham?.id,
+              soLuong: item.soLuong || 1,
+            }
+
+            const addResponse = await themSanPhamVaoHoaDon(newBill.id, addProductPayload)
+            
+            if (addResponse && addResponse.data) {
+              // Cập nhật newBill với dữ liệu mới nhất
+              newBill = normalizeHoaDon(addResponse.data)
+            }
+          } catch (error) {
+            console.error(`❌ [copyBill] Lỗi khi copy sản phẩm ${item.id}:`, error)
+            // Tiếp tục copy các sản phẩm khác
+          }
+        }
+      }
+
+      // 3. Copy khách hàng (nếu có)
+      if (sourceBill.khachHang?.id || sourceBill.khachHangId) {
+        try {
+          await capNhatKhachHang(newBill.id, {
+            khachHangId: sourceBill.khachHang?.id || sourceBill.khachHangId,
+          })
+          console.log('✅ [copyBill] Đã copy thông tin khách hàng')
+        } catch (error) {
+          console.error('❌ [copyBill] Lỗi khi copy khách hàng:', error)
+          // Không throw, vì khách hàng không bắt buộc
+        }
+      }
+
+      // 4. Thêm vào danh sách và chọn hóa đơn mới
+      danhSachHoaDonCho.value.push(newBill)
+      hoaDonHienTai.value = newBill
+
+      console.log('✅ [copyBill] Copy hóa đơn thành công!')
+      showSuccess(`Đã copy hóa đơn thành công! (${chiTietList.length} sản phẩm)`)
+    } catch (error) {
+      console.error('❌ [copyBill] Lỗi khi copy hóa đơn:', error)
+      showError(error.response?.data?.message || 'Không thể copy hóa đơn. Vui lòng thử lại!')
+    } finally {
+      isLoading.value = false
+    }
   }
 
   return {
@@ -360,5 +573,10 @@ export function useBillManagement() {
     loadDanhSachHoaDonCho,
     capNhatHoaDon,
     xoaHoaDonSauThanhToan,
+    copyBill,
+    handleSaveDraft,
+    startAutoSave,
+    stopAutoSave,
   }
 }
+

@@ -80,6 +80,10 @@
           </div>
 
           <!-- Điểm tích lũy -->
+          <!-- 
+            TODO: Backend cần map tich_diem.tong_diem từ DB vào khachHang.diemTichLuy
+            DB không có cột diem_tich_luy trong bảng khach_hang, điểm được lưu trong bảng tich_diem
+          -->
           <div class="customer-points-badge">
             <i class="bi bi-star-fill text-warning"></i>
             <span class="fw-bold">{{ selectedCustomer.diemTichLuy || 0 }}</span> điểm
