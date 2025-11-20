@@ -234,12 +234,48 @@
       <button class="btn btn-success" @click="printInvoice">In hóa đơn</button>
     </div>
   </div>
+
+  <!-- Update Invoice Modal -->
+  <UpdateInvoiceModal
+    v-if="showUpdateModal && invoice"
+    :invoice="invoice"
+    @close="closeUpdateModal"
+    @updated="handleInvoiceUpdated"
+  />
+
+  <!-- History Modal -->
+  <div v-if="showHistoryModal && invoice" class="modal-backdrop fade show" @click="closeHistoryModal"></div>
+  <div v-if="showHistoryModal && invoice" class="modal fade show d-block" tabindex="-1" style="z-index: 9999;" @click.self="closeHistoryModal">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-clock-history"></i> Lịch sử hóa đơn {{ invoice?.ma || code }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" @click="closeHistoryModal"></button>
+        </div>
+        <div class="modal-body">
+          <InvoiceHistoryTimeline :invoice-id="invoice.id" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeHistoryModal">
+            <i class="bi bi-x-circle"></i> Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useInvoiceStore } from '@/stores/invoiceStore'
+import { getHoaDonDetail, capNhatTrangThai } from '@/service/hoaDonService'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import UpdateInvoiceModal from './UpdateInvoiceModal.vue'
+import InvoiceHistoryTimeline from './InvoiceHistoryTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -300,38 +336,176 @@ const goBack = () => {
   router.push('/quan-li-hoa-don')
 }
 
-const prevStep = () => {
-  if (currentStep.value > 0) {
-    if (confirm('Bạn có chắc muốn hoàn tác trạng thái hóa đơn này?')) {
-      invoiceStore.updateInvoiceStatus(code, steps[currentStep.value - 1].status)
+const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+const { showConfirm } = useConfirm()
+const { handleError: handleErrorWithRetry } = useErrorHandler()
+
+const prevStep = async () => {
+  if (currentStep.value > 0 && invoice.value) {
+    const confirmed = await showConfirm({
+      title: 'Hoàn tác trạng thái',
+      message: 'Bạn có chắc muốn hoàn tác trạng thái hóa đơn này?',
+      confirmText: 'Hoàn tác',
+      cancelText: 'Hủy',
+      type: 'warning'
+    })
+    
+    if (confirmed) {
+      try {
+        const prevStepData = steps[currentStep.value - 1]
+        const response = await capNhatTrangThai(invoice.value.id, prevStepData.backendStatus)
+        invoice.value = response.data
+        showSuccess('Đã hoàn tác trạng thái thành công!')
+      } catch (error) {
+        await handleErrorWithRetry(
+          error,
+          () => prevStep(),
+          'Không thể hoàn tác trạng thái. Vui lòng thử lại!',
+          { showRetry: true, maxRetries: 2 }
+        )
+      }
     }
   }
 }
 
-const nextStep = () => {
-  if (currentStep.value < steps.length - 1) {
-    if (confirm('Bạn có chắc muốn chuyển sang trạng thái tiếp theo?')) {
-      invoiceStore.updateInvoiceStatus(code, steps[currentStep.value + 1].status)
+const nextStep = async () => {
+  if (currentStep.value < steps.length - 1 && invoice.value) {
+    const confirmed = await showConfirm({
+      title: 'Xác nhận chuyển trạng thái',
+      message: 'Bạn có chắc muốn chuyển sang trạng thái tiếp theo?',
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy',
+      type: 'info'
+    })
+    
+    if (confirmed) {
+      try {
+        const nextStepData = steps[currentStep.value + 1]
+        const response = await capNhatTrangThai(invoice.value.id, nextStepData.backendStatus)
+        invoice.value = response.data
+        showSuccess('Đã chuyển trạng thái thành công!')
+      } catch (error) {
+        await handleErrorWithRetry(
+          error,
+          () => nextStep(),
+          'Không thể chuyển trạng thái. Vui lòng thử lại!',
+          { showRetry: true, maxRetries: 2 }
+        )
+      }
     }
   }
 }
 
-const cancelInvoice = () => {
-  if (confirm('Bạn có chắc muốn hủy hóa đơn này?')) {
-    invoiceStore.updateInvoiceStatus(code, 'cancelled')
+const cancelInvoice = async () => {
+  if (!invoice.value) return
+  
+  const confirmed = await showConfirm({
+    title: 'Hủy hóa đơn',
+    message: 'Bạn có chắc muốn hủy hóa đơn này?',
+    confirmText: 'Hủy đơn',
+    cancelText: 'Không',
+    type: 'danger'
+  })
+  
+  if (confirmed) {
+    try {
+      const response = await capNhatTrangThai(invoice.value.id, 2) // 2 = DA_HUY
+      invoice.value = response.data
+      showSuccess('Đã hủy hóa đơn thành công!')
+    } catch (error) {
+      await handleErrorWithRetry(
+        error,
+        () => cancelInvoice(),
+        'Không thể hủy hóa đơn. Vui lòng thử lại!',
+        { showRetry: true, maxRetries: 2 }
+      )
+    }
   }
 }
+
+// Update invoice modal
+const showUpdateModal = ref(false)
 
 const updateInvoice = () => {
-  alert('Chức năng Cập nhật đang được phát triển!')
+  if (!invoice.value) {
+    showError('Không có thông tin hóa đơn!')
+    return
+  }
+  showUpdateModal.value = true
 }
 
-const printInvoice = () => {
-  alert('Chức năng In hóa đơn đang được phát triển!')
+const closeUpdateModal = () => {
+  showUpdateModal.value = false
 }
+
+const handleInvoiceUpdated = (updatedInvoice) => {
+  invoice.value = updatedInvoice
+  showUpdateModal.value = false
+}
+
+const printInvoice = async () => {
+  try {
+    const { inHoaDon } = await import('@/service/banhang/hoaDonService')
+    const invoiceId = invoice.value?.id || code
+    
+    if (!invoiceId) {
+      showError('Không có thông tin hóa đơn để in!')
+      return
+    }
+    
+    const blob = await inHoaDon(invoiceId)
+    const url = URL.createObjectURL(blob)
+    const printWindow = window.open(url, '_blank')
+    
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print()
+        setTimeout(() => {
+          URL.revokeObjectURL(url)
+        }, 1000)
+      }
+    } else {
+      showError('Không thể mở cửa sổ in. Vui lòng kiểm tra popup blocker!')
+    }
+  } catch (error) {
+    console.error('❌ Lỗi khi in hóa đơn:', error)
+    showError('Không thể in hóa đơn. Vui lòng thử lại!')
+  }
+}
+
+// Update invoice modal
+const showUpdateModal = ref(false)
+
+const updateInvoice = () => {
+  if (!invoice.value) {
+    showError('Không có thông tin hóa đơn!')
+    return
+  }
+  showUpdateModal.value = true
+}
+
+const closeUpdateModal = () => {
+  showUpdateModal.value = false
+}
+
+const handleInvoiceUpdated = (updatedInvoice) => {
+  invoice.value = updatedInvoice
+  showUpdateModal.value = false
+}
+
+// Invoice history
+const showHistoryModal = ref(false)
 
 const viewHistory = () => {
-  alert('Chuyển sang trang lịch sử hóa đơn')
+  if (!invoice.value) {
+    showError('Không có thông tin hóa đơn!')
+    return
+  }
+  showHistoryModal.value = true
+}
+
+const closeHistoryModal = () => {
+  showHistoryModal.value = false
 }
 
 const formatDateTime = (dateStr) => {

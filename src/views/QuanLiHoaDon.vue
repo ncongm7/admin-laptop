@@ -1,5 +1,6 @@
 <template>
   <div class="invoice-management">
+    <style v-html="quickViewTooltipStyles"></style>
     <!-- Header -->
     <div class="header d-flex justify-content-between align-items-center mb-3">
       <h2 class="fw-bold">Quản lý đơn hàng</h2>
@@ -47,10 +48,63 @@
             <button class="btn btn-dark btn-sm rounded-pill" @click="scanQR">
               <i class="bi bi-qr-code-scan me-1"></i> Quét QR
             </button>
+            <button class="btn btn-dark btn-sm rounded-pill" @click="openAdvancedSearch">
+              <i class="bi bi-funnel me-1"></i> Tìm kiếm nâng cao
+            </button>
             <button class="btn btn-dark btn-sm rounded-pill" @click="exportExcel">
               <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div v-if="selectedIds.length > 0" class="bulk-actions-bar mb-3 p-3 bg-primary text-white rounded">
+      <div class="d-flex justify-content-between align-items-center">
+        <span>
+          <i class="bi bi-check-square"></i> Đã chọn <strong>{{ selectedIds.length }}</strong> hóa đơn
+        </span>
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-light btn-sm"
+            @click="handleBulkConfirm"
+            :disabled="isBulkProcessing"
+          >
+            <span v-if="isBulkProcessing" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="bi bi-check-circle"></i>
+            Xác nhận hàng loạt
+          </button>
+          <button
+            class="btn btn-light btn-sm"
+            @click="handleBulkCancel"
+            :disabled="isBulkProcessing"
+          >
+            <span v-if="isBulkProcessing" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="bi bi-x-circle"></i>
+            Hủy hàng loạt
+          </button>
+          <button
+            class="btn btn-light btn-sm"
+            @click="exportExcel(true)"
+            :disabled="isBulkProcessing"
+          >
+            <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+          </button>
+          <button
+            class="btn btn-light btn-sm"
+            @click="printBulkInvoices"
+            :disabled="isBulkProcessing"
+          >
+            <i class="bi bi-printer"></i> In hàng loạt
+          </button>
+          <button
+            class="btn btn-light btn-sm"
+            @click="selectedIds = []"
+            :disabled="isBulkProcessing"
+          >
+            <i class="bi bi-x"></i> Bỏ chọn
+          </button>
         </div>
       </div>
     </div>
@@ -220,15 +274,32 @@
 
     <!-- Modal chi tiết -->
     <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal" />
+    
+    <!-- QR Scanner Modal -->
+    <QRScannerModal v-if="showQRScanner" @close="closeQRScanner" @invoice-found="handleInvoiceFound" />
+    
+    <!-- Advanced Search Modal -->
+    <AdvancedSearchModal
+      v-if="showAdvancedSearch"
+      :model-value="advancedFilters"
+      @close="closeAdvancedSearch"
+      @search="handleAdvancedSearch"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getHoaDons, xacNhanDonHang as xacNhanDonHangAPI, huyDonHang as huyDonHangAPI } from '@/service/hoaDonService'
+import { getHoaDons, xacNhanDonHang as xacNhanDonHangAPI, huyDonHang as huyDonHangAPI, getHoaDonStatusCounts, copyInvoice as copyInvoiceAPI } from '@/service/hoaDonService'
 import { inHoaDon } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import ChiTietHoaDonModal from '@/components/hoadon/ChiTietHoaDonModal.vue'
+import QRScannerModal from '@/components/hoadon/QRScannerModal.vue'
+import AdvancedSearchModal from '@/components/hoadon/AdvancedSearchModal.vue'
+import InvoiceStats from '@/components/hoadon/InvoiceStats.vue'
+import SkeletonLoader from '@/components/common/SkeletonLoader.vue'
 
 // State
 const hoaDons = ref([])
@@ -247,9 +318,53 @@ const pageSize = ref(10)
 const totalPages = ref(0)
 const totalElements = ref(0)
 
+// Status counts
+const statusCountsData = ref(null)
+const isLoadingCounts = ref(false)
+
+// Toast & Confirm
+const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+const { showConfirm } = useConfirm()
+const { handleError: handleErrorWithRetry } = useErrorHandler()
+
+// Keyboard shortcuts
+const handleKeyPress = (event) => {
+  // Ctrl/Cmd + F: Focus search
+  if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+    event.preventDefault()
+    document.querySelector('input[type="text"]')?.focus()
+  }
+  
+  // Ctrl/Cmd + E: Export Excel
+  if ((event.ctrlKey || event.metaKey) && event.key === 'e') {
+    event.preventDefault()
+    exportExcel()
+  }
+  
+  // Esc: Close modals
+  if (event.key === 'Escape') {
+    if (showDetailModal.value) closeDetailModal()
+    if (showQRScanner.value) closeQRScanner()
+    if (showAdvancedSearch.value) closeAdvancedSearch()
+  }
+  
+  // Enter: Search (when in search input)
+  if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+    handleSearch()
+  }
+}
+
 // Load data khi component mount
 onMounted(() => {
   fetchHoaDons()
+  loadStatusCounts()
+  window.addEventListener('keydown', handleKeyPress)
+})
+
+// Cleanup
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyPress)
 })
 
 // Reload khi thay đổi page
@@ -282,10 +397,20 @@ const fetchHoaDons = async () => {
     totalPages.value = pageData.totalPages || 0
     totalElements.value = pageData.totalElements || 0
 
+    // Cache response
+    apiCache.set(cacheKey, {
+      data: response,
+      timestamp: Date.now()
+    })
+
     console.log('✅ Loaded hóa đơn:', hoaDons.value.length)
   } catch (error) {
-    console.error('❌ Lỗi khi load hóa đơn:', error)
-    alert('Không thể tải danh sách hóa đơn. Vui lòng thử lại!')
+    await handleErrorWithRetry(
+      error,
+      () => fetchHoaDons(), // Retry function
+      'Không thể tải danh sách hóa đơn. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 3 }
+    )
   } finally {
     loading.value = false
   }
@@ -310,15 +435,63 @@ const mapStatusToNumber = (status) => {
 }
 
 /**
+ * Load status counts từ API
+ */
+const loadStatusCounts = async () => {
+  isLoadingCounts.value = true
+  try {
+    const response = await getHoaDonStatusCounts()
+    if (response && response.data) {
+      statusCountsData.value = response.data
+    } else {
+      // Fallback về client-side nếu API chưa có
+      statusCountsData.value = null
+    }
+  } catch (error) {
+    console.warn('⚠️ Không thể load status counts từ API, dùng client-side:', error)
+    statusCountsData.value = null
+  } finally {
+    isLoadingCounts.value = false
+  }
+}
+
+/**
  * Tính số lượng hóa đơn theo trạng thái (cho tabs)
+ * Ưu tiên dùng data từ API, fallback về client-side calculation
  */
 const statusCounts = computed(() => {
-  // TODO: Backend cần API riêng để lấy counts, tạm thời dùng client-side
-  const counts = { total: hoaDons.value.length }
+  // Nếu có data từ API, dùng data đó
+  if (statusCountsData.value) {
+    return statusCountsData.value
+  }
+  
+  // Fallback: tính từ dữ liệu hiện tại (chỉ trang hiện tại)
+  const counts = { 
+    total: totalElements.value || hoaDons.value.length,
+    processing: 0,
+    confirmed: 0,
+    delivering: 0,
+    shipping: 0,
+    delivered: 0,
+    done: 0,
+    cancelled: 0
+  }
+  
   hoaDons.value.forEach(hd => {
     const status = hd.trangThai
-    counts[status] = (counts[status] || 0) + 1
+    if (status === 'CHO_THANH_TOAN' || status === 0) counts.processing++
+    else if (status === 'DA_THANH_TOAN' || status === 1) counts.confirmed++
+    else if (status === 'DANG_GIAO' || status === 3) {
+      counts.delivering++
+      counts.shipping++
+    }
+    else if (status === 'HOAN_THANH' || status === 4) {
+      counts.delivered++
+      counts.done++
+    }
+    else if (status === 'DA_HUY' || status === 2) counts.cancelled++
   })
+  
   return counts
 })
 
@@ -403,6 +576,41 @@ const { success: showSuccess, error: showError } = useToast()
 /**
  * In hóa đơn
  */
+const copyInvoice = async (hoaDon) => {
+  if (!hoaDon?.id) {
+    showError('Không có thông tin hóa đơn để sao chép!')
+    return
+  }
+
+  const confirmed = await showConfirm({
+    title: 'Sao chép hóa đơn',
+    message: `Bạn có muốn sao chép hóa đơn ${hoaDon.ma}? Hóa đơn mới sẽ có trạng thái "Chờ thanh toán".`,
+    confirmText: 'Sao chép',
+    cancelText: 'Hủy',
+    type: 'info'
+  })
+
+  if (!confirmed) return
+
+  try {
+    const response = await copyInvoiceAPI(hoaDon.id)
+    showSuccess('Sao chép hóa đơn thành công!')
+    fetchHoaDons()
+    // Mở hóa đơn mới nếu có
+    if (response?.data?.id) {
+      selectedHoaDonId.value = response.data.id
+      showDetailModal.value = true
+    }
+  } catch (error) {
+    await handleErrorWithRetry(
+      error,
+      () => copyInvoice(hoaDon),
+      'Không thể sao chép hóa đơn. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 }
+    )
+  }
+}
+
 const printInvoice = async (hoaDon) => {
   if (!hoaDon?.id) {
     showError('Không có thông tin hóa đơn để in!')
@@ -473,12 +681,98 @@ const printInvoice = async (hoaDon) => {
   }
 }
 
+// QR Scanner
+const showQRScanner = ref(false)
+
 const scanQR = () => {
-  alert('Chức năng Quét QR đang được phát triển!')
+  showQRScanner.value = true
 }
 
-const exportExcel = () => {
-  alert('Chức năng Xuất Excel đang được phát triển!')
+const closeQRScanner = () => {
+  showQRScanner.value = false
+}
+
+const handleInvoiceFound = (invoice) => {
+  // Mở modal chi tiết khi tìm thấy hóa đơn
+  selectedHoaDonId.value = invoice.id
+  showDetailModal.value = true
+  closeQRScanner()
+}
+
+// Advanced Search
+const showAdvancedSearch = ref(false)
+const advancedFilters = ref({})
+
+const openAdvancedSearch = () => {
+  showAdvancedSearch.value = true
+}
+
+const closeAdvancedSearch = () => {
+  showAdvancedSearch.value = false
+}
+
+const handleAdvancedSearch = (filters) => {
+  advancedFilters.value = filters
+  currentPage.value = 0
+  fetchHoaDons()
+  closeAdvancedSearch()
+}
+
+const exportExcel = async () => {
+  try {
+    // Import xlsx dynamically
+    const XLSX = await import('xlsx')
+    
+    // Prepare data
+    const exportData = hoaDons.value.map((hd, index) => ({
+      'STT': index + 1,
+      'Mã HĐ': hd.ma || '',
+      'Khách hàng': hd.khachHang?.hoTen || hd.tenKhachHang || 'Khách lẻ',
+      'SĐT': hd.khachHang?.soDienThoai || hd.soDienThoai || '',
+      'Loại HĐ': hd.loaiHoaDon === 0 ? 'Tại quầy' : hd.loaiHoaDon === 1 ? 'Online' : '',
+      'Nhân viên': hd.nhanVien?.hoTen || '',
+      'Mã NV': hd.nhanVien?.maNhanVien || '',
+      'Ngày tạo': hd.ngayTao ? new Date(hd.ngayTao).toLocaleString('vi-VN') : '',
+      'Trạng thái': getTrangThaiLabel(hd.trangThai),
+      'Tổng tiền': hd.tongTien || 0,
+      'Đã thanh toán': hd.trangThaiThanhToan === 1 ? 'Có' : 'Chưa'
+    }))
+
+    // Create workbook
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(exportData)
+
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },   // STT
+      { wch: 18 },  // Mã HĐ
+      { wch: 25 },  // Khách hàng
+      { wch: 12 },  // SĐT
+      { wch: 12 },  // Loại HĐ
+      { wch: 20 },  // Nhân viên
+      { wch: 10 },  // Mã NV
+      { wch: 20 },  // Ngày tạo
+      { wch: 15 },  // Trạng thái
+      { wch: 15 },  // Tổng tiền
+      { wch: 12 }   // Đã thanh toán
+    ]
+    ws['!cols'] = colWidths
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách hóa đơn')
+
+    // Generate filename
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const filename = `Danh_sach_hoa_don_${dateStr}.xlsx`
+
+    // Export
+    XLSX.writeFile(wb, filename)
+    
+    showSuccess(`Đã xuất Excel thành công! (${exportData.length} hóa đơn)`)
+  } catch (error) {
+    console.error('❌ Lỗi khi xuất Excel:', error)
+    showError('Không thể xuất Excel. Vui lòng thử lại!')
+  }
 }
 
 const resetFilters = () => {
@@ -489,26 +783,39 @@ const resetFilters = () => {
   activeStatusTab.value = ''
   currentPage.value = 0
   fetchHoaDons()
+  loadStatusCounts() // Reload counts khi reset
 }
 
 /**
  * Xác nhận đơn hàng online
  */
 const xacNhanDonHang = async (hoaDon) => {
-  if (!confirm(`Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\nLưu ý: Hệ thống sẽ trừ kho khi xác nhận.`)) {
+  const confirmed = await showConfirm({
+    title: 'Xác nhận đơn hàng',
+    message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\nLưu ý: Hệ thống sẽ trừ kho khi xác nhận.`,
+    confirmText: 'Xác nhận',
+    cancelText: 'Hủy',
+    type: 'warning'
+  })
+
+  if (!confirmed) {
     return
   }
 
   try {
     await xacNhanDonHangAPI(hoaDon.id)
-    alert('✅ Xác nhận đơn hàng thành công!')
+    showSuccess('Xác nhận đơn hàng thành công!')
     fetchHoaDons() // Reload danh sách
     if (showDetailModal.value && selectedHoaDonId.value === hoaDon.id) {
       closeDetailModal()
     }
   } catch (error) {
-    console.error('❌ Lỗi khi xác nhận đơn hàng:', error)
-    alert('❌ Không thể xác nhận đơn hàng: ' + (error.response?.data?.message || error.message || 'Lỗi không xác định'))
+    await handleErrorWithRetry(
+      error,
+      () => xacNhanDonHang(hoaDon), // Retry function
+      error.response?.data?.message || error.message || 'Không thể xác nhận đơn hàng. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 }
+    )
   }
 }
 
@@ -516,20 +823,32 @@ const xacNhanDonHang = async (hoaDon) => {
  * Hủy đơn hàng online
  */
 const huyDonHang = async (hoaDon) => {
-  if (!confirm(`Bạn có chắc chắn muốn hủy đơn hàng ${hoaDon.ma}?`)) {
+  const confirmed = await showConfirm({
+    title: 'Hủy đơn hàng',
+    message: `Bạn có chắc chắn muốn hủy đơn hàng ${hoaDon.ma}?`,
+    confirmText: 'Hủy đơn',
+    cancelText: 'Không',
+    type: 'danger'
+  })
+
+  if (!confirmed) {
     return
   }
 
   try {
     await huyDonHangAPI(hoaDon.id)
-    alert('✅ Hủy đơn hàng thành công!')
+    showSuccess('Hủy đơn hàng thành công!')
     fetchHoaDons() // Reload danh sách
     if (showDetailModal.value && selectedHoaDonId.value === hoaDon.id) {
       closeDetailModal()
     }
   } catch (error) {
-    console.error('❌ Lỗi khi hủy đơn hàng:', error)
-    alert('❌ Không thể hủy đơn hàng: ' + (error.response?.data?.message || error.message || 'Lỗi không xác định'))
+    await handleErrorWithRetry(
+      error,
+      () => huyDonHang(hoaDon), // Retry function
+      error.response?.data?.message || error.message || 'Không thể hủy đơn hàng. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 }
+    )
   }
 }
 

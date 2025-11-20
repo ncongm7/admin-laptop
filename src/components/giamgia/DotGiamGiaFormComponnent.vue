@@ -8,17 +8,58 @@
         <input class="form-control" v-model="form.tenKm" :disabled="isDetail" />
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Giá trị (VND) *</label>
+      <div class="col-md-3">
+        <label class="form-label">Hình thức giảm *</label>
+        <select
+          class="form-select"
+          v-model.number="form.loaiDotGiamGia"
+          :disabled="isDetail"
+          @change="onChangeLoai"
+        >
+          <option :value="1">%</option>
+          <option :value="2">VND</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Hoạt động</label>
+        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
+          <option :value="1">Bật</option>
+          <option :value="0">Tắt</option>
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Giá trị giảm *</label>
         <input
           type="number"
           class="form-control"
           v-model.number="form.giaTri"
+          :min="0"
+          :max="form.loaiDotGiamGia === 1 ? 100 : undefined"
+          :step="form.loaiDotGiamGia === 1 ? 0.01 : 1"
           :disabled="isDetail"
         />
-        <small v-if="form.giaTri" class="text-muted d-block mt-1"
-          >{{ showCurrency(form.giaTri) }} VND</small
-        >
+        <!-- Preview -->
+        <small class="text-muted">
+          {{
+            form.loaiDotGiamGia === 1
+              ? `${(+form.giaTri || 0).toLocaleString('vi-VN')}%`
+              : vndFormat(+form.giaTri || 0)
+          }}
+        </small>
+      </div>
+
+      <div class="col-md-4" v-if="showCap">
+        <label class="form-label">Số tiền giảm tối đa</label>
+        <input
+          type="number"
+          class="form-control"
+          v-model.number="form.soTienGiamToiDa"
+          :min="0"
+          :disabled="isDetail"
+        />
+        <small class="text-muted">{{ showCurrency(form.soTienGiamToiDa) }}</small>
       </div>
 
       <div class="col-md-6">
@@ -41,14 +82,6 @@
         />
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Hoạt động</label>
-        <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
-        </select>
-      </div>
-
       <div class="col-12">
         <label class="form-label">Mô tả</label>
         <textarea class="form-control" rows="3" v-model="form.moTa" :disabled="isDetail"></textarea>
@@ -63,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getDotGiamGiaById,
@@ -75,19 +108,49 @@ import { useToast } from '@/composables/useToast'
 const route = useRoute()
 const router = useRouter()
 
-const { success: showSuccess, error: showError } = useToast()
+const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 
 const mode = ref('add')
 const id = route.params.id
 
 const form = ref({
   tenKm: '',
+  loaiDotGiamGia: 1, // 1: %, 2: VND
   giaTri: 0,
+  soTienGiamToiDa: 0,
   moTa: '',
   ngayBatDau: '', // 'yyyy-MM-ddTHH:mm'
   ngayKetThuc: '',
   trangThai: 1    // 1=Bật, 0=Tắt
 })
+
+// Hiển thị ô "Số tiền giảm tối đa" chỉ khi loại = 1 (%)
+const showCap = computed(() => form.value.loaiDotGiamGia === 1)
+
+function onChangeLoai() {
+  if (Number(form.value.loaiDotGiamGia) === 2) {
+    // VND: ẩn ô và set cap = giá trị giảm (BE cũng sẽ set lại)
+    form.value.soTienGiamToiDa = form.value.giaTri || 0
+  } else {
+    // %: hiện ô, reset về 0
+    form.value.soTienGiamToiDa = 0
+  }
+}
+
+watch(
+  () => form.value.loaiDotGiamGia,
+  () => onChangeLoai(),
+  { immediate: true },
+)
+
+watch(
+  () => form.value.giaTri,
+  (v) => {
+    if (Number(form.value.loaiDotGiamGia) === 2) {
+      form.value.soTienGiamToiDa = v || 0
+    }
+  },
+)
 
 /** =======================
  *  Helpers chuyển đổi thời gian
@@ -120,7 +183,9 @@ onMounted(async () => {
     const data = res?.data ?? res ?? {}
     form.value = {
       tenKm: data.tenKm,
+      loaiDotGiamGia: data.loaiDotGiamGia ?? 2, // Mặc định VND nếu null (dữ liệu cũ)
       giaTri: data.giaTri,
+      soTienGiamToiDa: data.soTienGiamToiDa || 0,
       moTa: data.moTa,
       ngayBatDau: instantToLocalInput(data.ngayBatDau),
       ngayKetThuc: instantToLocalInput(data.ngayKetThuc),
@@ -141,23 +206,53 @@ const title = computed(() =>
 function normalizedPayload() {
   return {
     ...form.value,
+    loaiDotGiamGia: Number(form.value.loaiDotGiamGia),
     giaTri: Number(form.value.giaTri),
+    soTienGiamToiDa: Number(form.value.soTienGiamToiDa || 0),
     trangThai: Number(form.value.trangThai),
     ngayBatDau: toInstantISOString(form.value.ngayBatDau),
     ngayKetThuc: toInstantISOString(form.value.ngayKetThuc),
   }
 }
 
+function precheck() {
+  if (!form.value.tenKm?.trim()) {
+    showWarning('Vui lòng nhập tên khuyến mãi')
+    return false
+  }
+  if (!form.value.ngayBatDau || !form.value.ngayKetThuc) {
+    showWarning('Vui lòng chọn ngày bắt đầu và ngày kết thúc')
+    return false
+  }
+  if (Number(form.value.loaiDotGiamGia) === 1) {
+    // %: validate 0-100
+    const v = +form.value.giaTri || 0
+    if (v < 0 || v > 100) {
+      showWarning('Giá trị giảm (%) phải trong khoảng 0–100')
+      return false
+    }
+  } else {
+    // VND: validate >= 0
+    const v = +form.value.giaTri || 0
+    if (v < 0) {
+      showWarning('Giá trị giảm (VND) phải >= 0')
+      return false
+    }
+  }
+  return true
+}
+
 const save = async () => {
   try {
+    if (!precheck()) return
     const payload = normalizedPayload()
     let resp
     if (mode.value === 'add') {
       resp = await addDotGiamGia(payload)
-      alert(resp?.message || 'Thêm thành công!')
+      showSuccess(resp?.message || 'Thêm thành công!')
     } else if (mode.value === 'edit') {
       resp = await updateDotGiamGia(payload, id)
-      alert(resp?.message || 'Cập nhật thành công!')
+      showSuccess(resp?.message || 'Cập nhật thành công!')
     }
     router.push('/quan-li-giam-gia')
   } catch (e) {
@@ -176,4 +271,11 @@ const showCurrency = (v) => {
   if (isNaN(number)) return String(v)
   return new Intl.NumberFormat('vi-VN').format(number)
 }
+
+const vndFormat = (n) =>
+  new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(n)
 </script>

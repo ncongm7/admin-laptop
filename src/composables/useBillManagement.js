@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { taoHoaDonChoMoi, layDanhSachHoaDonCho, huyHoaDon, themSanPhamVaoHoaDon, capNhatKhachHang } from '@/service/banhang/banHangService'
+import { layThongTinHoaDon } from '@/service/banhang/hoaDonService'
 
 /**
  * Chuẩn hóa dữ liệu hóa đơn từ backend về format frontend
@@ -501,32 +502,58 @@ export function useBillManagement() {
         throw new Error('Không thể tạo hóa đơn mới!')
       }
 
-      const newBill = normalizeHoaDon(response.data)
+      let newBill = normalizeHoaDon(response.data)
       console.log('✅ [copyBill] Đã tạo hóa đơn mới:', newBill.id)
 
       // 2. Copy sản phẩm từ hóa đơn cũ
       const chiTietList = sourceBill.hoaDonChiTiet || sourceBill.chiTietList || []
+      
+      // Khai báo biến đếm bên ngoài để có thể sử dụng sau này
+      let successCount = 0
+      let failCount = 0
       
       if (chiTietList.length > 0) {
         console.log(`📦 [copyBill] Đang copy ${chiTietList.length} sản phẩm...`)
         
         for (const item of chiTietList) {
           try {
+            // Lấy idChiTietSanPham từ nhiều nguồn có thể
+            const idChiTietSanPham = item.idChiTietSanPham || 
+                                     item.chiTietSanPham?.id || 
+                                     item.idCtsp ||
+                                     item.chiTietSanPhamId
+            
+            if (!idChiTietSanPham) {
+              console.warn(`⚠️ [copyBill] Sản phẩm ${item.id} không có idChiTietSanPham, bỏ qua`)
+              failCount++
+              continue
+            }
+            
             const addProductPayload = {
-              chiTietSanPhamId: item.idChiTietSanPham || item.chiTietSanPham?.id,
+              chiTietSanPhamId: idChiTietSanPham,
               soLuong: item.soLuong || 1,
             }
 
             const addResponse = await themSanPhamVaoHoaDon(newBill.id, addProductPayload)
             
             if (addResponse && addResponse.data) {
+              successCount++
               // Cập nhật newBill với dữ liệu mới nhất
               newBill = normalizeHoaDon(addResponse.data)
+            } else {
+              failCount++
             }
           } catch (error) {
             console.error(`❌ [copyBill] Lỗi khi copy sản phẩm ${item.id}:`, error)
+            failCount++
             // Tiếp tục copy các sản phẩm khác
           }
+        }
+        
+        console.log(`📦 [copyBill] Đã copy ${successCount}/${chiTietList.length} sản phẩm thành công`)
+        
+        if (failCount > 0) {
+          showWarning(`Đã copy ${successCount} sản phẩm, ${failCount} sản phẩm không thể copy`)
         }
       }
 
@@ -543,12 +570,45 @@ export function useBillManagement() {
         }
       }
 
-      // 4. Thêm vào danh sách và chọn hóa đơn mới
+      // 4. Reload lại hóa đơn mới để có đầy đủ thông tin (sau khi đã copy sản phẩm)
+      // Chỉ reload nếu đã copy được ít nhất 1 sản phẩm thành công
+      if (successCount > 0) {
+        try {
+          const reloadResponse = await layThongTinHoaDon(newBill.id)
+          if (reloadResponse && reloadResponse.data) {
+            const reloadedBill = normalizeHoaDon(reloadResponse.data)
+            // Đảm bảo reset trạng thái thanh toán
+            reloadedBill.trangThaiThanhToan = 0
+            reloadedBill.trangThai = 'CHO_THANH_TOAN'
+            reloadedBill.isDraft = true
+            
+            // Cập nhật newBill với dữ liệu đầy đủ
+            newBill = reloadedBill
+            console.log('✅ [copyBill] Đã reload hóa đơn với đầy đủ thông tin')
+          }
+        } catch (error) {
+          console.warn('⚠️ [copyBill] Không thể reload hóa đơn, sử dụng dữ liệu hiện có:', error)
+          // Vẫn tiếp tục với newBill hiện tại
+          newBill.trangThaiThanhToan = 0
+          newBill.trangThai = 'CHO_THANH_TOAN'
+          newBill.isDraft = true
+        }
+      } else {
+        // Nếu không copy được sản phẩm nào, vẫn đảm bảo reset trạng thái
+        newBill.trangThaiThanhToan = 0
+        newBill.trangThai = 'CHO_THANH_TOAN'
+        newBill.isDraft = true
+      }
+
+      // 5. Thêm vào danh sách và chọn hóa đơn mới
       danhSachHoaDonCho.value.push(newBill)
       hoaDonHienTai.value = newBill
 
+      // 6. Lưu draft
+      saveDraftToLocalStorage()
+
       console.log('✅ [copyBill] Copy hóa đơn thành công!')
-      showSuccess(`Đã copy hóa đơn thành công! (${chiTietList.length} sản phẩm)`)
+      showSuccess(`Đã copy hóa đơn thành công! (${chiTietList.length} sản phẩm, ${newBill.khachHang ? 'có khách hàng' : 'không có khách hàng'})`)
     } catch (error) {
       console.error('❌ [copyBill] Lỗi khi copy hóa đơn:', error)
       showError(error.response?.data?.message || 'Không thể copy hóa đơn. Vui lòng thử lại!')

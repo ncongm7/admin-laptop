@@ -27,7 +27,8 @@
         <tr>
           <th>#</th>
           <th>Tên Đợt</th>
-          <th>Giá trị (VND)</th>
+          <th>Loại</th>
+          <th>Giá trị</th>
           <th>Mô tả</th>
           <th>Bắt đầu</th>
           <th>Kết thúc</th>
@@ -41,7 +42,19 @@
         <tr v-for="(it, idx) in paged" :key="it.id">
           <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
           <td>{{ it.tenKm }}</td>
-          <td>{{ showCurrency(it.giaTri) }}</td>
+          <td>
+            <span v-if="it.loaiDotGiamGia === 1" class="badge bg-info">%</span>
+            <span v-else class="badge bg-secondary">VND</span>
+          </td>
+          <td>
+            <span v-if="it.loaiDotGiamGia === 1">
+              {{ (+it.giaTri || 0).toLocaleString('vi-VN') }}%
+              <span v-if="it.soTienGiamToiDa" class="text-muted small">
+                (tối đa {{ showCurrency(it.soTienGiamToiDa) }})
+              </span>
+            </span>
+            <span v-else>{{ showCurrency(it.giaTri) }} VND</span>
+          </td>
           <td>{{ it.moTa }}</td>
           <td>{{ showDate(it.ngayBatDau) }}</td>
           <td>{{ showDate(it.ngayKetThuc) }}</td>
@@ -70,7 +83,7 @@
           </td>
         </tr>
         <tr v-if="paged.length === 0">
-          <td colspan="9" class="text-center text-muted">Không có dữ liệu</td>
+          <td colspan="10" class="text-center text-muted">Không có dữ liệu</td>
         </tr>
       </tbody>
     </table>
@@ -195,7 +208,7 @@ const remove = async (id) => {
 
   try {
     const resp = await deleteDotGiamGia(id)
-    alert(resp?.message || 'Xóa thành công!')
+    showSuccess(resp?.message || 'Xóa thành công!')
     await fetchList()
     // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
     if (page.value > totalPages.value) page.value = totalPages.value

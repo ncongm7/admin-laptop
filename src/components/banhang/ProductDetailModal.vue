@@ -1,7 +1,7 @@
 <template>
-  <div v-if="visible" class="modal fade show d-block" style="z-index: 9999" @click.self="close">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
+  <div v-if="visible" class="modal fade show d-block" style="z-index: 9999; pointer-events: auto;" @click.self="close">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="pointer-events: auto;">
+      <div class="modal-content" style="pointer-events: auto;">
         <div class="modal-header bg-primary text-white">
           <h5 class="modal-title">
             <i class="bi bi-info-circle"></i> Chi tiết sản phẩm
@@ -96,6 +96,116 @@
                     <span class="spec-label">Cổng kết nối:</span>
                     <span class="spec-value">{{ productDetail.congKetNoi }}</span>
                   </div>
+                  <!-- Thêm các thông số từ variants nếu có -->
+                  <div v-if="getFirstVariantSpec('tenCpu')" class="spec-item">
+                    <span class="spec-label">CPU:</span>
+                    <span class="spec-value">{{ getFirstVariantSpec('tenCpu') }}</span>
+                  </div>
+                  <div v-if="getFirstVariantSpec('tenRam')" class="spec-item">
+                    <span class="spec-label">RAM:</span>
+                    <span class="spec-value">{{ getFirstVariantSpec('tenRam') }}</span>
+                  </div>
+                  <div v-if="getFirstVariantSpec('dungLuongOCung')" class="spec-item">
+                    <span class="spec-label">Ổ cứng:</span>
+                    <span class="spec-value">{{ getFirstVariantSpec('dungLuongOCung') }}</span>
+                  </div>
+                  <div v-if="getFirstVariantSpec('tenCardDoHoa')" class="spec-item">
+                    <span class="spec-label">Card đồ họa:</span>
+                    <span class="spec-value">{{ getFirstVariantSpec('tenCardDoHoa') }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr />
+
+            <!-- Giá và tồn kho tổng quan -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="section-title mb-3">
+                  <i class="bi bi-currency-dollar"></i> Giá và tồn kho
+                </h6>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="price-summary-card">
+                      <div class="price-label">Giá thấp nhất</div>
+                      <div class="price-value text-success">
+                        {{ formatCurrency(getMinPrice()) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="price-summary-card">
+                      <div class="price-label">Giá cao nhất</div>
+                      <div class="price-value text-danger">
+                        {{ formatCurrency(getMaxPrice()) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="price-summary-card">
+                      <div class="price-label">Tổng tồn kho</div>
+                      <div class="price-value text-primary">
+                        <i class="bi bi-box"></i> {{ getTotalStock() }} sản phẩm
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr />
+
+            <!-- Lịch sử giá (nếu có) -->
+            <div v-if="priceHistory.length > 0" class="row mb-4">
+              <div class="col-12">
+                <h6 class="section-title mb-3">
+                  <i class="bi bi-clock-history"></i> Lịch sử giá
+                </h6>
+                <div class="price-history-container">
+                  <table class="table table-sm table-hover">
+                    <thead>
+                      <tr>
+                        <th>Ngày thay đổi</th>
+                        <th>Giá cũ</th>
+                        <th>Giá mới</th>
+                        <th>Thay đổi</th>
+                        <th>Lý do</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(history, index) in priceHistory" :key="index">
+                        <td>{{ formatDate(history.ngayThayDoi) }}</td>
+                        <td>
+                          <span class="text-muted">
+                            {{ formatCurrency(history.giaCu) }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="fw-bold">
+                            {{ formatCurrency(history.giaMoi) }}
+                          </span>
+                        </td>
+                        <td>
+                          <span :class="getPriceChangeClass(history.giaCu, history.giaMoi)">
+                            {{ getPriceChangeText(history.giaCu, history.giaMoi) }}
+                          </span>
+                        </td>
+                        <td>
+                          <small class="text-muted">{{ history.lyDo || 'N/A' }}</small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thông báo nếu không có lịch sử giá -->
+            <div v-else class="row mb-4">
+              <div class="col-12">
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle"></i> Chưa có lịch sử thay đổi giá cho sản phẩm này.
                 </div>
               </div>
             </div>
@@ -227,7 +337,7 @@
         </div>
       </div>
     </div>
-    <div class="modal-backdrop fade show"></div>
+    <!-- Backdrop được quản lý bởi component cha (ProductSearch) -->
   </div>
 </template>
 
@@ -255,6 +365,7 @@ const isLoading = ref(false)
 const error = ref('')
 const productDetail = ref(null)
 const selectedImageIndex = ref(0)
+const priceHistory = ref([]) // Lịch sử giá (nếu có từ API)
 
 const variants = computed(() => {
   if (!productDetail.value) return []
@@ -321,6 +432,16 @@ const loadProductDetail = async () => {
       if (response && response.data) {
         productDetail.value = response.data
         console.log('✅ Đã load chi tiết sản phẩm từ API:', productDetail.value)
+        
+        // TODO: Load lịch sử giá nếu API có
+        // Nếu API trả về priceHistory, dùng luôn
+        if (response.data.priceHistory && Array.isArray(response.data.priceHistory)) {
+          priceHistory.value = response.data.priceHistory
+        } else {
+          // Nếu không có, thử gọi API riêng (nếu có)
+          // await loadPriceHistory(props.product.id)
+          priceHistory.value = []
+        }
       } else {
         error.value = 'Không tìm thấy thông tin sản phẩm!'
       }
@@ -374,6 +495,83 @@ const getStockClass = (stock) => {
   return 'text-danger fw-bold'
 }
 
+/**
+ * Lấy giá thấp nhất từ các biến thể
+ */
+const getMinPrice = () => {
+  if (!variants.value || variants.value.length === 0) return 0
+  const prices = variants.value
+    .map(v => v.giaGiam || v.giaBan || 0)
+    .filter(p => p > 0)
+  return prices.length > 0 ? Math.min(...prices) : 0
+}
+
+/**
+ * Lấy giá cao nhất từ các biến thể
+ */
+const getMaxPrice = () => {
+  if (!variants.value || variants.value.length === 0) return 0
+  const prices = variants.value
+    .map(v => v.giaGiam || v.giaBan || 0)
+    .filter(p => p > 0)
+  return prices.length > 0 ? Math.max(...prices) : 0
+}
+
+/**
+ * Tính tổng tồn kho
+ */
+const getTotalStock = () => {
+  if (!variants.value || variants.value.length === 0) return 0
+  return variants.value.reduce((sum, v) => sum + (v.soLuongTon || 0), 0)
+}
+
+/**
+ * Format date
+ */
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A'
+  try {
+    return new Date(dateStr).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+/**
+ * Tính phần trăm thay đổi giá
+ */
+const getPriceChangeText = (giaCu, giaMoi) => {
+  if (!giaCu || !giaMoi) return 'N/A'
+  const change = ((giaMoi - giaCu) / giaCu) * 100
+  const sign = change > 0 ? '+' : ''
+  return `${sign}${change.toFixed(2)}%`
+}
+
+/**
+ * Lấy class cho thay đổi giá
+ */
+const getPriceChangeClass = (giaCu, giaMoi) => {
+  if (!giaCu || !giaMoi) return 'text-muted'
+  if (giaMoi > giaCu) return 'text-danger fw-bold'
+  if (giaMoi < giaCu) return 'text-success fw-bold'
+  return 'text-muted'
+}
+
+/**
+ * Lấy thông số từ biến thể đầu tiên (để hiển thị trong phần thông số kỹ thuật)
+ */
+const getFirstVariantSpec = (field) => {
+  if (!variants.value || variants.value.length === 0) return null
+  const firstVariant = variants.value[0]
+  return firstVariant[field] || null
+}
+
 // Watch visible để load dữ liệu khi mở modal
 watch(() => props.visible, (newVal) => {
   if (newVal) {
@@ -382,6 +580,7 @@ watch(() => props.visible, (newVal) => {
   } else {
     productDetail.value = null
     error.value = ''
+    priceHistory.value = []
   }
 })
 
@@ -394,12 +593,18 @@ watch(() => props.product, () => {
 </script>
 
 <style scoped>
-.modal-backdrop {
-  z-index: 9998;
-}
-
+/* Backdrop được quản lý bởi component cha, không cần style ở đây */
 .modal {
   z-index: 9999;
+  pointer-events: auto;
+}
+
+.modal-dialog {
+  pointer-events: auto;
+}
+
+.modal-content {
+  pointer-events: auto;
 }
 
 .product-detail-content {
@@ -520,6 +725,30 @@ watch(() => props.product, () => {
 
 .discount-badge {
   margin-top: 0.25rem;
+}
+
+.price-summary-card {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+}
+
+.price-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.price-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.price-history-container {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* Scrollbar */

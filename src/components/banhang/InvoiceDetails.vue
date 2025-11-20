@@ -23,6 +23,7 @@
                             :key="item.id" 
                             class="product-item"
                             :data-tooltip="getProductTooltip(item)"
+                            :style="{ animationDelay: `${index * 0.05}s` }"
                         >
                             <div class="item-number">{{ index + 1 }}</div>
                             
@@ -39,9 +40,34 @@
                             
                             <div class="item-details">
                                 <h6 class="item-name" :title="item.tenSanPham">{{ item.tenSanPham }}</h6>
-                                <div class="item-code text-muted small">
-                                    <code>{{ item.maChiTietSanPham }}</code>
+                                
+                                <!-- Mã CTSP - NỔI BẬT -->
+                                <div class="item-ctsp-code mb-2">
+                                    <span class="ctsp-badge">
+                                        <i class="bi bi-tag-fill me-1"></i>
+                                        <strong>Mã CTSP:</strong>
+                                        <code class="ctsp-code-value">{{ item.maChiTietSanPham || item.maCTSP || 'N/A' }}</code>
+                                    </span>
                                 </div>
+
+                                <!-- Thông tin CTSP chi tiết (nếu có) -->
+                                <div v-if="getCTSPInfo(item)" class="item-ctsp-specs mb-2">
+                                    <div class="ctsp-specs-list">
+                                        <span v-if="getCTSPInfo(item).cpu" class="ctsp-spec-item">
+                                            <i class="bi bi-cpu me-1"></i> {{ getCTSPInfo(item).cpu }}
+                                        </span>
+                                        <span v-if="getCTSPInfo(item).ram" class="ctsp-spec-item">
+                                            <i class="bi bi-memory me-1"></i> {{ getCTSPInfo(item).ram }}
+                                        </span>
+                                        <span v-if="getCTSPInfo(item).storage" class="ctsp-spec-item">
+                                            <i class="bi bi-hdd me-1"></i> {{ getCTSPInfo(item).storage }}
+                                        </span>
+                                        <span v-if="getCTSPInfo(item).color" class="ctsp-spec-item">
+                                            <i class="bi bi-palette me-1"></i> {{ getCTSPInfo(item).color }}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div class="item-quantity-price">
                                     <span class="quantity">{{ formatCurrency(item.donGia) }} × {{ item.soLuong }}</span>
                                 </div>
@@ -64,6 +90,12 @@
                                 -->
                                 <div class="item-total">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</div>
                                 <div class="item-actions">
+                                    <button 
+                                        class="btn btn-sm btn-outline-warning" 
+                                        @click="openPriceOverrideModal(item)"
+                                        title="Giảm giá đặc biệt">
+                                        <i class="bi bi-tag"></i>
+                                    </button>
                                     <button 
                                         class="btn btn-sm btn-outline-primary" 
                                         @click="openEditQuantityModal(item)"
@@ -273,11 +305,20 @@
         </div>
     </div>
     <div v-if="showEditQuantityModal" class="modal-backdrop fade show"></div>
+
+    <!-- Price Override Modal -->
+    <PriceOverrideModal
+        v-if="showPriceOverrideModal"
+        :productInfo="priceOverrideProduct"
+        @close="closePriceOverrideModal"
+        @price-overridden="handlePriceOverridden"
+    />
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import InvoicePrint from './InvoicePrint.vue'
+import PriceOverrideModal from './PriceOverrideModal.vue'
 import { capNhatSoLuongSanPham } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
 import { validateQuantity } from '@/utils/validation'
@@ -302,6 +343,10 @@ const editingItem = ref(null)
 const editQuantity = ref(1)
 const editQuantityError = ref('')
 const isUpdating = ref(false)
+
+// State cho giảm giá đặc biệt
+const showPriceOverrideModal = ref(false)
+const priceOverrideProduct = ref(null)
 
 // Computed
 const canPayment = computed(() => {
@@ -374,6 +419,48 @@ const formatCurrency = (value) => {
         style: 'currency',
         currency: 'VND'
     }).format(value || 0)
+}
+
+// Methods cho giảm giá đặc biệt
+const openPriceOverrideModal = (item) => {
+    priceOverrideProduct.value = {
+        id: item.id,
+        idHoaDonChiTiet: item.id,
+        tenSanPham: item.tenSanPham || item.tenSP || 'N/A',
+        maCTSP: item.maChiTietSanPham || item.maCTSP || 'N/A',
+        donGia: item.donGia || 0
+    }
+    showPriceOverrideModal.value = true
+}
+
+const closePriceOverrideModal = () => {
+    showPriceOverrideModal.value = false
+    priceOverrideProduct.value = null
+}
+
+const handlePriceOverridden = async (data) => {
+    try {
+        // TODO: Gọi API backend để cập nhật giá
+        // Hiện tại chỉ log và thông báo
+        console.log('📝 [InvoiceDetails] Giảm giá đặc biệt:', data)
+        
+        // Emit event để parent component xử lý
+        emit('update-item', {
+            id: data.idHoaDonChiTiet,
+            donGia: data.giaMoi,
+            giamGiaDacBiet: {
+                soTienGiam: data.soTienGiam,
+                lyDo: data.lyDo,
+                loaiGiamGia: data.loaiGiamGia,
+                giaTriGiam: data.giaTriGiam
+            }
+        })
+        
+        showSuccess(`Đã cập nhật giá: ${formatCurrency(data.giaMoi)}`)
+    } catch (error) {
+        console.error('❌ [InvoiceDetails] Lỗi khi xử lý giảm giá:', error)
+        showError('Không thể cập nhật giá. Vui lòng thử lại!')
+    }
 }
 
 // Methods cho sửa số lượng
@@ -521,8 +608,18 @@ const getSerialsForItem = (item) => {
  */
 const getProductTooltip = (item) => {
     const parts = []
-    parts.push(`Tên: ${item.tenSanPham}`)
-    parts.push(`Mã: ${item.maChiTietSanPham}`)
+    parts.push(`Sản phẩm: ${item.tenSanPham}`)
+    parts.push(`Mã CTSP: ${item.maChiTietSanPham || item.maCTSP || 'N/A'}`)
+    
+    // Thêm thông tin CTSP chi tiết
+    const ctspInfo = getCTSPInfo(item)
+    if (ctspInfo) {
+        if (ctspInfo.cpu) parts.push(`CPU: ${ctspInfo.cpu}`)
+        if (ctspInfo.ram) parts.push(`RAM: ${ctspInfo.ram}`)
+        if (ctspInfo.storage) parts.push(`Ổ cứng: ${ctspInfo.storage}`)
+        if (ctspInfo.color) parts.push(`Màu: ${ctspInfo.color}`)
+    }
+    
     parts.push(`Giá: ${formatCurrency(item.donGia)}`)
     parts.push(`Số lượng: ${item.soLuong}`)
     parts.push(`Thành tiền: ${formatCurrency(item.thanhTien || (item.donGia * item.soLuong))}`)
@@ -533,6 +630,36 @@ const getProductTooltip = (item) => {
     }
     
     return parts.join('\n')
+}
+
+/**
+ * Lấy thông tin CTSP chi tiết từ item
+ */
+const getCTSPInfo = (item) => {
+    if (!item) return null
+    
+    // Kiểm tra các nguồn dữ liệu có thể có
+    const ctsp = item.chiTietSanPham || item.ctsp || item
+    
+    const info = {}
+    
+    if (ctsp.tenCpu || item.tenCpu) {
+        info.cpu = ctsp.tenCpu || item.tenCpu
+    }
+    
+    if (ctsp.tenRam || item.tenRam) {
+        info.ram = ctsp.tenRam || item.tenRam
+    }
+    
+    if (ctsp.dungLuongOCung || item.dungLuongOCung) {
+        info.storage = ctsp.dungLuongOCung || item.dungLuongOCung
+    }
+    
+    if (ctsp.tenMauSac || item.tenMauSac) {
+        info.color = ctsp.tenMauSac || item.tenMauSac
+    }
+    
+    return Object.keys(info).length > 0 ? info : null
 }
 
 /**
@@ -714,6 +841,74 @@ onUnmounted(() => {
     overflow: hidden;
 }
 
+/* CTSP Code - NỔI BẬT */
+.item-ctsp-code {
+    margin-bottom: 0.5rem;
+}
+
+.ctsp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.75rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.2s ease;
+}
+
+.ctsp-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.ctsp-badge strong {
+    font-weight: 700;
+}
+
+.ctsp-code-value {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* CTSP Specs */
+.item-ctsp-specs {
+    margin-bottom: 0.5rem;
+}
+
+.ctsp-specs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ctsp-spec-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: #f0f4ff;
+    color: #4a5568;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #cbd5e0;
+}
+
+.ctsp-spec-item i {
+    color: #667eea;
+    font-size: 0.8rem;
+}
+
 .item-code {
     font-size: 0.75rem;
     margin-bottom: 0.25rem;
@@ -802,6 +997,41 @@ onUnmounted(() => {
 
 .products-section::-webkit-scrollbar-thumb:hover {
     background: #999;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.product-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+.product-list-enter-active,
+.product-list-leave-active {
+    transition: all 0.3s ease;
+}
+
+.product-list-enter-from {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+.product-list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+.product-list-move {
+    transition: transform 0.3s ease;
 }
 
 /* Responsive */

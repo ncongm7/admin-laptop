@@ -66,7 +66,8 @@ export const xoaSanPhamKhoiHoaDon = async (idHoaDonChiTiet) => {
  */
 export const layThongTinHoaDon = async (idHoaDon) => {
     try {
-        const response = await axiosInstance.get(`${API_BASE}/hoa-don/${idHoaDon}`)
+        // Sử dụng endpoint từ HoaDonController, không phải BanHangTaiQuayController
+        const response = await axiosInstance.get(`/api/v1/hoa-don/${idHoaDon}`)
         return response.data
     } catch (error) {
         console.error('Lỗi khi lấy thông tin hóa đơn:', error)
