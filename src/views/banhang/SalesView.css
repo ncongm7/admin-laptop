@@ -86,15 +86,127 @@
   z-index: 9999 !important;
 }
 
-/* Responsive */
-@media (max-width: 991px) {
-  .sales-view {
-    padding: 1rem;
-  }
+/* ========================================
+   RESPONSIVE DESIGN - MODULE BÁN HÀNG
+   ======================================== */
 
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .sales-content .row {
+    flex-direction: column;
+  }
+  
+  .sales-content .col-lg-3,
+  .sales-content .col-lg-5,
+  .sales-content .col-lg-4 {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
   .sales-header {
     flex-direction: column;
-    align-items: flex-start;
     gap: 1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+  }
+  
+  .header-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767.98px) {
+  .sales-view {
+    padding: 0.5rem;
+  }
+  
+  .sales-header {
+    padding: 1rem 0.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.25rem;
+  }
+  
+  .sales-content {
+    padding: 0;
+  }
+  
+  .sales-content .row {
+    margin: 0;
+  }
+  
+  .sales-content .col-lg-3,
+  .sales-content .col-lg-5,
+  .sales-content .col-lg-4 {
+    padding: 0.5rem;
+  }
+  
+  /* Touch-friendly buttons */
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .btn-sm {
+    min-height: 38px;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  /* Input fields */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Modal adjustments */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-xl {
+    max-width: calc(100% - 1rem);
+  }
+  
+  /* Card adjustments */
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  .card-body {
+    padding: 0.75rem;
+  }
+  
+  .card-header {
+    padding: 0.75rem;
+  }
+}
+
+/* Very small mobile (< 576px) */
+@media (max-width: 575.98px) {
+  .sales-view {
+    padding: 0.25rem;
+  }
+  
+  .page-title {
+    font-size: 1.1rem;
+  }
+  
+  .btn-lg {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+  
+  .modal-dialog {
+    margin: 0.25rem;
+  }
+  
+  .modal-content {
+    border-radius: 0.5rem;
   }
 }

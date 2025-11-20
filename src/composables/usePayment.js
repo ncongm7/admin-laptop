@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { thanhToanHoaDon } from '@/service/banhang/banHangService'
+import { inHoaDon } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
 
 /**
@@ -38,14 +39,22 @@ export function usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan) {
         // Thông báo thành công
         showSuccess('Thanh toán thành công!')
 
+        // Lưu ID hóa đơn để in sau
+        const hoaDonId = hoaDonHienTai.value.id
+
         // Xóa hóa đơn khỏi danh sách chờ
         xoaHoaDonSauThanhToan()
 
         // Đóng modal
         closePaymentModal()
 
-        // TODO: In hóa đơn hoặc chuyển sang trang chi tiết hóa đơn
-        console.log('Thanh toán thành công:', response.data)
+        // Tự động in hóa đơn sau khi thanh toán thành công
+        try {
+          await printInvoiceAfterPayment(hoaDonId)
+        } catch (error) {
+          console.error('Lỗi khi in hóa đơn:', error)
+          // Không hiển thị lỗi vì thanh toán đã thành công, chỉ log
+        }
       }
     } catch (error) {
       console.error('Lỗi khi thanh toán:', error)
@@ -60,6 +69,43 @@ export function usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan) {
    */
   const closePaymentModal = () => {
     showPaymentModal.value = false
+  }
+
+  /**
+   * In hóa đơn sau khi thanh toán thành công
+   */
+  const printInvoiceAfterPayment = async (hoaDonId) => {
+    try {
+      const blob = await inHoaDon(hoaDonId)
+      
+      // Tạo URL từ blob
+      const url = URL.createObjectURL(blob)
+      
+      // Mở cửa sổ mới để in
+      const printWindow = window.open(url, '_blank')
+      
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print()
+          // Cleanup sau khi in
+          setTimeout(() => {
+            URL.revokeObjectURL(url)
+          }, 1000)
+        }
+      } else {
+        // Nếu popup bị chặn, tải file về
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `HoaDon_${hoaDonId}.html`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+    } catch (error) {
+      console.error('Lỗi khi in hóa đơn:', error)
+      throw error
+    }
   }
 
   return {

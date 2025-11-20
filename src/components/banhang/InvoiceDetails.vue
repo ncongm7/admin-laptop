@@ -17,25 +17,69 @@
                 </div>
 
                 <div v-else class="product-list">
-                    <div v-for="(item, index) in hoaDon.hoaDonChiTiet" :key="item.id" 
-                        class="product-item">
-                        <div class="item-number">{{ index + 1 }}</div>
-                        
-                        <div class="item-details">
-                            <h6 class="item-name">{{ item.tenSanPham }}</h6>
-                            <div class="item-code text-muted small">{{ item.maChiTietSanPham }}</div>
-                            <div class="item-quantity-price">
-                                <span class="quantity">{{ formatCurrency(item.donGia) }} × {{ item.soLuong }}</span>
+                    <transition-group name="product-list" tag="div">
+                        <div 
+                            v-for="(item, index) in hoaDon.hoaDonChiTiet" 
+                            :key="item.id" 
+                            class="product-item"
+                            :data-tooltip="getProductTooltip(item)"
+                        >
+                            <div class="item-number">{{ index + 1 }}</div>
+                            
+                            <!-- Ảnh sản phẩm -->
+                            <div class="item-image">
+                                <img 
+                                    :src="getProductImage(item)" 
+                                    :alt="item.tenSanPham"
+                                    class="product-thumbnail"
+                                    loading="lazy"
+                                    @error="handleImageError"
+                                />
+                            </div>
+                            
+                            <div class="item-details">
+                                <h6 class="item-name" :title="item.tenSanPham">{{ item.tenSanPham }}</h6>
+                                <div class="item-code text-muted small">
+                                    <code>{{ item.maChiTietSanPham }}</code>
+                                </div>
+                                <div class="item-quantity-price">
+                                    <span class="quantity">{{ formatCurrency(item.donGia) }} × {{ item.soLuong }}</span>
+                                </div>
+                                <!-- Serial đã quét (nếu có) -->
+                                <div v-if="getSerialsForItem(item)" class="item-serials mt-1">
+                                    <small class="text-info">
+                                        <i class="bi bi-upc-scan"></i> Serial:
+                                        <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx" class="serial-badge">
+                                            {{ serial }}
+                                            <span v-if="idx < getSerialsForItem(item).length - 1">, </span>
+                                        </span>
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="item-total-action">
+                                <!-- 
+                                    TODO: Backend nên trả về thanhTien trong hoaDonChiTiet
+                                    Hiện tại FE tính = donGia * soLuong (DB không có cột thanh_tien)
+                                -->
+                                <div class="item-total">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</div>
+                                <div class="item-actions">
+                                    <button 
+                                        class="btn btn-sm btn-outline-primary" 
+                                        @click="openEditQuantityModal(item)"
+                                        title="Sửa số lượng (E)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        @click="confirmDelete(item)"
+                                        title="Xóa sản phẩm (Del)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        <div class="item-total-action">
-                            <div class="item-total">{{ formatCurrency(item.thanhTien) }}</div>
-                            <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
+                    </transition-group>
                 </div>
             </div>
         </div>
@@ -111,6 +155,15 @@
                     {{ formatCurrency(hoaDon?.tongTienSauGiam || hoaDon?.tongTien || 0) }}
                 </span>
             </div>
+            
+            <!-- Hiển thị điểm đã sử dụng (nếu có) -->
+            <div v-if="hoaDon?.soDiemSuDung && hoaDon.soDiemSuDung > 0" class="summary-row mt-2">
+                <span class="text-muted small">
+                    <i class="bi bi-star-fill text-warning"></i> 
+                    Đã sử dụng {{ hoaDon.soDiemSuDung }} điểm 
+                    (≈ {{ formatCurrency(hoaDon.soTienQuyDoi || hoaDon.soDiemSuDung * 1000) }})
+                </span>
+            </div>
         </div>
 
         <!-- Các nút hành động -->
@@ -122,7 +175,7 @@
                 <i class="bi bi-credit-card"></i> <strong>THANH TOÁN</strong>
             </button>
 
-            <div class="row g-2">
+            <div class="row g-2 mb-2">
                 <div class="col-6">
                     <button class="btn btn-sm btn-outline-secondary w-100" @click="$emit('save-draft')">
                         <i class="bi bi-save"></i> Lưu tạm
@@ -134,12 +187,100 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Nút in hóa đơn -->
+            <div class="row g-2">
+                <div class="col-12">
+                    <InvoicePrint :hoaDon="hoaDon" :allowDraft="true" @printed="handleInvoicePrinted" />
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Modal sửa số lượng -->
+    <div v-if="showEditQuantityModal" class="modal fade show d-block" style="z-index: 9999" @click.self="closeEditQuantityModal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil"></i> Sửa số lượng
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @click="closeEditQuantityModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="editingItem" class="edit-quantity-form">
+                        <div class="product-info mb-3">
+                            <h6>{{ editingItem.tenSanPham }}</h6>
+                            <p class="text-muted small mb-1">Mã: {{ editingItem.maChiTietSanPham }}</p>
+                            <p class="text-muted small mb-0">Giá: {{ formatCurrency(editingItem.donGia) }}</p>
+                        </div>
+                        <hr>
+                        <div class="form-group">
+                            <label class="form-label">
+                                Số lượng hiện tại: <strong>{{ editingItem.soLuong }}</strong>
+                            </label>
+                            <label class="form-label">
+                                Tồn kho: <span :class="getStockClass(editingItem.soLuongTon)">
+                                    {{ editingItem.soLuongTon }}
+                                </span>
+                            </label>
+                            <div class="quantity-input-group mt-2">
+                                <button 
+                                    class="btn btn-outline-secondary" 
+                                    @click="decreaseEditQuantity"
+                                    :disabled="editQuantity <= 1 || isUpdating">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input 
+                                    type="number" 
+                                    class="form-control text-center" 
+                                    v-model.number="editQuantity"
+                                    :max="editingItem.soLuongTon" 
+                                    min="1" 
+                                    @input="validateEditQuantity"
+                                    :disabled="isUpdating" />
+                                <button 
+                                    class="btn btn-outline-secondary" 
+                                    @click="increaseEditQuantity"
+                                    :disabled="editQuantity >= editingItem.soLuongTon || isUpdating">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <small v-if="editQuantityError" class="text-danger">{{ editQuantityError }}</small>
+                        </div>
+                        <hr>
+                        <div class="total-row">
+                            <span class="label">Thành tiền:</span>
+                            <span class="value total">{{ formatCurrency(editingItem.donGia * editQuantity) }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeEditQuantityModal" :disabled="isUpdating">
+                        <i class="bi bi-x-circle"></i> Hủy
+                    </button>
+                    <button 
+                        type="button" 
+                        class="btn btn-primary" 
+                        @click="confirmUpdateQuantity"
+                        :disabled="!canUpdateQuantity || isUpdating">
+                        <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
+                        <i v-else class="bi bi-check-circle"></i>
+                        {{ isUpdating ? 'Đang cập nhật...' : 'Xác nhận' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div v-if="showEditQuantityModal" class="modal-backdrop fade show"></div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import InvoicePrint from './InvoicePrint.vue'
+import { capNhatSoLuongSanPham } from '@/service/banhang/hoaDonService'
+import { useToast } from '@/composables/useToast'
+import { validateQuantity } from '@/utils/validation'
 
 const props = defineProps({
     hoaDon: {
@@ -148,10 +289,19 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['delete-item', 'apply-voucher', 'use-points', 'complete-payment', 'save-draft', 'cancel-bill', 'open-voucher-modal', 'remove-voucher'])
+const emit = defineEmits(['delete-item', 'apply-voucher', 'use-points', 'complete-payment', 'save-draft', 'cancel-bill', 'open-voucher-modal', 'remove-voucher', 'update-item'])
+
+const { success: showSuccess, error: showError } = useToast()
 
 // State
 const usePoints = ref(false)
+
+// State cho sửa số lượng
+const showEditQuantityModal = ref(false)
+const editingItem = ref(null)
+const editQuantity = ref(1)
+const editQuantityError = ref('')
+const isUpdating = ref(false)
 
 // Computed
 const canPayment = computed(() => {
@@ -226,9 +376,202 @@ const formatCurrency = (value) => {
     }).format(value || 0)
 }
 
+// Methods cho sửa số lượng
+const openEditQuantityModal = (item) => {
+    editingItem.value = item
+    editQuantity.value = item.soLuong
+    editQuantityError.value = ''
+    showEditQuantityModal.value = true
+}
+
+const closeEditQuantityModal = () => {
+    showEditQuantityModal.value = false
+    editingItem.value = null
+    editQuantity.value = 1
+    editQuantityError.value = ''
+}
+
+const increaseEditQuantity = () => {
+    if (editQuantity.value < editingItem.value.soLuongTon) {
+        editQuantity.value++
+        validateEditQuantity()
+    }
+}
+
+const decreaseEditQuantity = () => {
+    if (editQuantity.value > 1) {
+        editQuantity.value--
+        validateEditQuantity()
+    }
+}
+
+const validateEditQuantity = () => {
+    editQuantityError.value = ''
+
+    // Validate bằng utility function
+    if (!validateQuantity(editQuantity.value)) {
+        editQuantityError.value = 'Số lượng phải là số nguyên dương (1-9999)'
+        return
+    }
+
+    if (editQuantity.value > editingItem.value.soLuongTon) {
+        editQuantityError.value = `Số lượng không được vượt quá tồn kho (${editingItem.value.soLuongTon})`
+        editQuantity.value = editingItem.value.soLuongTon
+    }
+}
+
+const canUpdateQuantity = computed(() => {
+    return editingItem.value &&
+        editQuantity.value > 0 &&
+        editQuantity.value <= editingItem.value.soLuongTon &&
+        editQuantity.value !== editingItem.value.soLuong &&
+        !editQuantityError.value
+})
+
+const confirmUpdateQuantity = async () => {
+    if (!canUpdateQuantity.value || !editingItem.value) return
+
+    isUpdating.value = true
+    try {
+        const response = await capNhatSoLuongSanPham(editingItem.value.id, {
+            soLuong: editQuantity.value
+        })
+
+        if (response && response.data) {
+            // Emit event để parent component cập nhật hóa đơn
+            emit('update-item', response.data)
+            showSuccess(`Đã cập nhật số lượng thành ${editQuantity.value}!`)
+            closeEditQuantityModal()
+        }
+    } catch (error) {
+        console.error('Lỗi khi cập nhật số lượng:', error)
+        showError(error.response?.data?.message || 'Không thể cập nhật số lượng. Vui lòng thử lại!')
+    } finally {
+        isUpdating.value = false
+    }
+}
+
+const getStockClass = (stock) => {
+    if (stock > 10) return 'text-success'
+    if (stock > 0) return 'text-warning'
+    return 'text-danger'
+}
+
+const handleInvoicePrinted = () => {
+    // Có thể thêm logic sau khi in hóa đơn
+    console.log('✅ Hóa đơn đã được in')
+}
+
+/**
+ * Lấy ảnh sản phẩm từ item
+ */
+const getProductImage = (item) => {
+    // Thử lấy từ chiTietSanPham.anhSanPhams
+    if (item.chiTietSanPham?.anhSanPhams && item.chiTietSanPham.anhSanPhams.length > 0) {
+        const defaultImage = item.chiTietSanPham.anhSanPhams.find(img => img.is_default)
+        return defaultImage ? defaultImage.uri : item.chiTietSanPham.anhSanPhams[0].uri
+    }
+    
+    // Thử lấy từ sanPham.anhSanPhams
+    if (item.chiTietSanPham?.sanPham?.anhSanPhams && item.chiTietSanPham.sanPham.anhSanPhams.length > 0) {
+        const defaultImage = item.chiTietSanPham.sanPham.anhSanPhams.find(img => img.is_default)
+        return defaultImage ? defaultImage.uri : item.chiTietSanPham.sanPham.anhSanPhams[0].uri
+    }
+    
+    // Fallback
+    return 'https://via.placeholder.com/60x60?text=No+Image'
+}
+
+/**
+ * Xử lý lỗi ảnh
+ */
+const handleImageError = (event) => {
+    event.target.src = 'https://via.placeholder.com/60x60?text=No+Image'
+}
+
+/**
+ * Lấy serial numbers cho item (nếu có)
+ * 
+ * TODO: Backend cần trả về serialNumbers trong hoaDonChiTiet khi load hóa đơn đã thanh toán
+ * Serial được lưu trong bảng serial_da_ban với id_hoa_don_chi_tiet
+ * 
+ * @param {Object} item - hoa_don_chi_tiet item
+ * @returns {Array|null} - Danh sách serial numbers hoặc null
+ */
+const getSerialsForItem = (item) => {
+    // Kiểm tra xem item có serialNumbers không (từ backend)
+    // Backend nên map từ bảng serial_da_ban khi load hóa đơn đã thanh toán
+    if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
+        return item.serialNumbers.map(s => {
+            // Hỗ trợ nhiều format: { serialNumber, serialNo, serial_no }
+            return s.serialNumber || s.serialNo || s.serial_no || s
+        })
+    }
+    
+    // Fallback: Kiểm tra từ chiTietSanPham (nếu có)
+    if (item.chiTietSanPham?.serials && Array.isArray(item.chiTietSanPham.serials)) {
+        return item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s)
+    }
+    
+    return null
+}
+
+/**
+ * Tạo tooltip text cho sản phẩm
+ */
+const getProductTooltip = (item) => {
+    const parts = []
+    parts.push(`Tên: ${item.tenSanPham}`)
+    parts.push(`Mã: ${item.maChiTietSanPham}`)
+    parts.push(`Giá: ${formatCurrency(item.donGia)}`)
+    parts.push(`Số lượng: ${item.soLuong}`)
+    parts.push(`Thành tiền: ${formatCurrency(item.thanhTien || (item.donGia * item.soLuong))}`)
+    
+    const serials = getSerialsForItem(item)
+    if (serials && serials.length > 0) {
+        parts.push(`Serial: ${serials.join(', ')}`)
+    }
+    
+    return parts.join('\n')
+}
+
+/**
+ * Keyboard shortcuts
+ */
+const handleKeyboardShortcut = (event) => {
+    // Chỉ xử lý khi không đang focus vào input/textarea
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+        return
+    }
+    
+    // E: Sửa số lượng sản phẩm đầu tiên
+    if (event.key === 'e' && props.hoaDon?.hoaDonChiTiet?.length > 0) {
+        event.preventDefault()
+        openEditQuantityModal(props.hoaDon.hoaDonChiTiet[0])
+        return
+    }
+    
+    // Delete: Xóa sản phẩm đầu tiên
+    if (event.key === 'Delete' && props.hoaDon?.hoaDonChiTiet?.length > 0) {
+        event.preventDefault()
+        confirmDelete(props.hoaDon.hoaDonChiTiet[0])
+        return
+    }
+}
+
 // Watch hoaDon để reset state khi chuyển hóa đơn
 watch(() => props.hoaDon, () => {
     usePoints.value = false
+    closeEditQuantityModal()
+})
+
+// Lifecycle
+onMounted(() => {
+    document.addEventListener('keydown', handleKeyboardShortcut)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleKeyboardShortcut)
 })
 </script>
 
@@ -257,14 +600,84 @@ watch(() => props.hoaDon, () => {
 .product-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: 0.75rem;
     padding: 0.75rem;
     border-bottom: 1px solid #f0f0f0;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: default;
 }
 
 .product-item:hover {
     background-color: #f8f9fa;
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.product-item[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    padding: 0.5rem 0.75rem;
+    background: #212529;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: pre-line;
+    z-index: 1000;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+.item-image {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+}
+
+.product-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.item-serials {
+    margin-top: 0.25rem;
+}
+
+.serial-badge {
+    font-family: monospace;
+    font-size: 0.75rem;
+    background: #e7f5ff;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    color: #0dcaf0;
+}
+
+/* Animation cho thêm/xóa sản phẩm */
+.product-list-enter-active,
+.product-list-leave-active {
+    transition: all 0.3s ease;
+}
+
+.product-list-enter-from {
+    opacity: 0;
+    transform: translateX(-20px);
+}
+
+.product-list-leave-to {
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+.product-list-move {
+    transition: transform 0.3s ease;
 }
 
 .product-item:last-child {
@@ -317,6 +730,11 @@ watch(() => props.hoaDon, () => {
     flex-direction: column;
     align-items: flex-end;
     gap: 0.5rem;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.25rem;
 }
 
 .item-total {
@@ -384,6 +802,126 @@ watch(() => props.hoaDon, () => {
 
 .products-section::-webkit-scrollbar-thumb:hover {
     background: #999;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .invoice-details {
+        height: auto;
+        max-height: calc(100vh - 200px);
+    }
+    
+    .products-section {
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .invoice-details {
+        height: auto;
+    }
+    
+    .product-item {
+        flex-wrap: wrap;
+        padding: 0.5rem;
+    }
+    
+    .item-image {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .item-number {
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+    }
+    
+    .item-name {
+        font-size: 0.85rem;
+    }
+    
+    .item-total-action {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .item-actions {
+        gap: 0.25rem;
+    }
+    
+    .item-actions .btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0.25rem;
+    }
+    
+    .card-footer {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+    
+    /* Tooltip không hiển thị trên mobile */
+    .product-item[data-tooltip]:hover::after {
+        display: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .product-item {
+        padding: 0.4rem;
+    }
+    
+    .item-image {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .item-name {
+        font-size: 0.8rem;
+        -webkit-line-clamp: 1;
+    }
+    
+    .item-code {
+        font-size: 0.7rem;
+    }
+    
+    .item-total {
+        font-size: 0.9rem;
+    }
+}
+
+/* Modal sửa số lượng */
+.modal-backdrop {
+    z-index: 9998;
+}
+
+.modal {
+    z-index: 9999;
+}
+
+.quantity-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.quantity-input-group input {
+    flex: 1;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.quantity-input-group button {
+    width: 40px;
+    padding: 0;
 }
 </style>
 

@@ -151,10 +151,13 @@ export const capNhatKhachHang = async (idHoaDon, payload) => {
  */
 export const inHoaDon = async (idHoaDon) => {
     try {
+        // Backend trả về HTML, không phải blob
         const response = await axiosInstance.get(`${API_BASE}/hoa-don/${idHoaDon}/in`, {
-            responseType: 'blob',
+            responseType: 'text', // Đổi từ 'blob' sang 'text' vì backend trả về HTML string
         })
-        return response.data
+        // Convert HTML string thành Blob để xử lý như cũ
+        const blob = new Blob([response.data], { type: 'text/html' })
+        return blob
     } catch (error) {
         console.error('Lỗi khi in hóa đơn:', error)
         throw error

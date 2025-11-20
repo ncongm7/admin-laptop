@@ -15,6 +15,44 @@
                 </div>
 
                 <div class="modal-body">
+                    <!-- Preview hóa đơn -->
+                    <div class="invoice-preview-section mb-4 p-3 bg-light rounded border">
+                        <h6 class="mb-3">
+                            <i class="bi bi-file-text"></i> Xem trước hóa đơn
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted">Mã hóa đơn:</small>
+                                <div class="fw-bold">{{ hoaDon?.ma || 'N/A' }}</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Khách hàng:</small>
+                                <div class="fw-bold">{{ hoaDon?.khachHang?.hoTen || 'Khách lẻ' }}</div>
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted">Sản phẩm:</small>
+                                <div class="preview-products">
+                                    <div
+                                        v-for="item in hoaDon?.hoaDonChiTiet || []"
+                                        :key="item.id"
+                                        class="preview-product-item"
+                                    >
+                                        <span>{{ item.tenSanPham }}</span>
+                                        <span class="text-muted">× {{ item.soLuong }}</span>
+                                        <!-- TODO: Backend nên trả về thanhTien, nếu không FE tính = donGia * soLuong -->
+                                        <span class="fw-bold">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2 pt-2 border-top">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold">Tổng cần trả:</span>
+                                    <span class="fw-bold text-danger fs-5">{{ formatCurrency(tongTien) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row g-4">
                         <!-- CỘT 1: Thông tin thanh toán -->
                         <div class="col-md-5">
@@ -60,12 +98,21 @@
                             </div>
 
                             <!-- Số tiền khách đưa (chỉ hiện với tiền mặt) -->
-                            <div v-if="selectedMethodName === 'Tiền mặt'" class="mb-3">
+                            <div v-if="isTienMat" class="mb-3">
                                 <label class="form-label fw-semibold">
                                     Số tiền khách đưa
                                 </label>
-                                <input type="number" class="form-control" v-model.number="tienKhachDua" :min="tongTien"
-                                    :step="1000" placeholder="Nhập số tiền khách đưa" :disabled="isProcessing" />
+                                <input
+                                type="number"
+                                class="form-control"
+                                v-model.number="tienKhachDua"
+                                :min="tongTien"
+                                :max="tongTien * 10"
+                                :step="1000"
+                                placeholder="Nhập số tiền khách đưa"
+                                :disabled="isProcessing"
+                                @blur="validateTienKhachDua"
+                            />
                                 <div v-if="tienThua > 0" class="mt-2">
                                     <span class="text-success fw-bold">
                                         Tiền thừa trả khách: {{ formatCurrency(tienThua) }}
@@ -79,7 +126,7 @@
                             </div>
 
                             <!-- Mã giao dịch (cho chuyển khoản/thẻ) -->
-                            <div v-if="selectedMethodName !== 'Tiền mặt' && formData.idPhuongThucThanhToan"
+                            <div v-if="!isTienMat && formData.idPhuongThucThanhToan"
                                 class="mb-3">
                                 <label class="form-label fw-semibold">Mã giao dịch</label>
                                 <input type="text" class="form-control" v-model="formData.maGiaoDich"
@@ -162,12 +209,38 @@
 
                                         <!-- Input quét serial cho sản phẩm này -->
                                         <div v-if="!product.hoanThanh" class="serial-input-group mt-2">
+                                            <div class="serial-status-indicator mb-2">
+                                                <span
+                                                    class="badge"
+                                                    :class="{
+                                                        'bg-success': product.soLuongDaQuet > 0 && product.soLuongDaQuet < product.soLuongCanQuet,
+                                                        'bg-warning': product.soLuongDaQuet === 0,
+                                                        'bg-info': currentProduct?.id === product.id
+                                                    }"
+                                                >
+                                                    <i class="bi" :class="{
+                                                        'bi-check-circle': product.soLuongDaQuet > 0,
+                                                        'bi-hourglass-split': product.soLuongDaQuet === 0,
+                                                        'bi-cursor': currentProduct?.id === product.id
+                                                    }"></i>
+                                                    {{ getProductSerialStatusText(product) }}
+                                                </span>
+                                            </div>
                                             <div class="input-group">
-                                                <input type="text" class="form-control" v-model="currentSerialInput"
+                                                <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    v-model="currentSerialInput"
                                                     @keyup.enter="scanSerial(product)"
-                                                    @focus="currentProduct = product; loadAvailableSerials(product)"
-                                                    :placeholder="`Quét/nhập Serial ${product.soLuongDaQuet + 1}...`"
-                                                    :disabled="isLoading || isProcessing" ref="serialInputs" />
+                                                    @focus="handleSerialInputFocus(product)"
+                                                    @blur="handleSerialInputBlur"
+                                                    :placeholder="`Quét/nhập Serial ${product.soLuongDaQuet + 1}/${product.soLuongCanQuet}...`"
+                                                    :disabled="isLoading || isProcessing"
+                                                    :class="{
+                                                        'is-valid': scanSuccess[product.id],
+                                                        'is-invalid': scanError[product.id]
+                                                    }"
+                                                    ref="serialInputs" />
                                                 <button class="btn btn-outline-secondary"
                                                     @click="loadAvailableSerials(product)"
                                                     :disabled="isLoadingSerials || isProcessing"
@@ -183,6 +256,13 @@
                                                     <i v-else class="bi bi-check-circle"></i>
                                                     Xác nhận
                                                 </button>
+                                            </div>
+                                            <!-- Thông báo trạng thái -->
+                                            <div v-if="scanSuccess[product.id]" class="alert alert-success alert-sm mt-2 mb-0">
+                                                <i class="bi bi-check-circle-fill"></i> Quét thành công!
+                                            </div>
+                                            <div v-if="scanError[product.id]" class="alert alert-danger alert-sm mt-2 mb-0">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> {{ scanError[product.id] }}
                                             </div>
 
                                             <!-- Dropdown danh sách serial khả dụng -->
@@ -204,9 +284,9 @@
                                                         <span class="serial-number">{{ getSerialDisplay(serial)
                                                             }}</span>
                                                         <span class="badge" :class="{
-                                                            'bg-success': serial.trangThai === 0,
-                                                            'bg-warning': serial.trangThai === 1,
-                                                            'bg-secondary': serial.trangThai === 2
+                                                            'bg-success': serial.trangThai === 1, // 1 = Trong kho (khả dụng)
+                                                            'bg-warning': serial.trangThai === 2, // 2 = Đã bán
+                                                            'bg-danger': serial.trangThai === 0    // 0 = Hỏng
                                                         }">
                                                             {{ getSerialStatusText(serial.trangThai) }}
                                                         </span>
@@ -287,6 +367,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
 import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
+import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
 
 const props = defineProps({
     hoaDon: {
@@ -312,15 +393,38 @@ const availableSerials = ref({})
 const showSerialDropdown = ref({})
 const isLoadingSerials = ref(false)
 
+// State - Scan feedback
+const scanSuccess = ref({})
+const scanError = ref({})
+
 // ==================== SERIAL VALIDATION ====================
-const hoaDonRef = computed(() => props.hoaDon)
+// Normalize hoaDon trước khi truyền vào useSerialValidation
+const hoaDonRef = computed(() => {
+    if (!props.hoaDon) return null
+
+    // Đảm bảo hoaDonChiTiet được normalize
+    const normalizedHoaDon = {
+        ...props.hoaDon,
+        hoaDonChiTiet: props.hoaDon.hoaDonChiTiet || props.hoaDon.chiTietList || [],
+    }
+
+    // Debug: Log để kiểm tra cấu trúc dữ liệu
+    if (normalizedHoaDon.hoaDonChiTiet && normalizedHoaDon.hoaDonChiTiet.length > 0) {
+        console.log('📋 [ModalThanhToan] Hóa đơn có', normalizedHoaDon.hoaDonChiTiet.length, 'sản phẩm')
+        console.log('📋 [ModalThanhToan] Sản phẩm đầu tiên:', normalizedHoaDon.hoaDonChiTiet[0])
+        console.log('📋 [ModalThanhToan] Fields của sản phẩm:', Object.keys(normalizedHoaDon.hoaDonChiTiet[0]))
+    }
+
+    return normalizedHoaDon
+})
+
 const {
     isLoading,
     validatedSerials,
     currentSerialInput,
     currentProduct,
     errorMessage,
-    scanMode,
+    // scanMode, // TODO: Có thể dùng trong tương lai cho chế độ quét camera tự động
     tongSoLuongCanQuet,
     soLuongDaQuet,
     daQuetDu,
@@ -330,7 +434,7 @@ const {
     xoaSerial: xoaSerialComposable,
     resetSerials,
     getSerialPayload,
-    toggleScanMode
+    // toggleScanMode // TODO: Có thể dùng trong tương lai
 } = useSerialValidation(hoaDonRef)
 
 // Computed
@@ -343,8 +447,18 @@ const selectedMethodName = computed(() => {
     return method?.tenPhuongThuc || ''
 })
 
+// Helper: Kiểm tra xem có phải thanh toán tiền mặt không (linh hoạt với dấu)
+const isTienMat = computed(() => {
+    const methodName = selectedMethodName.value.toLowerCase()
+    // Kiểm tra nhiều cách viết: "tiền mặt", "tien mat", "cash", v.v.
+    return methodName.includes('tiền mặt') ||
+           methodName.includes('tien mat') ||
+           methodName.includes('cash') ||
+           methodName.includes('ti?n m?t') // Trường hợp có dấu bị lỗi encoding
+})
+
 const tienThua = computed(() => {
-    if (selectedMethodName.value === 'Tiền mặt') {
+    if (isTienMat.value) {
         return tienKhachDua.value - tongTien.value
     }
     return 0
@@ -358,7 +472,7 @@ const canPay = computed(() => {
     if (!daQuetDu.value) return false
 
     // Nếu là tiền mặt, phải đủ tiền
-    if (selectedMethodName.value === 'Tiền mặt') {
+    if (isTienMat.value) {
         return tienKhachDua.value >= tongTien.value
     }
 
@@ -382,8 +496,12 @@ const loadPaymentMethods = async () => {
 }
 
 const loadAvailableSerials = async (product) => {
-    if (!product.idChiTietSanPham) {
-        console.warn('⚠️ Sản phẩm không có idChiTietSanPham')
+    // Normalize idChiTietSanPham - có thể là idChiTietSanPham, idCtsp, hoặc chiTietSanPham.id
+    const idChiTietSanPham = product.idChiTietSanPham || product.idCtsp || product.chiTietSanPham?.id || product.chiTietSanPhamId
+
+    if (!idChiTietSanPham) {
+        console.warn('⚠️ Sản phẩm không có idChiTietSanPham:', product)
+        console.warn('   Các field có sẵn:', Object.keys(product))
         return
     }
 
@@ -395,12 +513,25 @@ const loadAvailableSerials = async (product) => {
 
     isLoadingSerials.value = true
     try {
-        const serials = await layDanhSachSerialKhaDung(product.idChiTietSanPham)
+        const serials = await layDanhSachSerialKhaDung(idChiTietSanPham)
 
         console.log('📦 Raw serials từ API:', serials)
 
-        // Lọc ra các serial chưa bán (trangThai = 0 hoặc 1)
-        const khaDung = serials.filter(s => s.trangThai === 0 || s.trangThai === 1)
+        // Debug: Log serial đầu tiên để xem cấu trúc
+        if (serials && serials.length > 0) {
+            console.log('🔍 Serial đầu tiên (để debug):', serials[0])
+            console.log('🔍 Fields của serial:', Object.keys(serials[0]))
+            console.log('🔍 trangThai của serial đầu tiên:', serials[0].trangThai, serials[0].trang_thai, serials[0].status)
+        }
+
+        // Lọc ra các serial còn trong kho (trangThai = 1: Chưa bán / Trong kho)
+        // Theo backend: 1 = Chưa bán (Trong kho), 2 = Đã bán, 0 = Hỏng
+        // Normalize: có thể là trangThai, trang_thai, hoặc status
+        const khaDung = serials.filter(s => {
+            const trangThai = s.trangThai !== undefined ? s.trangThai : (s.trang_thai !== undefined ? s.trang_thai : s.status)
+            // Serial khả dụng = trangThai === 1 (Chưa bán / Trong kho)
+            return trangThai === 1
+        })
 
         availableSerials.value[product.id] = khaDung
         showSerialDropdown.value[product.id] = true
@@ -428,22 +559,149 @@ const selectSerialFromDropdown = async (product, serial) => {
     await scanSerial(product)
 }
 
+/**
+ * Phát âm thanh khi quét thành công
+ */
+const playSuccessSound = () => {
+    try {
+        // Tạo âm thanh beep đơn giản
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+
+        oscillator.frequency.value = 800 // Tần số cao
+        oscillator.type = 'sine'
+
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
+
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.1)
+    } catch (error) {
+        console.warn('Không thể phát âm thanh:', error)
+    }
+}
+
+/**
+ * Xử lý focus vào input serial
+ */
+const handleSerialInputFocus = (product) => {
+    currentProduct.value = product
+    loadAvailableSerials(product)
+    // Reset trạng thái
+    scanSuccess.value[product.id] = false
+    scanError.value[product.id] = null
+}
+
+/**
+ * Xử lý blur khỏi input serial
+ */
+const handleSerialInputBlur = () => {
+    // Giữ lại currentProduct để biết đang quét cho sản phẩm nào
+}
+
+/**
+ * Lấy text trạng thái quét serial cho sản phẩm
+ */
+const getProductSerialStatusText = (product) => {
+    if (product.hoanThanh) {
+        return 'Hoàn thành'
+    }
+    if (product.soLuongDaQuet > 0) {
+        return `Đã quét ${product.soLuongDaQuet}/${product.soLuongCanQuet}`
+    }
+    if (currentProduct.value?.id === product.id) {
+        return 'Đang quét...'
+    }
+    return 'Chưa quét'
+}
+
 const scanSerial = async (product) => {
     if (!currentSerialInput.value || !currentSerialInput.value.trim()) {
         errorMessage.value = 'Vui lòng nhập Serial Number'
+        scanError.value[product.id] = 'Vui lòng nhập Serial Number'
         return
     }
 
-    const success = await xacThucMotSerial(currentSerialInput.value, product)
+    // Sanitize và validate serial
+    const sanitizedSerial = sanitizeInput(currentSerialInput.value.trim())
+    if (!validateSerialNumber(sanitizedSerial)) {
+        errorMessage.value = 'Serial Number không hợp lệ! (7-20 ký tự, chữ và số)'
+        scanError.value[product.id] = 'Serial Number không hợp lệ!'
+        return
+    }
+
+    // Reset trạng thái
+    scanSuccess.value[product.id] = false
+    scanError.value[product.id] = null
+
+    const success = await xacThucMotSerial(sanitizedSerial, product)
 
     if (success) {
+        // Hiển thị thành công
+        scanSuccess.value[product.id] = true
+        scanError.value[product.id] = null
+
+        // Phát âm thanh
+        playSuccessSound()
+
         currentSerialInput.value = ''
         errorMessage.value = ''
 
-        // Focus lại input để tiếp tục quét
+        // Tự động focus vào input serial tiếp theo
         await nextTick()
-        if (serialInputs.value && serialInputs.value.length > 0) {
-            serialInputs.value[0]?.focus()
+        focusNextSerialInput(product)
+
+        // Ẩn thông báo thành công sau 2 giây
+        setTimeout(() => {
+            scanSuccess.value[product.id] = false
+        }, 2000)
+    } else {
+        scanError.value[product.id] = errorMessage.value || 'Serial không hợp lệ'
+    }
+}
+
+/**
+ * Focus vào input serial tiếp theo
+ */
+const focusNextSerialInput = (currentProduct) => {
+    if (!serialInputs.value || serialInputs.value.length === 0) return
+
+    // Tìm sản phẩm tiếp theo cần quét
+    const currentIndex = danhSachSanPhamCanQuet.value.findIndex(p => p.id === currentProduct.id)
+
+    // Nếu sản phẩm hiện tại chưa quét đủ, focus lại
+    if (!currentProduct.hoanThanh) {
+        const inputIndex = danhSachSanPhamCanQuet.value
+            .slice(0, currentIndex + 1)
+            .filter(p => !p.hoanThanh)
+            .length - 1
+
+        if (inputIndex >= 0 && serialInputs.value[inputIndex]) {
+            setTimeout(() => {
+                serialInputs.value[inputIndex].focus()
+            }, 100)
+        }
+    } else {
+        // Tìm sản phẩm tiếp theo chưa quét đủ
+        const nextProduct = danhSachSanPhamCanQuet.value.find((p, idx) =>
+            idx > currentIndex && !p.hoanThanh
+        )
+
+        if (nextProduct) {
+            const nextIndex = danhSachSanPhamCanQuet.value
+                .slice(0, danhSachSanPhamCanQuet.value.indexOf(nextProduct) + 1)
+                .filter(p => !p.hoanThanh)
+                .length - 1
+
+            if (nextIndex >= 0 && serialInputs.value[nextIndex]) {
+                setTimeout(() => {
+                    serialInputs.value[nextIndex].focus()
+                }, 100)
+            }
         }
     }
 }
@@ -469,10 +727,38 @@ const getSerialsByProduct = (productId) => {
     return validatedSerials.value.filter(s => s.idHoaDonChiTiet === productId)
 }
 
+/**
+ * Validate tiền khách đưa
+ */
+const validateTienKhachDua = () => {
+    if (isTienMat.value && tienKhachDua.value) {
+        if (!validatePrice(tienKhachDua.value)) {
+            showError('Số tiền không hợp lệ!')
+            tienKhachDua.value = tongTien.value
+            return
+        }
+        if (tienKhachDua.value < tongTien.value) {
+            showWarning('Số tiền khách đưa chưa đủ!')
+        }
+        if (tienKhachDua.value > tongTien.value * 10) {
+            showWarning('Số tiền quá lớn, vui lòng kiểm tra lại!')
+            tienKhachDua.value = tongTien.value
+        }
+    }
+}
+
 const handlePayment = async () => {
     if (!canPay.value) {
         showWarning('Vui lòng kiểm tra lại thông tin thanh toán và đảm bảo đã quét đủ serial!')
         return
+    }
+
+    // Validate thêm trước khi thanh toán
+    if (isTienMat.value) {
+        if (!validatePrice(tienKhachDua.value) || tienKhachDua.value < tongTien.value) {
+            showError('Số tiền khách đưa không hợp lệ hoặc chưa đủ!')
+            return
+        }
     }
 
     isProcessing.value = true
@@ -484,10 +770,18 @@ const handlePayment = async () => {
             serialNumbers: getSerialPayload() // QUAN TRỌNG: Gửi kèm serial numbers
         }
 
-        // Nếu là tiền mặt, lưu thêm thông tin tiền khách đưa và tiền thừa
-        if (selectedMethodName.value === 'Tiền mặt') {
+        // Sanitize ghi chú và mã giao dịch
+        if (payloadData.ghiChu) {
+            payloadData.ghiChu = sanitizeInput(payloadData.ghiChu)
+        }
+        if (payloadData.maGiaoDich) {
+            payloadData.maGiaoDich = sanitizeInput(payloadData.maGiaoDich)
+        }
+
+        // Nếu là tiền mặt, lưu thêm thông tin tiền khách đưa và tiền trả lại
+        if (isTienMat.value) {
             payloadData.tienKhachDua = tienKhachDua.value
-            payloadData.tienThua = tienThua.value
+            payloadData.tienTraLai = tienThua.value // tienThua = tienKhachDua - tongTien (số tiền trả lại)
         }
 
         console.log('💰 Payload thanh toán:', payloadData)
@@ -552,13 +846,14 @@ const getSerialDisplay = (serial) => {
 }
 
 const getSerialStatusText = (trangThai) => {
+    // Theo backend: 1 = Chưa bán (Trong kho), 2 = Đã bán, 0 = Hỏng
     switch (trangThai) {
-        case 0:
-            return 'Mới'
         case 1:
-            return 'Đang dùng'
+            return 'Trong kho' // Khả dụng
         case 2:
             return 'Đã bán'
+        case 0:
+            return 'Hỏng'
         default:
             return 'Không xác định'
     }
@@ -857,6 +1152,47 @@ onMounted(() => {
     background: #555;
 }
 
+/* Invoice Preview */
+.invoice-preview-section {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.preview-products {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.preview-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.preview-product-item:last-child {
+    border-bottom: none;
+}
+
+.alert-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+.serial-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.serial-status-indicator .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
 /* Camera Scanner Modal Styles */
 .camera-scanner-modal {
     position: fixed;
@@ -911,5 +1247,129 @@ onMounted(() => {
     height: auto !important;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+
+    .modal-body .row {
+        flex-direction: column;
+    }
+
+    .modal-body .col-md-5,
+    .modal-body .col-md-7 {
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .invoice-preview-section {
+        max-height: 200px;
+    }
+
+    .serial-section {
+        min-height: auto;
+    }
+
+    .product-serial-list {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-xl {
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 0.75rem;
+    }
+
+    .invoice-preview-section {
+        padding: 0.75rem !important;
+        max-height: 180px;
+    }
+
+    .preview-product-item {
+        font-size: 0.8rem;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .product-serial-item {
+        padding: 0.75rem;
+    }
+
+    .product-header h6 {
+        font-size: 0.9rem;
+    }
+
+    .serial-input-group .input-group {
+        flex-wrap: wrap;
+    }
+
+    .serial-input-group .form-control {
+        min-height: 44px;
+        font-size: 16px;
+        margin-bottom: 0.5rem;
+    }
+
+    .serial-input-group .btn {
+        min-height: 44px;
+        flex: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .serial-dropdown {
+        max-height: 200px;
+    }
+
+    .camera-container {
+        padding: 1rem;
+    }
+
+    .camera-container :deep(video) {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.25rem;
+    }
+
+    .modal-xl {
+        max-width: calc(100% - 0.5rem);
+    }
+
+    .invoice-preview-section {
+        max-height: 150px;
+        padding: 0.5rem !important;
+    }
+
+    .preview-products {
+        max-height: 100px;
+    }
+
+    .product-serial-list {
+        max-height: 250px;
+    }
+
+    .product-serial-item {
+        padding: 0.5rem;
+    }
+
+    .serial-status-indicator .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
 }
 </style>

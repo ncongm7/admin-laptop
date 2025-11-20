@@ -19,6 +19,9 @@
                         <div class="bill-number">
                             <i class="bi bi-receipt"></i>
                             <span>Hóa đơn {{ index + 1 }}</span>
+                            <span v-if="bill.isDraft" class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">
+                                Draft
+                            </span>
                         </div>
                         <div class="bill-code">{{ bill.ma || 'Đang tạo...' }}</div>
                         <div class="bill-total">
@@ -28,9 +31,18 @@
                             <i class="bi bi-cart3"></i> {{ getBillItemsCount(bill) }} sản phẩm
                         </div>
                     </div>
-                    <button class="btn-close-bill" @click.stop="confirmRemove(bill)" title="Xóa hóa đơn">
-                        <i class="bi bi-x"></i>
-                    </button>
+                    <div class="bill-actions">
+                        <button 
+                            class="btn-copy-bill" 
+                            @click.stop="confirmCopy(bill)" 
+                            title="Copy hóa đơn"
+                            v-if="getBillItemsCount(bill) > 0">
+                            <i class="bi bi-files"></i>
+                        </button>
+                        <button class="btn-close-bill" @click.stop="confirmRemove(bill)" title="Xóa hóa đơn">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -62,7 +74,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['select-bill', 'remove-bill', 'create-new'])
+const emit = defineEmits(['select-bill', 'remove-bill', 'create-new', 'copy-bill'])
 
 const { showConfirm } = useConfirm()
 
@@ -86,6 +98,25 @@ const confirmRemove = async (bill) => {
         }
     } else {
         emit('remove-bill', bill.id)
+    }
+}
+
+const confirmCopy = async (bill) => {
+    const itemsCount = getBillItemsCount(bill)
+    if (itemsCount === 0) {
+        return
+    }
+
+    const confirmed = await showConfirm({
+        title: 'Copy hóa đơn',
+        message: `Bạn có muốn copy hóa đơn này (${itemsCount} sản phẩm) thành hóa đơn mới?`,
+        confirmText: 'Copy',
+        cancelText: 'Hủy',
+        type: 'info'
+    })
+
+    if (confirmed) {
+        emit('copy-bill', bill)
     }
 }
 
@@ -199,6 +230,31 @@ const formatCurrency = (value) => {
     margin-top: 0.25rem;
 }
 
+.bill-actions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.btn-copy-bill {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(13, 202, 240, 0.1);
+    color: #0dcaf0;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-copy-bill:hover {
+    background: #0dcaf0;
+    color: white;
+}
+
 .btn-close-bill {
     width: 28px;
     height: 28px;
@@ -228,19 +284,88 @@ const formatCurrency = (value) => {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+    .bills-list {
+        max-height: 10rem;
+    }
+}
+
 @media (max-width: 991px) {
     .bills-list {
         flex-direction: row;
         overflow-x: auto;
         overflow-y: hidden;
-        /* Tắt vertical scroll trên mobile */
         max-height: none;
-        /* Bỏ giới hạn chiều cao trên mobile */
         padding-bottom: 0.5rem;
     }
 
     .bill-tab {
         min-width: 200px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .transaction-tabs {
+        margin-bottom: 1rem;
+    }
+    
+    .card-header {
+        padding: 0.75rem;
+    }
+    
+    .card-header h6 {
+        font-size: 0.9rem;
+    }
+    
+    .bills-list {
+        gap: 0.5rem;
+    }
+    
+    .bill-tab {
+        min-width: 180px;
+        padding: 0.6rem;
+    }
+    
+    .bill-number {
+        font-size: 0.85rem;
+    }
+    
+    .bill-code {
+        font-size: 0.75rem;
+    }
+    
+    .bill-total {
+        font-size: 0.9rem;
+    }
+    
+    .bill-items-count {
+        font-size: 0.75rem;
+    }
+    
+    .bill-actions {
+        gap: 0.2rem;
+    }
+    
+    .btn-copy-bill,
+    .btn-close-bill {
+        width: 24px;
+        height: 24px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .bill-tab {
+        min-width: 160px;
+        padding: 0.5rem;
+    }
+    
+    .bill-number {
+        font-size: 0.8rem;
+    }
+    
+    .bill-total {
+        font-size: 0.85rem;
     }
 }
 </style>

@@ -21,9 +21,14 @@ export function useSerialValidation(hoaDon) {
    * Tính tổng số lượng sản phẩm cần quét serial
    */
   const tongSoLuongCanQuet = computed(() => {
-    if (!hoaDon.value || !hoaDon.value.hoaDonChiTiet) return 0
+    if (!hoaDon.value) return 0
+    
+    // Normalize: có thể là hoaDonChiTiet hoặc chiTietList
+    const chiTietList = hoaDon.value.hoaDonChiTiet || hoaDon.value.chiTietList || []
+    
+    if (chiTietList.length === 0) return 0
 
-    return hoaDon.value.hoaDonChiTiet.reduce((total, item) => {
+    return chiTietList.reduce((total, item) => {
       return total + (item.soLuong || 0)
     }, 0)
   })
@@ -52,14 +57,26 @@ export function useSerialValidation(hoaDon) {
    * Lấy danh sách sản phẩm cần quét serial
    */
   const danhSachSanPhamCanQuet = computed(() => {
-    if (!hoaDon.value || !hoaDon.value.hoaDonChiTiet) return []
+    if (!hoaDon.value) return []
+    
+    // Normalize: có thể là hoaDonChiTiet hoặc chiTietList
+    const chiTietList = hoaDon.value.hoaDonChiTiet || hoaDon.value.chiTietList || []
+    
+    if (chiTietList.length === 0) {
+      console.warn('⚠️ [useSerialValidation] Hóa đơn không có sản phẩm nào')
+      return []
+    }
 
-    return hoaDon.value.hoaDonChiTiet.map((item) => {
+    return chiTietList.map((item) => {
       // Đếm số serial đã quét cho sản phẩm này
       const daQuet = validatedSerials.value.filter((s) => s.idHoaDonChiTiet === item.id).length
 
+      // Normalize idChiTietSanPham - có thể là idChiTietSanPham hoặc chiTietSanPham.id
+      const idChiTietSanPham = item.idChiTietSanPham || item.idCtsp || item.chiTietSanPham?.id || item.chiTietSanPhamId
+
       return {
         ...item,
+        idChiTietSanPham: idChiTietSanPham, // Đảm bảo có field này
         soLuongCanQuet: item.soLuong || 0,
         soLuongDaQuet: daQuet,
         conThieu: (item.soLuong || 0) - daQuet,
@@ -77,8 +94,17 @@ export function useSerialValidation(hoaDon) {
       return false
     }
 
-    if (!product || !product.id || !product.idChiTietSanPham) {
+    if (!product || !product.id) {
       errorMessage.value = 'Thông tin sản phẩm không hợp lệ'
+      return false
+    }
+
+    // Normalize idChiTietSanPham - có thể là idChiTietSanPham, idCtsp, hoặc chiTietSanPham.id
+    const idChiTietSanPham = product.idChiTietSanPham || product.idCtsp || product.chiTietSanPham?.id || product.chiTietSanPhamId
+
+    if (!idChiTietSanPham) {
+      console.error('❌ Không tìm thấy idChiTietSanPham trong product:', product)
+      errorMessage.value = 'Thông tin sản phẩm không hợp lệ (thiếu idChiTietSanPham)'
       return false
     }
 
@@ -98,11 +124,12 @@ export function useSerialValidation(hoaDon) {
         serialNumber: serialNumber.trim(),
         product: product.tenSanPham,
         idHoaDonChiTiet: product.id,
+        idChiTietSanPham: idChiTietSanPham,
       })
 
       const response = await xacThucSerial({
         idHoaDon: hoaDon.value.id,
-        idChiTietSanPham: product.idChiTietSanPham,
+        idChiTietSanPham: idChiTietSanPham,
         serialNumber: serialNumber.trim(),
       })
 
@@ -113,13 +140,16 @@ export function useSerialValidation(hoaDon) {
 
       if (result.isValid || result.valid) {
         // Serial hợp lệ - thêm vào danh sách
+        // Normalize idChiTietSanPham một lần nữa để đảm bảo
+        const idChiTietSanPhamNormalized = product.idChiTietSanPham || product.idCtsp || product.chiTietSanPham?.id || product.chiTietSanPhamId
+        
         validatedSerials.value.push({
           idHoaDonChiTiet: product.id,
-          idChiTietSanPham: product.idChiTietSanPham,
+          idChiTietSanPham: idChiTietSanPhamNormalized,
           serialNumber: serialNumber.trim(),
           serialId: result.serialId,
           tenSanPham: result.tenSanPham || product.tenSanPham,
-          maChiTietSanPham: result.maChiTietSanPham || product.maCTSP,
+          maChiTietSanPham: result.maChiTietSanPham || product.maCTSP || product.maCtsp,
           validatedAt: new Date().toISOString(),
         })
 
