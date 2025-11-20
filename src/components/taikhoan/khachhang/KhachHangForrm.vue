@@ -15,8 +15,7 @@
       <div class="text-end mx-auto" style="width: 250px">
         <label class="form-label mb-1 fw-bold">Tổng chi tiêu:</label>
         <div class="fs-3 fw-bold text-danger">
-          <!-- {{ formatCurrency(form.totalSpent) }} -->
-          900000
+          {{ formatCurrency(form.totalSpent ?? 0) }}
         </div>
       </div>
     </div>
@@ -210,7 +209,7 @@ export default {
     // Khởi tạo toast và confirm composables
     const { success: showSuccess, error: showError, warning: showWarning } = useToast()
     const { showConfirm } = useConfirm()
-    
+
     // Lưu vào this để sử dụng trong methods
     this.showSuccess = showSuccess
     this.showError = showError
@@ -251,6 +250,19 @@ export default {
 
         const data = res && res.data ? res.data : res
         this.form = { ...this.form, ...data }
+
+        // Lấy tổng tiền khách hàng đã sử dụng
+        try {
+          const tongTienRes = await khachHangService.getTongTien(id)
+          const tongTien = tongTienRes?.data ?? tongTienRes ?? 0
+          // Đảm bảo nếu null, undefined, hoặc NaN thì set về 0
+          this.form.totalSpent = tongTien != null && !isNaN(tongTien) ? Number(tongTien) : 0
+          console.log('Tổng tiền khách hàng:', this.form.totalSpent)
+        } catch (tongTienError) {
+          console.warn('Không thể lấy tổng tiền:', tongTienError)
+          this.form.totalSpent = 0
+        }
+
         console.log('fetchCustomer: Dữ liệu đã cập nhật vào form:', this.form)
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết khách hàng', error)
@@ -275,7 +287,8 @@ export default {
         }
       } catch (error) {
         console.error(error)
-        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng!'
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng!'
         this.showError(errorMessage)
       }
     },
@@ -286,7 +299,8 @@ export default {
         this.resetForm()
       } catch (error) {
         console.error(error)
-        const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng'
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Lỗi khi lưu khách hàng'
         this.showError(errorMessage)
       }
     },
@@ -364,9 +378,9 @@ export default {
         message: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
         confirmText: 'Xóa',
         cancelText: 'Hủy',
-        type: 'warning'
+        type: 'warning',
       })
-      
+
       if (!confirmed) {
         return
       }

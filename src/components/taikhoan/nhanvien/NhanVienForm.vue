@@ -130,6 +130,85 @@
             ></textarea>
           </div>
         </div>
+
+        <!-- Checkbox tạo tài khoản -->
+        <div class="form-row">
+          <div class="form-group full-width">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'createTaiKhoan'"
+                v-model="form.createTaiKhoan"
+              />
+              <label class="form-check-label" :for="'createTaiKhoan'">
+                <strong>Tạo tài khoản cho nhân viên này</strong>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form tài khoản (hiển thị khi checkbox được checked) -->
+        <div v-if="form.createTaiKhoan" class="form-section account-section">
+          <label class="section-label">
+            <i class="bi bi-person-lock"></i>
+            Thông tin tài khoản
+          </label>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tên đăng nhập <span class="required">*</span></label>
+              <input
+                v-model="form.tenDangNhap"
+                type="text"
+                class="form-control"
+                placeholder="Nhập tên đăng nhập (mặc định: SĐT)"
+              />
+              <small class="text-muted">Để trống sẽ dùng số điện thoại làm tên đăng nhập</small>
+            </div>
+            <div class="form-group">
+              <label>Mật khẩu <span class="required">*</span></label>
+              <div class="input-group">
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="form.matKhau"
+                  class="form-control"
+                  placeholder="Nhập mật khẩu (mặc định: 123456)"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="showPassword = !showPassword"
+                >
+                  <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                </button>
+              </div>
+              <small class="text-muted">Để trống sẽ dùng mật khẩu mặc định: 123456</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email tài khoản</label>
+              <input
+                v-model="form.emailTaiKhoan"
+                type="email"
+                class="form-control"
+                placeholder="Nhập email (mặc định: email nhân viên)"
+              />
+              <small class="text-muted">Để trống sẽ dùng email của nhân viên</small>
+            </div>
+            <div class="form-group">
+              <label>Vai trò <span class="required">*</span></label>
+              <select v-model="form.maVaiTro" class="form-control" required disabled>
+                <option v-for="vaiTro in vaiTroList" :key="vaiTro.id" :value="vaiTro.id">
+                  {{ vaiTro.tenVaiTro }}
+                </option>
+              </select>
+              <small class="text-muted">Vai trò mặc định: Nhân viên (không thể thay đổi)</small>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- Form Actions -->
       <div class="form-actions">
@@ -146,7 +225,7 @@
     
     <!-- Modal hiển thị thông tin đăng nhập -->
     <LoginInfoModal
-      v-if="showLoginInfoModal"
+      v-if="showLoginInfoModal && loginInfo && loginInfo.tenDangNhap"
       :login-info="loginInfo"
       @close="handleCloseLoginInfo"
     />
@@ -154,9 +233,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { nhanVienApi } from '@/service/ApiNhanVien'
+import vaiTroService from '@/service/vaiTroService'
 import ImageUploader from '@/components/common/ImageUploader.vue'
 import LoginInfoModal from './LoginInfoModal.vue'
 
@@ -164,6 +244,8 @@ const router = useRouter()
 const showSuggestions = ref(false)
 const existingCodes = ref([])
 const showLoginInfoModal = ref(false)
+const showPassword = ref(false)
+const vaiTroList = ref([])
 const loginInfo = ref({
   tenDangNhap: '',
   matKhau: ''
@@ -180,6 +262,12 @@ const form = ref({
   diaChi: '',
   danhGia: '',
   avatar: '',
+  // Thông tin tài khoản
+  createTaiKhoan: false,
+  tenDangNhap: '',
+  matKhau: '',
+  emailTaiKhoan: '',
+  maVaiTro: null,
 })
 
 // Load existing codes to avoid duplicates
@@ -190,6 +278,42 @@ onMounted(async () => {
   } catch (e) {
     console.error('Lỗi tải danh sách mã:', e)
   }
+  
+  // Load danh sách vai trò - chỉ lấy NHAN_VIEN cho nhân viên
+  try {
+    const response = await vaiTroService.getAllVaiTro()
+    const allVaiTro = response?.data || response || []
+    // Chỉ lấy vai trò NHAN_VIEN cho nhân viên
+    const nhanVienRole = allVaiTro.find((vt) => {
+      const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
+      return maVaiTro === 'NHAN_VIEN'
+    })
+    if (nhanVienRole) {
+      // Chỉ hiển thị vai trò NHAN_VIEN
+      vaiTroList.value = [nhanVienRole]
+      form.value.maVaiTro = nhanVienRole.id
+    } else {
+      console.error('Không tìm thấy vai trò NHAN_VIEN')
+      vaiTroList.value = []
+    }
+  } catch (e) {
+    console.error('Lỗi tải danh sách vai trò:', e)
+    vaiTroList.value = []
+  }
+  
+  // Watch checkbox createTaiKhoan để tự động set vai trò khi được check
+  watch(() => form.value.createTaiKhoan, (isChecked) => {
+    if (isChecked && vaiTroList.value && vaiTroList.value.length > 0) {
+      // Tự động set vai trò NHAN_VIEN khi checkbox được check
+      const nhanVienRole = vaiTroList.value.find((vt) => {
+        const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
+        return maVaiTro === 'NHAN_VIEN'
+      })
+      if (nhanVienRole && form.value && !form.value.maVaiTro) {
+        form.value.maVaiTro = nhanVienRole.id
+      }
+    }
+  })
 })
 
 // Generate suggestions
@@ -244,6 +368,21 @@ function onSubmit() {
     alert('Vui lòng nhập Tên, Số điện thoại và Email')
     return
   }
+  
+  // Validate thông tin tài khoản nếu có chọn tạo tài khoản
+  if (form.value.createTaiKhoan) {
+    // Nếu có nhập tên đăng nhập, validate
+    if (form.value.tenDangNhap && form.value.tenDangNhap.trim().length < 3) {
+      alert('Tên đăng nhập phải có ít nhất 3 ký tự')
+      return
+    }
+    // Nếu có nhập mật khẩu, validate
+    if (form.value.matKhau && form.value.matKhau.trim().length < 6) {
+      alert('Mật khẩu phải có ít nhất 6 ký tự')
+      return
+    }
+  }
+  
   const payload = {
     maNhanVien: form.value.maNhanVien || `NV${Date.now().toString().slice(-6)}`,
     hoTen: form.value.name,
@@ -256,6 +395,26 @@ function onSubmit() {
     danhGia: form.value.danhGia || '',
     trangThai: Number(form.value.trangThai),
   }
+  
+  // Thêm thông tin tài khoản nếu có chọn tạo
+  if (form.value.createTaiKhoan) {
+    payload.createTaiKhoan = true
+    if (form.value.tenDangNhap && form.value.tenDangNhap.trim()) {
+      payload.tenDangNhap = form.value.tenDangNhap.trim()
+    }
+    if (form.value.matKhau && form.value.matKhau.trim()) {
+      payload.matKhau = form.value.matKhau.trim()
+    }
+    // Email tài khoản: nếu có thì dùng, không thì dùng email nhân viên
+    // Backend sẽ dùng email từ request (email nhân viên) cho tài khoản
+    // Nếu muốn email tài khoản khác email nhân viên, có thể thêm field riêng sau
+    if (form.value.maVaiTro) {
+      payload.maVaiTro = form.value.maVaiTro
+    }
+  } else {
+    payload.createTaiKhoan = false
+  }
+  
   nhanVienApi
     .add(payload)
     .then((response) => {
@@ -627,5 +786,80 @@ select.form-control:focus {
   .section-label {
     font-size: 1rem;
   }
+}
+
+/* Account section styling */
+.account-section {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  border: 2px solid #e5e7eb;
+}
+
+.account-section .section-label {
+  color: #2D7458;
+  margin-bottom: 16px;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.form-check:hover {
+  border-color: #2D7458;
+  background: #f0fdf4;
+}
+
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #2D7458;
+}
+
+.form-check-label {
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  margin: 0;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group .form-control {
+  flex: 1;
+}
+
+.input-group .btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.input-group .btn:hover {
+  border-color: #2D7458;
+  color: #2D7458;
+  background: #f0fdf4;
+}
+
+.text-muted {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 4px;
+  display: block;
 }
 </style>

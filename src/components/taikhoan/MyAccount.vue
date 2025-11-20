@@ -162,6 +162,13 @@ function getAvatarUrl(avatar) {
 }
 
 function handleImageError(event) {
+  // Tránh vòng lặp vô hạn: nếu đã là default-avatar.jpg thì dùng placeholder
+  if (event.target.src && event.target.src.includes('default-avatar.jpg')) {
+    // Dùng data URI placeholder để tránh vòng lặp
+    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
+    return
+  }
+  // Nếu chưa phải default-avatar, thử dùng default-avatar
   event.target.src = '/images/default-avatar.jpg'
 }
 

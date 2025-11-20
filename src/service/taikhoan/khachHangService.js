@@ -53,6 +53,11 @@ const KhachHangService = {
   getByMaKhachHang: (maKhachHang) => {
     return axios.get(`${API_URL}/by-ma/${maKhachHang}`)
   },
+
+  // Lấy tổng tiền khách hàng đã sử dụng
+  getTongTien: (id) => {
+    return axios.get(`${API_URL}/tong-tien/${id}`)
+  },
 }
 
 export default KhachHangService
