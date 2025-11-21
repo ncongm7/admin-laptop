@@ -73,9 +73,17 @@
             <span v-else >Tắt</span>
           </td>
           <td class="d-flex gap-2">
-            <button class="btn btn-info" @click="viewDetail(it.id)">Chi tiết</button>
-            <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
-            <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
+            <button class="btn btn-info btn-sm" @click="viewDetail(it.id)">Chi tiết</button>
+            <button class="btn btn-warning btn-sm" @click="edit(it.id)">Sửa</button>
+            <button class="btn btn-danger btn-sm" @click="remove(it.id)">Xóa</button>
+            <button 
+              v-if="it.riengTu" 
+              class="btn btn-secondary btn-sm" 
+              @click="goToKhachHang(it.id)"
+              title="Quản lý khách hàng"
+            >
+              KH cá nhân
+            </button>
           </td>
         </tr>
         <tr v-if="paged.length === 0">
@@ -200,6 +208,7 @@ watch([q, status, active], () => { page.value = 1 })
 const goToAdd = () => router.push('/phieu-giam-gia2/add')
 const viewDetail = (id) => router.push(`/phieu-giam-gia2/detail/${id}`)
 const edit = (id) => router.push(`/phieu-giam-gia2/edit/${id}`)
+const goToKhachHang = (id) => router.push(`/quan-li-phieu-giam-gia/${id}/khach-hang`)
 
 // Xóa
 const remove = async (id) => {

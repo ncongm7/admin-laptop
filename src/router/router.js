@@ -112,6 +112,11 @@ const routes = [
     component: () => import('@/views/AddPhieuGiamGia.vue'),
     props: true,
   },
+  {
+    path: '/quan-li-phieu-giam-gia/:id/khach-hang',
+    name: 'QuanLyPhieuGiamGiaKhachHang',
+    component: () => import('@/views/phieugiamgia/QuanLyPhieuGiamGiaKhachHang.vue'),
+  },
   // {
   //   path: '/product-variants',
   //   name: 'ProductVariantsList',

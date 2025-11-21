@@ -35,6 +35,39 @@
       </div>
 
       <div class="col-md-4">
+        <label class="form-label">Loại phiếu *</label>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            id="pggChung"
+            :value="false"
+            v-model="form.riengTu"
+            :disabled="isDetail"
+          />
+          <label class="form-check-label" for="pggChung">
+            Phiếu hóa đơn (dùng chung)
+          </label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            id="pggCaNhan"
+            :value="true"
+            v-model="form.riengTu"
+            :disabled="isDetail"
+          />
+          <label class="form-check-label" for="pggCaNhan">
+            Phiếu cá nhân (gán cho khách)
+          </label>
+        </div>
+        <small class="text-muted">
+          Phiếu cá nhân chỉ dùng được khi đã gán cho khách ở màn "KH cá nhân".
+        </small>
+      </div>
+
+      <div class="col-md-4">
         <label class="form-label">Giá trị giảm *</label>
         <input
           type="number"
@@ -115,6 +148,14 @@
 
       <div class="col-12 mt-2">
         <button v-if="!isDetail" type="submit" class="btn btn-success me-2">Lưu</button>
+        <button
+          v-if="mode !== 'add'"
+          type="button"
+          class="btn btn-outline-primary me-2"
+          @click="goToKhachHang"
+        >
+          KH cá nhân
+        </button>
         <button type="button" class="btn btn-secondary" @click="back">Quay lại</button>
       </div>
     </form>
@@ -319,4 +360,9 @@ const save = async () => {
 }
 
 const back = () => router.push('/phieu-giam-gia2')
+
+const goToKhachHang = () => {
+  if (!id) return
+  router.push(`/quan-li-phieu-giam-gia/${id}/khach-hang`)
+}
 </script>
