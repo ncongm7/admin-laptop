@@ -7,7 +7,7 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),
-    meta: { requiresAuth: false, hideForAuth: true } // Ẩn khi đã đăng nhập
+    meta: { requiresAuth: false, hideForAuth: true }, // Ẩn khi đã đăng nhập
   },
 
   // Các route cần bảo vệ - YÊU CẦU xác thực
@@ -15,20 +15,20 @@ const routes = [
     path: '/',
     name: 'DashBoardView',
     component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/ban-hang',
     name: 'SalesView',
     component: () => import('@/views/banhang/SalesView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   // { path: '/ban-hang', name: 'ProductsView', component: () => import('@/views/ProductsView.vue') },
   {
     path: '/quan-li-hoa-don',
     name: 'QuanLiHoaDon',
     component: () => import('@/views/QuanLiHoaDon.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/quan-li-hoa-don/chi-tiet/:code',
@@ -65,6 +65,12 @@ const routes = [
     path: '/quan-li-bao-hanh',
     name: 'QuanLiBaoHanh',
     component: () => import('@/views/baohanh/QuanLiBaoHanhView.vue'),
+  },
+  {
+    path: '/quan-li-bao-hanh/chi-tiet/:id',
+    name: 'PhieuBaoHanhDetail',
+    component: () => import('@/views/baohanh/PhieuBaoHanhDetailView.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/quan-li-thong-bao',
@@ -240,7 +246,7 @@ router.beforeEach(async (to, from, next) => {
     isAuthenticated,
     requiresAuth,
     hideForAuth,
-    hasToken: !!authStore.token
+    hasToken: !!authStore.token,
   })
 
   // Nếu route yêu cầu xác thực và user chưa đăng nhập

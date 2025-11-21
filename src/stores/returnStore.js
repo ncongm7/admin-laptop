@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import {
+  getYeuCauTraHang,
+  getYeuCauTraHangById,
+  updateTrangThai,
+} from '@/service/trahang/YeuCauTraHangQuanLyService'
 
 export const useReturnStore = defineStore('returnStore', {
   state: () => ({
@@ -12,10 +16,11 @@ export const useReturnStore = defineStore('returnStore', {
       this.loading = true
       this.error = null
       try {
-        const res = await axios.get('/api/returns')
-        this.returns = res.data
+        const data = await getYeuCauTraHang()
+        this.returns = Array.isArray(data) ? data : []
       } catch (err) {
         this.error = err
+        console.error('Error fetching returns:', err)
       } finally {
         this.loading = false
       }
@@ -24,67 +29,41 @@ export const useReturnStore = defineStore('returnStore', {
       this.loading = true
       this.error = null
       try {
-        const res = await axios.get(`/api/returns/${id}`)
-        return res.data
+        const data = await getYeuCauTraHangById(id)
+        return data
       } catch (err) {
         this.error = err
+        console.error('Error fetching return by id:', err)
         return null
       } finally {
         this.loading = false
       }
     },
-    async updateReturnStatus(id, status, note = '') {
+    async updateReturnStatus(id, trangThai, lyDoTuChoi = null, idNhanVienXuLy = null) {
       this.loading = true
       this.error = null
       try {
-        const res = await axios.put(`/api/returns/${id}/status`, { status, note })
+        const data = await updateTrangThai(id, trangThai, lyDoTuChoi, idNhanVienXuLy)
         // Cập nhật lại trong danh sách returns nếu có
-        const idx = this.returns.findIndex(r => r.id === id)
+        const idx = this.returns.findIndex((r) => r.id === id)
         if (idx !== -1) {
-          this.returns[idx].trangThai = status
+          this.returns[idx] = data
         }
-        return res.data
+        return data
       } catch (err) {
         this.error = err
-        return null
+        console.error('Error updating return status:', err)
+        throw err
       } finally {
         this.loading = false
       }
     },
-    async processReturn(id, payload) {
-      this.loading = true
-      this.error = null
-      try {
-        const res = await axios.post(`/api/returns/${id}/process`, payload)
-        // Cập nhật lại trong danh sách returns nếu có
-        const idx = this.returns.findIndex(r => r.id === id)
-        if (idx !== -1) {
-          this.returns[idx] = { ...this.returns[idx], ...res.data }
-        }
-        return res.data
-      } catch (err) {
-        this.error = err
-        return null
-      } finally {
-        this.loading = false
-      }
-    },
-    async fetchReturnAnalytics(params = {}) {
-      this.loading = true
-      this.error = null
-      try {
-        const res = await axios.get('/api/returns/analytics', { params })
-        return res.data
-      } catch (err) {
-        this.error = err
-        return {
-          reasons: [],
-          trends: [],
-          topProducts: []
-        }
-      } finally {
-        this.loading = false
-      }
-    }
-  }
+    // Method này không còn dùng nữa, đã thay bằng updateReturnStatus
+    // async processReturn(id, payload) {
+    //   ...
+    // },
+    // async fetchReturnAnalytics(params = {}) {
+    //   ...
+    // },
+  },
 })
