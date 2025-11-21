@@ -5,19 +5,10 @@
       <h2 class="page-title"><i class="bi bi-shop"></i> Bán hàng tại quầy</h2>
       <div class="header-actions">
         <!-- Nút in hóa đơn (chỉ hiện khi có hóa đơn) -->
-        <InvoicePrint
-          v-if="hoaDonHienTai"
-          :hoaDon="hoaDonHienTai"
-          :allowDraft="true"
-          @printed="handleInvoicePrinted"
-          class="me-2"
-        />
-        <button
-          class="btn btn-success btn-lg"
-          @click="taoHoaDonMoi"
-          :disabled="isLoading || daDatGioiHan"
-          :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'"
-        >
+        <InvoicePrint v-if="hoaDonHienTai" :hoaDon="hoaDonHienTai" :allowDraft="true" @printed="handleInvoicePrinted"
+          class="me-2" />
+        <button class="btn btn-success btn-lg" @click="taoHoaDonMoi" :disabled="isLoading || daDatGioiHan"
+          :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
           <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
           <span v-if="daDatGioiHan" class="badge bg-danger ms-2">Đã đầy</span>
         </button>
@@ -30,24 +21,13 @@
         <!-- CỘT 1: Danh sách Hóa đơn chờ & Thông tin Khách hàng -->
         <div class="col-lg-3">
           <!-- Danh sách Hóa đơn chờ -->
-          <TransactionTabs
-            :bills="danhSachHoaDonCho"
-            :selectedBillId="hoaDonHienTai?.id"
-            :isCopying="isCopyingBill"
-            :copyingBillId="copyingBillId"
-            @select-bill="chonHoaDon"
-            @remove-bill="xoaHoaDonCho"
-            @create-new="taoHoaDonMoi"
-            @copy-bill="handleCopyBill"
-          />
+          <TransactionTabs :bills="danhSachHoaDonCho" :selectedBillId="hoaDonHienTai?.id" :isCopying="isCopyingBill"
+            :copyingBillId="copyingBillId" @select-bill="chonHoaDon" @remove-bill="xoaHoaDonCho"
+            @create-new="taoHoaDonMoi" @copy-bill="handleCopyBill" />
 
           <!-- Thông tin Khách hàng -->
-          <CustomerInfo
-            :customer="hoaDonHienTai.khachHang"
-            @update:customer="handleUpdateCustomer"
-            @search-customer="handleSearchCustomer"
-            @create-customer="handleCreateCustomer"
-          />
+          <CustomerInfo :customer="hoaDonHienTai.khachHang" @update:customer="handleUpdateCustomer"
+            @search-customer="handleSearchCustomer" @create-customer="handleCreateCustomer" />
         </div>
 
         <!-- CỘT 2: Danh mục & Tìm kiếm Sản phẩm -->
@@ -57,46 +37,46 @@
 
         <!-- CỘT 3: Chi tiết Hóa đơn hiện tại -->
         <div class="col-lg-4">
-          <InvoiceDetails
-            :hoaDon="hoaDonHienTai"
-            @delete-item="handleDeleteItem"
-            @apply-voucher="handleApplyVoucher"
-            @use-points="handleUsePoints"
-            @open-voucher-modal="openVoucherModal"
-            @remove-voucher="handleRemoveVoucher"
-            @complete-payment="openPaymentModal"
-            @save-draft="handleSaveDraft"
-            @cancel-bill="handleCancelBill"
-            @update-item="handleUpdateItem"
-          />
+          <InvoiceDetails :hoaDon="hoaDonHienTai" @delete-item="handleDeleteItem" @apply-voucher="handleApplyVoucher"
+            @use-points="handleUsePoints" @open-voucher-modal="openVoucherModal" @remove-voucher="handleRemoveVoucher"
+            @complete-payment="openPaymentModal" @save-draft="handleSaveDraft" @cancel-bill="handleCancelBill"
+            @update-item="handleUpdateItem" />
+        </div>
+      </div>
+
+      <!-- Thống kê & Lịch sử giao dịch -->
+      <div class="row g-3 mt-3">
+        <div class="col-lg-6">
+          <SalesQuickStats />
+        </div>
+        <div class="col-lg-6">
+          <RecentTransactions />
         </div>
       </div>
     </div>
 
-    <!-- Thống kê & Lịch sử giao dịch -->
-    <div class="row g-3 mt-3">
-      <div class="col-lg-6">
-        <SalesQuickStats />
-      </div>
-      <div class="col-lg-6">
-        <RecentTransactions />
-      </div>
-    </div>
-
     <!-- Hiển thị khi chưa có hóa đơn -->
-    <div v-else class="empty-state">
-      <i class="bi bi-receipt"></i>
-      <h4>Chưa có hóa đơn nào</h4>
-      <p>Nhấn "Tạo Đơn Mới" để bắt đầu bán hàng</p>
-      <button
-        class="btn btn-primary btn-lg"
-        @click="taoHoaDonMoi"
-        :disabled="daDatGioiHan"
-        :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'"
-      >
-        <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
-        <span v-if="daDatGioiHan" class="badge bg-danger ms-2">Đã đầy</span>
-      </button>
+    <div v-else>
+      <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <h4>Chưa có hóa đơn nào</h4>
+        <p>Nhấn "Tạo Đơn Mới" để bắt đầu bán hàng</p>
+        <button class="btn btn-primary btn-lg" @click="taoHoaDonMoi" :disabled="daDatGioiHan"
+          :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
+          <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
+          <span v-if="daDatGioiHan" class="badge bg-danger ms-2">Đã đầy</span>
+        </button>
+      </div>
+
+      <!-- Thống kê & Lịch sử giao dịch -->
+      <div class="row g-3 mt-3">
+        <div class="col-lg-6">
+          <SalesQuickStats />
+        </div>
+        <div class="col-lg-6">
+          <RecentTransactions />
+        </div>
+      </div>
     </div>
 
     <!-- Modal nhập số lượng sản phẩm -->
@@ -119,16 +99,9 @@
                 <p class="text-muted mb-0">Tồn kho: {{ selectedProduct.soLuongTon || 0 }}</p>
               </div>
               <label class="form-label">Số lượng <span class="text-danger">*</span></label>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="soLuongNhap"
-                :max="selectedProduct?.soLuongTon || 99"
-                min="1"
-                placeholder="Nhập số lượng"
-                @keyup.enter="confirmAddProduct"
-                ref="quantityInput"
-              />
+              <input type="number" class="form-control" v-model.number="soLuongNhap"
+                :max="selectedProduct?.soLuongTon || 99" min="1" placeholder="Nhập số lượng"
+                @keyup.enter="confirmAddProduct" ref="quantityInput" />
               <small class="text-danger" v-if="soLuongNhap > (selectedProduct?.soLuongTon || 0)">
                 Số lượng vượt quá tồn kho!
               </small>
@@ -137,12 +110,8 @@
               <button type="button" class="btn btn-secondary" @click="closeQuantityModal">
                 Hủy
               </button>
-              <button
-                type="button"
-                class="btn btn-primary"
-                @click="confirmAddProduct"
-                :disabled="soLuongNhap < 1 || soLuongNhap > (selectedProduct?.soLuongTon || 0)"
-              >
+              <button type="button" class="btn btn-primary" @click="confirmAddProduct"
+                :disabled="soLuongNhap < 1 || soLuongNhap > (selectedProduct?.soLuongTon || 0)">
                 Xác nhận
               </button>
             </div>
@@ -152,20 +121,12 @@
     </template>
 
     <!-- Modal thanh toán -->
-    <ModalThanhToan
-      v-if="showPaymentModal"
-      :hoaDon="hoaDonHienTai"
-      @close="closePaymentModal"
-      @payment-confirmed="handlePaymentConfirmed"
-    />
+    <ModalThanhToan v-if="showPaymentModal" :hoaDon="hoaDonHienTai" @close="closePaymentModal"
+      @payment-confirmed="handlePaymentConfirmed" />
 
     <!-- Modal gợi ý voucher -->
-    <VoucherSuggestionModal
-      :visible="showVoucherModal"
-      :idHoaDon="hoaDonHienTai?.id"
-      @close="closeVoucherModal"
-      @voucher-selected="handleVoucherSelected"
-    />
+    <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id" @close="closeVoucherModal"
+      @voucher-selected="handleVoucherSelected" />
 
     <!-- Modal tạo khách hàng mới -->
     <template v-if="showCustomerFormModal">
@@ -181,10 +142,7 @@
               <button type="button" class="btn-close" @click="closeCustomerFormModal"></button>
             </div>
             <div class="modal-body">
-              <KhachHangFormDN
-                @close="closeCustomerFormModal"
-                @success="handleCustomerFormSuccess"
-              />
+              <KhachHangFormDN @close="closeCustomerFormModal" @success="handleCustomerFormSuccess" />
             </div>
           </div>
         </div>
@@ -422,10 +380,10 @@ const handleCopyBill = async (sourceBill) => {
   if (!sourceBill || !sourceBill.id) {
     return
   }
-  
+
   isCopyingBill.value = true
   copyingBillId.value = sourceBill.id
-  
+
   try {
     await copyBill(sourceBill)
   } finally {

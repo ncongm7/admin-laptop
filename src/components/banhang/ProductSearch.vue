@@ -396,6 +396,7 @@ import { useToast } from '@/composables/useToast'
 import ProductDetailModal from './ProductDetailModal.vue'
 import AdvancedProductSearch from './AdvancedProductSearch.vue'
 import { sanitizeInput, debounce as debounceUtil } from '@/utils/validation'
+import { PLACEHOLDER_IMAGES, handleImageError as handleImageErrorUtil } from '@/utils/imagePlaceholder'
 
 const { warning: showWarning, success: showSuccess, error: showError } = useToast()
 
@@ -582,7 +583,7 @@ const handleKeyboardShortcut = (event) => {
  * Xử lý lỗi ảnh
  */
 const handleImageError = (event) => {
-    event.target.src = 'https://via.placeholder.com/150x150?text=No+Image'
+    handleImageErrorUtil(event, 'medium')
 }
 
 /**
@@ -918,7 +919,7 @@ const getProductImage = (product) => {
         const defaultImage = product.anhSanPhams.find(img => img.is_default)
         return defaultImage ? defaultImage.uri : product.anhSanPhams[0].uri
     }
-    return 'https://via.placeholder.com/150x150?text=No+Image'
+    return PLACEHOLDER_IMAGES.medium
 }
 
 const getProductName = (product) => {

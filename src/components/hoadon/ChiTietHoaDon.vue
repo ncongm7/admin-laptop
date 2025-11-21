@@ -14,39 +14,23 @@
         <div class="d-flex align-items-center flex-nowrap pb-2 justify-content-center stepper-flex">
           <template v-for="(step, index) in steps" :key="index">
             <div class="d-flex align-items-center stepper-step-group">
-              <button
-                class="step-btn step-btn-modern"
-                :class="{
-                  'step-done': index < currentStep,
-                  'step-active': index === currentStep,
-                  'step-inactive': index > currentStep,
-                }"
-                disabled
-              >
+              <button class="step-btn step-btn-modern" :class="{
+                'step-done': index < currentStep,
+                'step-active': index === currentStep,
+                'step-inactive': index > currentStep,
+              }" disabled>
                 {{ step.label }}
               </button>
-              <div
-                v-if="index < steps.length - 1"
-                class="step-line-modern"
-                :class="{ active: index < currentStep }"
-              />
+              <div v-if="index < steps.length - 1" class="step-line-modern" :class="{ active: index < currentStep }" />
             </div>
           </template>
         </div>
       </div>
       <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
-        <button
-          class="btn btn-outline-success btn-sm"
-          :disabled="currentStep === 0"
-          @click="prevStep"
-        >
+        <button class="btn btn-outline-success btn-sm" :disabled="currentStep === 0" @click="prevStep">
           <i class="bi bi-arrow-left"></i> HOÀN TÁC
         </button>
-        <button
-          class="btn btn-outline-primary btn-sm"
-          :disabled="currentStep >= steps.length - 1"
-          @click="nextStep"
-        >
+        <button class="btn btn-outline-primary btn-sm" :disabled="currentStep >= steps.length - 1" @click="nextStep">
           XÁC NHẬN <i class="bi bi-arrow-right"></i>
         </button>
         <button class="btn btn-outline-danger btn-sm" @click="cancelInvoice">
@@ -68,15 +52,11 @@
         </div>
         <div class="info-item">
           <span>Loại đơn:</span>
-          <span class="info-value"
-            ><span class="badge">{{ invoice.type }}</span></span
-          >
+          <span class="info-value"><span class="badge">{{ invoice.type }}</span></span>
         </div>
         <div class="info-item">
           <span>Trạng thái:</span>
-          <span class="info-value"
-            ><span class="badge">{{ getStatusLabel(invoice.status) }}</span></span
-          >
+          <span class="info-value"><span class="badge">{{ getStatusLabel(invoice.status) }}</span></span>
         </div>
         <div class="info-item">
           <span>Ngày đặt:</span>
@@ -92,8 +72,7 @@
           <span>Số điện thoại:</span><span class="info-value">{{ customerPhone }}</span>
         </div>
         <div class="info-item">
-          <span>Địa chỉ:</span
-          ><span class="info-value">{{ invoice.customer?.address || 'N/A' }}</span>
+          <span>Địa chỉ:</span><span class="info-value">{{ invoice.customer?.address || 'N/A' }}</span>
         </div>
         <div class="info-item">
           <span>Ghi chú:</span><span class="info-value">{{ invoice.note || 'Không có' }}</span>
@@ -123,11 +102,8 @@
           <tr v-for="(item, idx) in invoice.details" :key="idx">
             <td>{{ idx + 1 }}</td>
             <td>
-              <img
-                :src="item.image"
-                :alt="item.name"
-                style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px"
-              />
+              <img :src="item.image" :alt="item.name"
+                style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px" />
             </td>
             <td>{{ item.sku }}</td>
             <td>{{ item.name }}</td>
@@ -147,10 +123,7 @@
         <div class="history-box">
           <div class="history-title"><i class="bi bi-wallet2 me-2"></i> Lịch Sử Thanh Toán</div>
           <div class="history-items">
-            <div
-              v-if="!invoice.payments || invoice.payments.length === 0"
-              class="history-item-placeholder"
-            >
+            <div v-if="!invoice.payments || invoice.payments.length === 0" class="history-item-placeholder">
               Chưa có thanh toán
             </div>
             <div v-for="payment in invoice.payments" :key="payment.time" class="history-item">
@@ -197,9 +170,7 @@
             <div class="summary-item">
               <i class="bi bi-tag text-muted"></i>
               <span class="summary-label">Giảm giá</span>
-              <span class="summary-value text-danger"
-                >-{{ formatCurrency(invoice.discount || 0) }}</span
-              >
+              <span class="summary-value text-danger">-{{ formatCurrency(invoice.discount || 0) }}</span>
             </div>
             <div class="summary-item">
               <i class="bi bi-truck text-muted"></i>
@@ -236,16 +207,13 @@
   </div>
 
   <!-- Update Invoice Modal -->
-  <UpdateInvoiceModal
-    v-if="showUpdateModal && invoice"
-    :invoice="invoice"
-    @close="closeUpdateModal"
-    @updated="handleInvoiceUpdated"
-  />
+  <UpdateInvoiceModal v-if="showUpdateModal && invoice" :invoice="invoice" @close="closeUpdateModal"
+    @updated="handleInvoiceUpdated" />
 
   <!-- History Modal -->
   <div v-if="showHistoryModal && invoice" class="modal-backdrop fade show" @click="closeHistoryModal"></div>
-  <div v-if="showHistoryModal && invoice" class="modal fade show d-block" tabindex="-1" style="z-index: 9999;" @click.self="closeHistoryModal">
+  <div v-if="showHistoryModal && invoice" class="modal fade show d-block" tabindex="-1" style="z-index: 9999;"
+    @click.self="closeHistoryModal">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
@@ -349,7 +317,7 @@ const prevStep = async () => {
       cancelText: 'Hủy',
       type: 'warning'
     })
-    
+
     if (confirmed) {
       try {
         const prevStepData = steps[currentStep.value - 1]
@@ -377,7 +345,7 @@ const nextStep = async () => {
       cancelText: 'Hủy',
       type: 'info'
     })
-    
+
     if (confirmed) {
       try {
         const nextStepData = steps[currentStep.value + 1]
@@ -398,7 +366,7 @@ const nextStep = async () => {
 
 const cancelInvoice = async () => {
   if (!invoice.value) return
-  
+
   const confirmed = await showConfirm({
     title: 'Hủy hóa đơn',
     message: 'Bạn có chắc muốn hủy hóa đơn này?',
@@ -406,7 +374,7 @@ const cancelInvoice = async () => {
     cancelText: 'Không',
     type: 'danger'
   })
-  
+
   if (confirmed) {
     try {
       const response = await capNhatTrangThai(invoice.value.id, 2) // 2 = DA_HUY
@@ -447,16 +415,16 @@ const printInvoice = async () => {
   try {
     const { inHoaDon } = await import('@/service/banhang/hoaDonService')
     const invoiceId = invoice.value?.id || code
-    
+
     if (!invoiceId) {
       showError('Không có thông tin hóa đơn để in!')
       return
     }
-    
+
     const blob = await inHoaDon(invoiceId)
     const url = URL.createObjectURL(blob)
     const printWindow = window.open(url, '_blank')
-    
+
     if (printWindow) {
       printWindow.onload = () => {
         printWindow.print()
@@ -471,26 +439,6 @@ const printInvoice = async () => {
     console.error('❌ Lỗi khi in hóa đơn:', error)
     showError('Không thể in hóa đơn. Vui lòng thử lại!')
   }
-}
-
-// Update invoice modal
-const showUpdateModal = ref(false)
-
-const updateInvoice = () => {
-  if (!invoice.value) {
-    showError('Không có thông tin hóa đơn!')
-    return
-  }
-  showUpdateModal.value = true
-}
-
-const closeUpdateModal = () => {
-  showUpdateModal.value = false
-}
-
-const handleInvoiceUpdated = (updatedInvoice) => {
-  invoice.value = updatedInvoice
-  showUpdateModal.value = false
 }
 
 // Invoice history
@@ -544,12 +492,15 @@ const formatDateTime = (dateStr) => {
   display: flex;
   align-items: center;
 }
+
 .breadcrumb-title .main-title,
 .breadcrumb-title .divider {
   color: #212529;
 }
+
 .breadcrumb-title .sub-title {
-  color: #212529; /* Đổi sang màu đen */
+  color: #212529;
+  /* Đổi sang màu đen */
 }
 
 /* --- STEPPER TRẠNG THÁI --- */
@@ -558,17 +509,21 @@ const formatDateTime = (dateStr) => {
   padding-bottom: 1rem;
   margin-bottom: 2rem;
 }
+
 .stepper-scroll {
   overflow-x: auto;
 }
+
 .stepper-flex {
   gap: 12px;
   min-width: max-content;
 }
+
 .stepper-step-group {
   display: flex;
   align-items: center;
 }
+
 .step-btn.step-btn-modern {
   border-radius: 999px;
   font-weight: 600;
@@ -579,14 +534,17 @@ const formatDateTime = (dateStr) => {
   color: #6c757d;
   white-space: nowrap;
 }
+
 .step-btn.step-btn-modern.step-done {
   background: #16a34a;
   color: #fff;
 }
+
 .step-btn.step-btn-modern.step-active {
   background: #0d6efd;
   color: #fff;
 }
+
 .stepper-step-group .step-line-modern {
   width: 36px;
   height: 3px;
@@ -594,9 +552,11 @@ const formatDateTime = (dateStr) => {
   margin: 0 8px;
   border-radius: 2px;
 }
+
 .stepper-step-group .step-line-modern.active {
   background: #16a34a;
 }
+
 .steps-horizontal .btn {
   font-size: 0.9rem;
   font-weight: 600;
@@ -609,14 +569,17 @@ h6 {
   font-weight: 600;
   color: #495057;
 }
+
 .table {
   font-size: 0.9rem;
   box-shadow: none;
 }
+
 .table-bordered {
   border-radius: 8px;
   border: 1px solid #dee2e6;
 }
+
 .table th {
   background: #f8f9fa;
   font-weight: 600;
@@ -630,9 +593,11 @@ h6 {
   align-items: flex-start;
   margin-top: 2.5rem;
 }
+
 .history-column {
   flex: 6;
 }
+
 .summary-column {
   flex: 4;
 }
@@ -655,21 +620,26 @@ h6 {
   align-items: center;
   color: #495057;
 }
+
 .history-items {
   padding: 16px;
 }
+
 .history-item {
   display: flex;
   position: relative;
   padding-left: 20px;
   padding-bottom: 16px;
 }
+
 .history-item:last-child {
   padding-bottom: 0;
 }
+
 .history-item:last-child .history-dot::after {
   display: none;
 }
+
 .history-dot {
   position: absolute;
   left: 0;
@@ -679,6 +649,7 @@ h6 {
   border-radius: 50%;
   background-color: #16a34a;
 }
+
 .history-dot::after {
   content: '';
   position: absolute;
@@ -688,6 +659,7 @@ h6 {
   height: 100%;
   background-color: #e9ecef;
 }
+
 .history-item-placeholder {
   color: #6c757d;
 }
@@ -700,36 +672,44 @@ h6 {
   border-bottom: 1px solid #e9ecef;
   color: #495057;
 }
+
 .summary-body {
   padding: 16px;
 }
+
 .summary-item {
   display: flex;
   align-items: center;
   padding: 10px 0;
   font-size: 0.95rem;
 }
+
 .summary-item i {
   margin-right: 12px;
   font-size: 1.2rem;
   width: 20px;
   text-align: center;
 }
+
 .summary-label {
   flex-grow: 1;
   color: #495057;
 }
+
 .summary-value {
   font-weight: 600;
 }
+
 .summary-divider {
   margin: 8px 0;
   border-color: #f1f3f5;
 }
+
 .summary-item.total .summary-label {
   font-weight: 700;
   color: #212529;
 }
+
 .summary-item.total .summary-value {
   font-size: 1.2rem;
   font-weight: 700;
@@ -744,12 +724,14 @@ h6 {
   align-items: stretch;
   margin-bottom: 2.5rem;
 }
+
 .info-box {
   flex: 1;
   border: 1px solid #e9ecef;
   border-radius: 12px;
   background: #fff;
 }
+
 .info-title {
   font-size: 1rem;
   font-weight: 600;
@@ -761,6 +743,7 @@ h6 {
   background: #f8f9fa;
   border-radius: 12px 12px 0 0;
 }
+
 .info-item {
   display: flex;
   justify-content: space-between;
@@ -768,16 +751,20 @@ h6 {
   font-size: 0.9rem;
   border-bottom: 1px solid #f8f9fa;
 }
+
 .info-item:last-child {
   border-bottom: none;
 }
+
 .info-item span:first-child {
   color: #6c757d;
 }
+
 .info-value {
   font-weight: 600;
   text-align: right;
 }
+
 .info-value .badge {
   font-size: 0.85rem;
   font-weight: 500;
@@ -789,16 +776,19 @@ h6 {
 
 /* --- RESPONSIVE --- */
 @media (max-width: 992px) {
+
   .payment-summary-section,
   .info-row {
     flex-direction: column;
     gap: 16px;
   }
 }
+
 @media (max-width: 600px) {
   .invoice-detail {
     padding: 16px;
   }
+
   .breadcrumb-title {
     font-size: 1.2rem;
   }
@@ -813,26 +803,31 @@ h6 {
   padding-top: 1.5rem;
   border-top: 1px solid #e9ecef;
 }
+
 .action-buttons-footer .btn {
   border-radius: 8px;
   font-weight: 600;
   padding: 8px 20px;
   font-size: 0.95rem;
 }
+
 .action-buttons-footer .btn-secondary {
   background-color: #6c757d;
   border-color: #6c757d;
   color: #fff;
 }
+
 .action-buttons-footer .btn-secondary:hover {
   background-color: #5a6268;
   border-color: #545b62;
 }
+
 .action-buttons-footer .btn-success {
   background-color: #16a34a;
   border-color: #16a34a;
   color: #fff;
 }
+
 .action-buttons-footer .btn-success:hover {
   background-color: #148a3d;
   border-color: #127a36;
@@ -843,6 +838,7 @@ h6 {
   color: purple;
   border: 1px solid purple;
 }
+
 .btn-outline-purple:hover {
   background-color: purple;
   color: white;
@@ -854,11 +850,13 @@ h6 {
   border: 1px solid #16a34a;
   background-color: transparent;
 }
+
 .btn-outline-success:hover:not(:disabled) {
   background-color: #16a34a;
   color: white;
   border-color: #16a34a;
 }
+
 .btn-outline-success:disabled {
   color: #6c757d;
   border-color: #6c757d;
@@ -870,11 +868,13 @@ h6 {
   border: 1px solid #0d6efd;
   background-color: transparent;
 }
+
 .btn-outline-primary:hover:not(:disabled) {
   background-color: #0d6efd;
   color: white;
   border-color: #0d6efd;
 }
+
 .btn-outline-primary:disabled {
   color: #6c757d;
   border-color: #6c757d;

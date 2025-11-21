@@ -357,6 +357,7 @@ const canPayment = computed(() => {
 
 // Import composables
 import { useConfirm } from '@/composables/useConfirm'
+import { PLACEHOLDER_IMAGES, handleImageError as handleImageErrorUtil } from '@/utils/imagePlaceholder'
 
 const { showConfirm } = useConfirm()
 
@@ -566,14 +567,14 @@ const getProductImage = (item) => {
     }
     
     // Fallback
-    return 'https://via.placeholder.com/60x60?text=No+Image'
+    return PLACEHOLDER_IMAGES.small
 }
 
 /**
  * Xử lý lỗi ảnh
  */
 const handleImageError = (event) => {
-    event.target.src = 'https://via.placeholder.com/60x60?text=No+Image'
+    handleImageErrorUtil(event, 'small')
 }
 
 /**

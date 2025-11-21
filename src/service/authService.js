@@ -31,15 +31,18 @@ export const getCurrentUser = async () => {
     const response = await axiosInstance.get('/api/auth/me')
     return response.data
   } catch (error) {
-    // Không log error vì đây là trường hợp bình thường khi token hết hạn hoặc server restart
-    // Chỉ log warning để không làm nhiễu console
+    // Xử lý lỗi 400/401 một cách graceful - return null thay vì throw
+    // Không log để tránh spam console khi token hết hạn (đây là trường hợp bình thường)
     if (error.response?.status === 400 || error.response?.status === 401) {
-      // Không log gì cả để tránh spam console
-      // Token sẽ được verify lại khi gọi các API khác
-    } else {
+      // Token không hợp lệ hoặc hết hạn - return null để caller xử lý
+      return null
+    }
+    // Các lỗi khác (500, network error, etc.) mới log
+    if (error.response?.status >= 500 || !error.response) {
       console.error('Lỗi khi lấy thông tin user:', error)
     }
-    throw error
+    // Vẫn return null để không break UI
+    return null
   }
 }
 

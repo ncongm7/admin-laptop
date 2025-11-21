@@ -1,4 +1,7 @@
-
+// Polyfill cho global (cần cho sockjs-client)
+if (typeof global === 'undefined') {
+  window.global = window
+}
 
 import { createApp } from 'vue'
 import App from './App.vue'

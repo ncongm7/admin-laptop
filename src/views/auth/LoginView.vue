@@ -4,7 +4,7 @@
             <!-- Logo và Tiêu đề -->
             <div class="login-header">
                 <div class="logo">
-                    <img src="https://via.placeholder.com/80x80?text=VLT" alt="VietLapTop Logo" class="logo-image" />
+                    <img :src="logoPlaceholder" alt="VietLapTop Logo" class="logo-image" />
                 </div>
                 <h1 class="brand-name">VietLapTop</h1>
                 <p class="brand-tagline">Hệ thống quản lý bán hàng</p>
@@ -74,6 +74,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { getPlaceholderImage } from '@/utils/imagePlaceholder'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -84,6 +85,9 @@ const matKhau = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// Logo placeholder
+const logoPlaceholder = getPlaceholderImage(80, 80, 'VLT')
 
 /**
  * Xử lý đăng nhập

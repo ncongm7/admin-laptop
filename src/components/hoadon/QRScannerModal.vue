@@ -1,7 +1,7 @@
 <template>
   <!-- Backdrop -->
   <div class="modal-backdrop fade show" @click="close"></div>
-  
+
   <!-- Modal -->
   <div class="modal fade show d-block" tabindex="-1" style="z-index: 9999;" @click.self="close">
     <div class="modal-dialog modal-dialog-centered">
@@ -22,15 +22,9 @@
               <i class="bi bi-camera-video" style="font-size: 4rem; color: #ccc;"></i>
               <p class="text-muted mt-3">Nhấn "Bắt đầu quét" để mở camera</p>
             </div>
-            
+
             <div v-else class="scanner-wrapper">
-              <BarcodeScanner
-                v-if="isScanning"
-                @decode="onDecode"
-                @loaded="onScannerLoaded"
-                @error="onScannerError"
-                class="scanner-video"
-              />
+              <StreamQrcodeBarcodeReader v-if="isScanning" @decode="onDecode" class="scanner-video" />
               <div class="scanner-overlay">
                 <div class="scanner-frame"></div>
                 <p class="scanner-hint">Đưa QR code vào khung</p>
@@ -42,19 +36,10 @@
           <div class="mt-3">
             <label class="form-label small">Hoặc nhập mã hóa đơn thủ công:</label>
             <div class="input-group">
-              <input
-                type="text"
-                class="form-control"
-                v-model="manualCode"
-                @keyup.enter="handleManualSearch"
-                placeholder="Nhập mã hóa đơn (VD: HD-20241201-0001)"
-                :disabled="isScanning"
-              />
-              <button
-                class="btn btn-outline-primary"
-                @click="handleManualSearch"
-                :disabled="!manualCode || isSearching"
-              >
+              <input type="text" class="form-control" v-model="manualCode" @keyup.enter="handleManualSearch"
+                placeholder="Nhập mã hóa đơn (VD: HD-20241201-0001)" :disabled="isScanning" />
+              <button class="btn btn-outline-primary" @click="handleManualSearch"
+                :disabled="!manualCode || isSearching">
                 <span v-if="isSearching" class="spinner-border spinner-border-sm me-1"></span>
                 <i v-else class="bi bi-search"></i>
                 Tìm
@@ -73,13 +58,8 @@
           <button type="button" class="btn btn-secondary" @click="close" :disabled="isScanning">
             <i class="bi bi-x-circle"></i> Đóng
           </button>
-          <button
-            type="button"
-            class="btn"
-            :class="isScanning ? 'btn-danger' : 'btn-primary'"
-            @click="toggleScanner"
-            :disabled="isSearching"
-          >
+          <button type="button" class="btn" :class="isScanning ? 'btn-danger' : 'btn-primary'" @click="toggleScanner"
+            :disabled="isSearching">
             <i class="bi" :class="isScanning ? 'bi-stop-circle' : 'bi-play-circle'"></i>
             {{ isScanning ? 'Dừng quét' : 'Bắt đầu quét' }}
           </button>
@@ -91,7 +71,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { BarcodeScanner } from 'vue3-barcode-qrcode-reader'
+import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { getHoaDonDetailByCode } from '@/service/hoaDonService'
 import { useToast } from '@/composables/useToast'
 
@@ -135,32 +115,23 @@ const stopScanner = () => {
  */
 const onDecode = async (decodedText) => {
   console.log('📱 [QRScanner] Decoded:', decodedText)
-  
+
   if (!decodedText) return
-  
+
   // Stop scanner
   stopScanner()
-  
+
   // Extract invoice code from QR (format: HD-YYYYMMDD-XXXX or just the code)
   const invoiceCode = decodedText.trim()
-  
+
   // Search for invoice
   await searchInvoice(invoiceCode)
 }
 
 /**
- * Handle scanner loaded
+ * Handle scanner error (via decode event with error)
  */
-const onScannerLoaded = () => {
-  console.log('✅ [QRScanner] Scanner loaded')
-  showSuccess('Camera đã sẵn sàng!')
-}
-
-/**
- * Handle scanner error
- */
-const onScannerError = (err) => {
-  console.error('❌ [QRScanner] Scanner error:', err)
+const handleScannerError = () => {
   error.value = 'Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera.'
   stopScanner()
 }
@@ -179,7 +150,7 @@ const searchInvoice = async (code) => {
 
   try {
     const response = await getHoaDonDetailByCode(code)
-    
+
     if (response && response.data) {
       showSuccess('Đã tìm thấy hóa đơn!')
       emit('invoice-found', response.data)
@@ -203,7 +174,7 @@ const handleManualSearch = async () => {
     error.value = 'Vui lòng nhập mã hóa đơn'
     return
   }
-  
+
   await searchInvoice(manualCode.value.trim())
 }
 
@@ -315,4 +286,3 @@ onUnmounted(() => {
   font-size: 0.9rem;
 }
 </style>
-

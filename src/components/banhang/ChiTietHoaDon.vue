@@ -79,6 +79,7 @@
 
 <script setup>
 import { useConfirm } from '@/composables/useConfirm'
+import { PLACEHOLDER_IMAGES } from '@/utils/imagePlaceholder'
 
 defineProps({
   hoaDon: {
@@ -107,10 +108,11 @@ const confirmDelete = async (item) => {
 
 const getProductImage = (item) => {
   // TODO: Lấy ảnh từ chi tiết sản phẩm nếu có
-  return (
-    'https://via.placeholder.com/60x60?text=' +
-    encodeURIComponent(item.tenSanPham?.substring(0, 10) || 'SP')
-  )
+  if (item.chiTietSanPham?.anhSanPhams && item.chiTietSanPham.anhSanPhams.length > 0) {
+    const defaultImage = item.chiTietSanPham.anhSanPhams.find(img => img.is_default)
+    return defaultImage ? defaultImage.uri : item.chiTietSanPham.anhSanPhams[0].uri
+  }
+  return PLACEHOLDER_IMAGES.small
 }
 
 const formatCurrency = (value) => {

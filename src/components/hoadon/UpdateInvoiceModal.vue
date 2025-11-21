@@ -17,6 +17,25 @@
         <!-- Body -->
         <div class="modal-body">
           <form @submit.prevent="handleSave">
+            <!-- Trạng thái -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="bi bi-flag"></i> Trạng thái
+              </label>
+              <select
+                v-model="formData.trangThai"
+                class="form-select"
+                :disabled="isSaving"
+              >
+                <option :value="0">Chờ thanh toán</option>
+                <option :value="1">Đã thanh toán</option>
+                <option :value="2">Đang giao</option>
+                <option :value="3">Hoàn thành</option>
+                <option :value="4">Đã hủy</option>
+              </select>
+              <small class="form-text text-muted">Chọn trạng thái mới cho hóa đơn</small>
+            </div>
+
             <!-- Ghi chú -->
             <div class="mb-3">
               <label class="form-label">
@@ -92,6 +111,7 @@ const emit = defineEmits(['close', 'updated'])
 const { success: showSuccess, error: showError } = useToast()
 
 const formData = ref({
+  trangThai: null,
   ghiChu: '',
   diaChiGiaoHang: ''
 })
@@ -107,8 +127,9 @@ const isOnlineOrder = computed(() => {
 watch(() => props.invoice, (newInvoice) => {
   if (newInvoice) {
     formData.value = {
-      ghiChu: newInvoice.ghiChu || '',
-      diaChiGiaoHang: newInvoice.diaChiGiaoHang || newInvoice.diaChi || ''
+      trangThai: newInvoice.trangThai !== undefined ? newInvoice.trangThai : newInvoice.trang_thai || 0,
+      ghiChu: newInvoice.ghiChu || newInvoice.ghi_chu || '',
+      diaChiGiaoHang: newInvoice.diaChiGiaoHang || newInvoice.diaChi || newInvoice.dia_chi || ''
     }
   }
 }, { immediate: true })
@@ -144,10 +165,20 @@ const handleSave = async () => {
   error.value = ''
 
   try {
-    const response = await capNhatHoaDon(props.invoice.id, {
+    const updateData = {
+      trangThai: formData.value.trangThai !== null ? formData.value.trangThai : undefined,
       ghiChu: formData.value.ghiChu || null,
       diaChiGiaoHang: isOnlineOrder.value ? (formData.value.diaChiGiaoHang || null) : undefined
+    }
+    
+    // Loại bỏ các field undefined
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key]
+      }
     })
+
+    const response = await capNhatHoaDon(props.invoice.id, updateData)
 
     showSuccess('Cập nhật hóa đơn thành công!')
     emit('updated', response.data)
