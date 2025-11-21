@@ -31,42 +31,47 @@
 
   <!-- Bên trái: Nhóm radio -->
   <div class="d-flex justify-content-between align-items-center px-3 py-2 flex-wrap">
-    <!-- Bên trái: Radio Trạng thái -->
+    <!-- Bên trái: Radio Trạng thái tài khoản -->
     <div class="d-flex align-items-center gap-2 flex-wrap">
-      <label class="fw-bold mb-0 me-2">Trạng thái</label>
+      <label class="fw-bold mb-0 me-2">Tài khoản</label>
 
       <div class="form-check form-check-inline mb-0">
         <input
           class="form-check-input"
           type="radio"
-          name="trangThai"
-          id="tatCa"
+          name="taiKhoan"
+          id="tatCaTaiKhoan"
           value="all"
-          checked
+          v-model="taiKhoanFilter"
+          @change="handleFilterChange"
         />
-        <label class="form-check-label" for="tatCa">Tất cả</label>
+        <label class="form-check-label" for="tatCaTaiKhoan">Tất cả</label>
       </div>
 
       <div class="form-check form-check-inline mb-0">
         <input
           class="form-check-input"
           type="radio"
-          name="trangThai"
-          id="kichHoat"
-          value="active"
+          name="taiKhoan"
+          id="daCoTaiKhoan"
+          value="has"
+          v-model="taiKhoanFilter"
+          @change="handleFilterChange"
         />
-        <label class="form-check-label" for="kichHoat">Không hoạt động</label>
+        <label class="form-check-label" for="daCoTaiKhoan">Đã có tài khoản</label>
       </div>
 
       <div class="form-check form-check-inline mb-0">
         <input
           class="form-check-input"
           type="radio"
-          name="trangThai"
-          id="huyKichHoat"
-          value="inactive"
+          name="taiKhoan"
+          id="chuaCoTaiKhoan"
+          value="no"
+          v-model="taiKhoanFilter"
+          @change="handleFilterChange"
         />
-        <label class="form-check-label" for="huyKichHoat">Hoạt động</label>
+        <label class="form-check-label" for="chuaCoTaiKhoan">Chưa có tài khoản</label>
       </div>
     </div>
 
@@ -95,6 +100,7 @@ export default {
     return {
       keyword: '',
       status: '',
+      taiKhoanFilter: 'all', // 'all', 'has', 'no'
     }
   },
   created() {
@@ -113,6 +119,7 @@ export default {
         this.$emit('search', {
           keyword: this.keyword,
           status: this.status,
+          taiKhoanFilter: this.taiKhoanFilter,
         })
       } catch (error) {
         console.error('Lỗi khi tìm kiếm:', error)
@@ -120,14 +127,25 @@ export default {
         this.showError(errorMessage)
       }
     },
+    
+    handleFilterChange() {
+      // Emit event khi filter thay đổi
+      this.$emit('search', {
+        keyword: this.keyword,
+        status: this.status,
+        taiKhoanFilter: this.taiKhoanFilter,
+      })
+    },
 
     // Reset tìm kiếm
     resetSearch() {
       this.keyword = ''
       this.status = ''
+      this.taiKhoanFilter = 'all'
       this.$emit('search', {
         keyword: '',
         status: '',
+        taiKhoanFilter: 'all',
       })
     },
   },

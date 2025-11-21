@@ -64,9 +64,13 @@ const onCustomersUpdated = (count) => {
 // Xử lý tìm kiếm
 const onSearch = (searchParams) => {
   console.log('Tìm kiếm với params:', searchParams)
-  // Truyền search params cho table component
+  // Gọi method searchCustomers của table component
   if (tableRef.value && tableRef.value.searchCustomers) {
     tableRef.value.searchCustomers(searchParams)
+  }
+  // Cập nhật filter tài khoản
+  if (tableRef.value && tableRef.value.setTaiKhoanFilter) {
+    tableRef.value.setTaiKhoanFilter(searchParams.taiKhoanFilter || 'all')
   }
 }
 </script>

@@ -122,6 +122,85 @@
           </div>
         </div>
 
+        <!-- Checkbox tạo tài khoản -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="createTaiKhoan"
+                v-model="form.createTaiKhoan"
+              />
+              <label class="form-check-label" for="createTaiKhoan">
+                <strong>Tạo tài khoản cho khách hàng này</strong>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form tài khoản (hiển thị khi checkbox được checked) -->
+        <div v-if="form.createTaiKhoan" class="account-section">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-user-lock me-1 text-success"></i>
+            Thông tin tài khoản
+          </h6>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+              <input
+                v-model="form.tenDangNhap"
+                type="text"
+                class="form-control"
+                placeholder="Nhập tên đăng nhập (mặc định: SĐT)"
+              />
+              <small class="text-muted">Để trống sẽ dùng số điện thoại làm tên đăng nhập</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="form.matKhau"
+                  class="form-control"
+                  placeholder="Nhập mật khẩu (mặc định: 123456)"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="showPassword = !showPassword"
+                >
+                  <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                </button>
+              </div>
+              <small class="text-muted">Để trống sẽ dùng mật khẩu mặc định: 123456</small>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Email tài khoản</label>
+              <input
+                v-model="form.emailTaiKhoan"
+                type="email"
+                class="form-control"
+                placeholder="Nhập email (mặc định: email khách hàng)"
+              />
+              <small class="text-muted">Để trống sẽ dùng email của khách hàng</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vai trò <span class="text-danger">*</span></label>
+              <select v-model="form.maVaiTro" class="form-control" required disabled>
+                <option v-for="vaiTro in vaiTroList" :key="vaiTro.id" :value="vaiTro.id">
+                  {{ vaiTro.tenVaiTro }}
+                </option>
+              </select>
+              <small class="text-muted">Vai trò mặc định: Khách hàng (không thể thay đổi)</small>
+            </div>
+          </div>
+        </div>
+
         <!-- Ghi chú về trường bắt buộc -->
         <div class="mt-3">
           <small class="required-note">
@@ -225,6 +304,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal hiển thị thông tin đăng nhập -->
+    <LoginInfoModal
+      v-if="showLoginInfoModal && loginInfo && loginInfo.tenDangNhap"
+      :login-info="loginInfo"
+      @close="handleCloseLoginInfo"
+    />
   </div>
 </template>
 
@@ -260,11 +346,89 @@
 .modal {
   z-index: 1050;
 }
+
+/* Account section styling */
+.account-section {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 2px solid #e5e7eb;
+}
+
+.account-section h6 {
+  color: #2d7458;
+  margin-bottom: 16px;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.form-check:hover {
+  border-color: #2d7458;
+  background: #f0fdf4;
+}
+
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #2d7458;
+}
+
+.form-check-label {
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  margin: 0;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group .form-control {
+  flex: 1;
+}
+
+.input-group .btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.input-group .btn:hover {
+  border-color: #2d7458;
+  color: #2d7458;
+  background: #f0fdf4;
+}
+
+.text-muted {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 4px;
+  display: block;
+}
 </style>
 <script>
 import khachHangService from '@/service/taikhoan/khachHangService'
 import DiaChiService from '@/service/taikhoan/diaChiService'
+import vaiTroService from '@/service/vaiTroService'
 import DiaChiForm from './DiaChiForm.vue'
+import LoginInfoModal from '../nhanvien/LoginInfoModal.vue'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 
@@ -272,6 +436,7 @@ export default {
   name: 'KhachHangForm',
   components: {
     DiaChiForm,
+    LoginInfoModal,
   },
   data() {
     return {
@@ -283,9 +448,22 @@ export default {
         gioiTinh: 0,
         ngaySinh: '',
         trangThai: 0,
+        // Thông tin tài khoản
+        createTaiKhoan: false,
+        tenDangNhap: '',
+        matKhau: '',
+        emailTaiKhoan: '',
+        maVaiTro: null,
       },
       isGeneratingCode: false,
       showAddressModal: false,
+      showLoginInfoModal: false,
+      showPassword: false,
+      vaiTroList: [],
+      loginInfo: {
+        tenDangNhap: '',
+        matKhau: '',
+      },
       addressList: [],
       savedCustomer: null, // Lưu thông tin khách hàng đã được lưu vào DB
       errors: {
@@ -296,7 +474,7 @@ export default {
       },
     }
   },
-  created() {
+  async created() {
     // Khởi tạo toast và confirm composables
     const { success: showSuccess, error: showError, warning: showWarning } = useToast()
     const { showConfirm } = useConfirm()
@@ -306,6 +484,28 @@ export default {
     this.showError = showError
     this.showWarning = showWarning
     this.showConfirm = showConfirm
+
+    // Load danh sách vai trò - chỉ lấy KHACH_HANG cho khách hàng
+    try {
+      const response = await vaiTroService.getAllVaiTro()
+      const allVaiTro = response?.data || response || []
+      // Chỉ lấy vai trò KHACH_HANG cho khách hàng
+      const khachHangRole = allVaiTro.find((vt) => {
+        const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
+        return maVaiTro === 'KHACH_HANG'
+      })
+      if (khachHangRole) {
+        // Chỉ hiển thị vai trò KHACH_HANG
+        this.vaiTroList = [khachHangRole]
+        this.form.maVaiTro = khachHangRole.id
+      } else {
+        console.error('Không tìm thấy vai trò KHACH_HANG')
+        this.vaiTroList = []
+      }
+    } catch (e) {
+      console.error('Lỗi tải danh sách vai trò:', e)
+      this.vaiTroList = []
+    }
   },
   watch: {
     'form.maKhachHang'(newVal) {
@@ -313,6 +513,21 @@ export default {
         this.fetchAddresses()
       } else {
         this.addressList = []
+      }
+    },
+    'form.createTaiKhoan'(isChecked) {
+      // Kiểm tra component vẫn còn mounted
+      if (!this || !this.$el) return
+
+      if (isChecked && this.vaiTroList && this.vaiTroList.length > 0) {
+        // Tự động set vai trò KHACH_HANG khi checkbox được check
+        const khachHangRole = this.vaiTroList.find((vt) => {
+          const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
+          return maVaiTro === 'KHACH_HANG'
+        })
+        if (khachHangRole && this.form && !this.form.maVaiTro) {
+          this.form.maVaiTro = khachHangRole.id
+        }
       }
     },
   },
@@ -325,6 +540,20 @@ export default {
       }
 
       try {
+        // Validate thông tin tài khoản nếu có chọn tạo tài khoản
+        if (this.form.createTaiKhoan) {
+          // Nếu có nhập tên đăng nhập, validate
+          if (this.form.tenDangNhap && this.form.tenDangNhap.trim().length < 3) {
+            this.showWarning('Tên đăng nhập phải có ít nhất 3 ký tự')
+            return
+          }
+          // Nếu có nhập mật khẩu, validate
+          if (this.form.matKhau && this.form.matKhau.trim().length < 6) {
+            this.showWarning('Mật khẩu phải có ít nhất 6 ký tự')
+            return
+          }
+        }
+
         // Chuẩn hóa dữ liệu: convert empty string thành null cho các trường optional
         const payload = {
           maKhachHang: this.form.maKhachHang.trim(),
@@ -334,6 +563,28 @@ export default {
           gioiTinh: this.form.gioiTinh,
           ngaySinh: this.form.ngaySinh && this.form.ngaySinh.trim() ? this.form.ngaySinh : null,
           trangThai: this.form.trangThai,
+        }
+
+        // Thêm thông tin tài khoản nếu có chọn tạo
+        if (this.form.createTaiKhoan) {
+          payload.createTaiKhoan = true
+          if (this.form.tenDangNhap && this.form.tenDangNhap.trim()) {
+            payload.tenDangNhap = this.form.tenDangNhap.trim()
+          }
+          if (this.form.matKhau && this.form.matKhau.trim()) {
+            payload.matKhau = this.form.matKhau.trim()
+          }
+          // Email tài khoản: nếu có thì dùng, không thì dùng email khách hàng
+          // Backend sẽ dùng email từ request cho tài khoản
+          if (this.form.emailTaiKhoan && this.form.emailTaiKhoan.trim()) {
+            // Không ghi đè email khách hàng, backend sẽ xử lý
+            // Ta sẽ gửi email tài khoản riêng nếu cần
+          }
+          if (this.form.maVaiTro) {
+            payload.maVaiTro = this.form.maVaiTro
+          }
+        } else {
+          payload.createTaiKhoan = false
         }
 
         const response = await khachHangService.addKhachHang(payload)
@@ -396,9 +647,19 @@ export default {
         // Lưu thông tin khách hàng đã được lưu
         this.savedCustomer = newCustomer
 
-        this.showSuccess('Thêm khách hàng thành công!')
-        this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
-        this.$emit('close') // đóng form
+        // Kiểm tra xem response có chứa thông tin đăng nhập không
+        // responseData đã được khai báo ở trên, chỉ kiểm tra login info
+        if (responseData && responseData.tenDangNhap && responseData.matKhau) {
+          this.loginInfo = {
+            tenDangNhap: responseData.tenDangNhap,
+            matKhau: responseData.matKhau,
+          }
+          this.showLoginInfoModal = true
+        } else {
+          this.showSuccess('Thêm khách hàng thành công!')
+          this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
+          this.$emit('close') // đóng form
+        }
       } catch (error) {
         console.error(error)
         const errorMessage =
@@ -414,6 +675,20 @@ export default {
       }
 
       try {
+        // Validate thông tin tài khoản nếu có chọn tạo tài khoản
+        if (this.form.createTaiKhoan) {
+          // Nếu có nhập tên đăng nhập, validate
+          if (this.form.tenDangNhap && this.form.tenDangNhap.trim().length < 3) {
+            this.showWarning('Tên đăng nhập phải có ít nhất 3 ký tự')
+            return
+          }
+          // Nếu có nhập mật khẩu, validate
+          if (this.form.matKhau && this.form.matKhau.trim().length < 6) {
+            this.showWarning('Mật khẩu phải có ít nhất 6 ký tự')
+            return
+          }
+        }
+
         // Chuẩn hóa dữ liệu: convert empty string thành null cho các trường optional
         const payload = {
           maKhachHang: this.form.maKhachHang.trim(),
@@ -425,11 +700,43 @@ export default {
           trangThai: this.form.trangThai,
         }
 
+        // Thêm thông tin tài khoản nếu có chọn tạo
+        if (this.form.createTaiKhoan) {
+          payload.createTaiKhoan = true
+          if (this.form.tenDangNhap && this.form.tenDangNhap.trim()) {
+            payload.tenDangNhap = this.form.tenDangNhap.trim()
+          }
+          if (this.form.matKhau && this.form.matKhau.trim()) {
+            payload.matKhau = this.form.matKhau.trim()
+          }
+          // Email tài khoản: nếu có thì dùng, không thì dùng email khách hàng
+          if (this.form.emailTaiKhoan && this.form.emailTaiKhoan.trim()) {
+            // Không ghi đè email khách hàng, backend sẽ xử lý
+          }
+          if (this.form.maVaiTro) {
+            payload.maVaiTro = this.form.maVaiTro
+          }
+        } else {
+          payload.createTaiKhoan = false
+        }
+
         const response = await khachHangService.addKhachHang(payload)
-        const newCustomer = response?.data || response
-        this.showSuccess('Thêm khách hàng thành công!')
-        this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
-        this.resetForm()
+        const responseData = response?.data || response
+
+        // Kiểm tra xem response có chứa thông tin đăng nhập không
+        if (responseData && responseData.tenDangNhap && responseData.matKhau) {
+          this.loginInfo = {
+            tenDangNhap: responseData.tenDangNhap,
+            matKhau: responseData.matKhau,
+          }
+          this.showLoginInfoModal = true
+          // Không reset form khi có modal login info
+        } else {
+          const newCustomer = responseData
+          this.showSuccess('Thêm khách hàng thành công!')
+          this.$emit('success', newCustomer) // emit dữ liệu khách hàng mới
+          this.resetForm()
+        }
       } catch (error) {
         console.error(error)
         const errorMessage =
@@ -446,6 +753,12 @@ export default {
         gioiTinh: 0,
         ngaySinh: '',
         trangThai: 0,
+        // Thông tin tài khoản
+        createTaiKhoan: false,
+        tenDangNhap: '',
+        matKhau: '',
+        emailTaiKhoan: '',
+        maVaiTro: null,
       }
       // Clear all validation errors
       this.errors = {
@@ -458,6 +771,18 @@ export default {
       this.savedCustomer = null
       // Reset address list
       this.addressList = []
+      // Reset login info modal
+      this.showLoginInfoModal = false
+      this.loginInfo = {
+        tenDangNhap: '',
+        matKhau: '',
+      }
+    },
+    handleCloseLoginInfo() {
+      this.showLoginInfoModal = false
+      this.showSuccess('Thêm khách hàng thành công!')
+      this.$emit('success', this.savedCustomer)
+      this.$emit('close')
     },
     async generateCustomerCode() {
       try {

@@ -57,6 +57,12 @@ export function createTabsFromMapping(mapping, options = {}) {
 export function createAccountManagementTabs(counts = {}) {
     return createTabsWithCount([
         {
+            value: 'all',
+            label: 'Tất cả tài khoản',
+            icon: 'bi-person-circle',
+            count: counts.all || 0
+        },
+        {
             value: 'staff',
             label: 'Nhân viên',
             icon: 'bi-person-badge',

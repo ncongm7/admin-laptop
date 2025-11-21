@@ -8,14 +8,15 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     loading: false,
-    error: null
+    error: null,
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.token,
     getUser: (state) => state.user,
     getUserId: (state) => state.user?.userId || state.user?.user_id || null,
-    getUserName: (state) => state.user?.hoTen || state.user?.ho_ten || state.user?.tenDangNhap || 'User',
+    getUserName: (state) =>
+      state.user?.hoTen || state.user?.ho_ten || state.user?.tenDangNhap || 'User',
     getUserRole: (state) => {
       if (!state.user) return null
       // Check cả vaiTro và role (backend có thể trả về khác nhau)
@@ -29,11 +30,17 @@ export const useAuthStore = defineStore('auth', {
     isNhanVien: (state) => {
       if (!state.user) return false
       const role = state.user.vaiTro || state.user.role
-      return role === 'NHAN_VIEN' || role === 'Nhân viên' || 
-             role === 'STAFF' || role === 'Nhân viên bán hàng' ||
-             role === 'MANAGER' || role === 'Quản lý' ||
-             role === 'CASHIER' || role === 'Thu ngân'
-    }
+      return (
+        role === 'NHAN_VIEN' ||
+        role === 'Nhân viên' ||
+        role === 'STAFF' ||
+        role === 'Nhân viên bán hàng' ||
+        role === 'MANAGER' ||
+        role === 'Quản lý' ||
+        role === 'CASHIER' ||
+        role === 'Thu ngân'
+      )
+    },
   },
 
   actions: {
@@ -49,7 +56,7 @@ export const useAuthStore = defineStore('auth', {
         // Gọi API đăng nhập
         const response = await authService.login({
           tenDangNhap: credentials.tenDangNhap,
-          matKhau: credentials.matKhau
+          matKhau: credentials.matKhau,
         })
 
         console.log('Login response:', response)
@@ -90,7 +97,8 @@ export const useAuthStore = defineStore('auth', {
         return response
       } catch (err) {
         console.error('Lỗi đăng nhập:', err)
-        this.error = err.response?.data?.message ||
+        this.error =
+          err.response?.data?.message ||
           err.response?.data?.error ||
           err.message ||
           'Đăng nhập thất bại'
@@ -161,8 +169,17 @@ export const useAuthStore = defineStore('auth', {
       // Nếu API fail, vẫn giữ nguyên token và user từ localStorage
       try {
         const response = await authService.getCurrentUser()
-        const userData = response.data || response
+        // Xử lý response format: { isSuccess, data, message }
+        let userData = null
+        if (response?.data?.data) {
+          userData = response.data.data
+        } else if (response?.data) {
+          userData = response.data
+        } else if (response) {
+          userData = response
+        }
 
+        if (userData) {
         this.user = userData
         localStorage.setItem('user', JSON.stringify(userData))
 
@@ -173,10 +190,12 @@ export const useAuthStore = defineStore('auth', {
         }
 
         console.log('Đã cập nhật thông tin user mới nhất từ server:', userData)
+        }
       } catch (error) {
-        console.warn('Không thể lấy thông tin user từ server, sử dụng thông tin từ localStorage:', error.message)
+        // Không log warning để tránh spam console khi token không hợp lệ (server restart)
+        // Đây là trường hợp bình thường, app sẽ tiếp tục hoạt động với thông tin từ localStorage
+        // Token sẽ được verify lại khi gọi các API khác
         // KHÔNG logout tự động, để user tiếp tục sử dụng với token hiện có
-        // Token sẽ được verify khi gọi các API khác
       }
 
       console.log('Đã khôi phục phiên đăng nhập thành công')
@@ -203,6 +222,6 @@ export const useAuthStore = defineStore('auth', {
           this.user = null
         }
       }
-    }
-  }
+    },
+  },
 })
