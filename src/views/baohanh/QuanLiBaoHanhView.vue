@@ -1,97 +1,246 @@
 <template>
-  <main class="container">
-    <h1>Quản lý Phiếu Bảo Hành</h1>
-
-    <!-- Thanh công cụ -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="d-flex gap-2">
-        <input
-          v-model="q"
-          class="form-control"
-          placeholder="Tìm theo SDT / Serial"
-          style="max-width: 280px"
-        />
-        <select v-model="status" class="form-select" style="max-width: 160px">
-          <option value="">Tất cả trạng thái</option>
-          <option :value="0">Đang hiệu lực</option>
-          <option :value="1">Hết hạn</option>
-        </select>
+  <div class="warranty-management">
+    <!-- Header Section -->
+    <div class="page-header mb-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <h1 class="page-title mb-2">
+            <i class="bi bi-shield-check me-2"></i>
+            Quản Lý Phiếu Bảo Hành
+          </h1>
+          <p class="text-muted mb-0">Quản lý và theo dõi các phiếu bảo hành sản phẩm</p>
+        </div>
+        <div class="stats-summary">
+          <div class="stat-item bg-primary text-white">
+            <div class="stat-value">{{ filtered.length }}</div>
+            <div class="stat-label">Tổng phiếu</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Bảng danh sách -->
-    <table class="table table-bordered table-hover">
-      <thead class="table-light">
-        <tr>
-          <th>#</th>
-          <th>Khách Hàng</th>
-          <th>Sản Phẩm</th>
-          <th>Số Serial</th>
-          <th>Ngày bắt đầu</th>
-          <th>Ngày kết thúc</th>
-          <th>Trạng thái</th>
-          <th style="width: 220px">Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- dùng paged để hiển thị theo trang -->
-        <tr v-for="(it, idx) in paged" :key="it.id">
-          <td>{{ (page - 1) * pageSize + idx + 1 }}</td>
-          <td>{{ it.hoTenKhachHang }} <br> {{ it.soDienThoai }} </td>
-          <td>{{ it.tenSP }}</td>
-          <td>{{ it.soSerial }}</td>
-          <td>{{ showDate(it.ngayBatDau) }}</td>
-          <td>{{ showDate(it.ngayKetThuc) }}</td>
-          <td>{{ showTrangThai(it.trangThai) }}</td>
-          <td class="d-flex gap-2">
-            <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
-            <button class="btn btn-info" @click="ViewLichSuBaoHanh(it.id)">Xem Lịch Sử</button>
-          </td>
-        </tr>
-        <tr v-if="paged.length === 0">
-          <td colspan="13" class="text-center text-muted">Không có dữ liệu</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Phân trang đơn giản -->
-    <div class="d-flex align-items-center justify-content-between mt-2">
-      <div>Tổng: {{ filtered.length }} bản ghi</div>
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary" :disabled="page <= 1" @click="prevPage">
-          « Trang trước
-        </button>
-        <span>Trang {{ page }} / {{ totalPages || 1 }}</span>
-        <button class="btn btn-outline-secondary" :disabled="page >= totalPages" @click="nextPage">
-          Trang sau »
-        </button>
+    <!-- Search and Filter Section -->
+    <div class="card filter-card mb-4 shadow-sm">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-search me-1"></i>Tìm kiếm
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                v-model="q"
+                type="text"
+                class="form-control form-control-lg"
+                placeholder="Tìm theo số điện thoại hoặc Serial..."
+              />
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-funnel me-1"></i>Lọc theo trạng thái
+            </label>
+            <select v-model="status" class="form-select form-select-lg">
+              <option value="">Tất cả trạng thái</option>
+              <option :value="1">Chờ xác nhận</option>
+              <option :value="2">Xác nhận</option>
+              <option :value="0">Từ chối</option>
+              <option :value="3">Hoàn thành</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button @click="fetchList" class="btn btn-primary btn-lg w-100" :disabled="loading">
+              <i class="bi bi-arrow-clockwise me-1" :class="{ spinning: loading }"></i>
+              Làm mới
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </main>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
+      <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Warranty Cards -->
+    <div v-else-if="paged.length > 0" class="warranty-cards">
+      <div class="row g-4">
+        <div v-for="(it, idx) in paged" :key="it.id" class="col-12 col-lg-6 col-xl-4">
+          <div class="card warranty-card h-100 shadow-sm border-0 hover-lift">
+            <div class="card-body">
+              <!-- Header với trạng thái -->
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="warranty-id">
+                  <span class="text-muted small">#{{ (page - 1) * pageSize + idx + 1 }}</span>
+                </div>
+                <span :class="getStatusClass(it.trangThai)" class="status-badge">
+                  <i :class="getStatusIcon(it.trangThai)" class="me-1"></i>
+                  {{ showTrangThai(it.trangThai) }}
+                </span>
+              </div>
+
+              <!-- Thông tin khách hàng -->
+              <div class="customer-info mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="avatar-circle me-2">
+                    <i class="bi bi-person-fill"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0 fw-bold">{{ it.hoTenKhachHang || 'N/A' }}</h6>
+                    <small class="text-muted">
+                      <i class="bi bi-telephone me-1"></i>{{ it.soDienThoai || 'N/A' }}
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thông tin sản phẩm -->
+              <div class="product-info mb-3">
+                <div class="info-row">
+                  <i class="bi bi-laptop me-2 text-primary"></i>
+                  <span class="fw-semibold">{{ it.tenSP || 'N/A' }}</span>
+                </div>
+                <div class="info-row mt-2">
+                  <i class="bi bi-upc-scan me-2 text-info"></i>
+                  <code class="serial-code">{{ it.soSerial || 'N/A' }}</code>
+                </div>
+              </div>
+
+              <!-- Thời gian bảo hành -->
+              <div class="warranty-dates mb-3">
+                <div class="date-item">
+                  <i class="bi bi-calendar-check me-2 text-success"></i>
+                  <div>
+                    <small class="text-muted d-block">Ngày bắt đầu</small>
+                    <span class="fw-semibold">{{ showDate(it.ngayBatDau) }}</span>
+                  </div>
+                </div>
+                <div class="date-item mt-2">
+                  <i class="bi bi-calendar-x me-2 text-danger"></i>
+                  <div>
+                    <small class="text-muted d-block">Ngày kết thúc</small>
+                    <span class="fw-semibold">{{ showDate(it.ngayKetThuc) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Button -->
+              <div class="action-buttons mt-3 pt-3 border-top">
+                <button
+                  class="btn btn-primary btn-sm w-100"
+                  @click="viewDetail(it.id)"
+                  title="Xem chi tiết phiếu bảo hành"
+                >
+                  <i class="bi bi-eye me-1"></i>Xem chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else class="empty-state text-center py-5">
+      <div class="empty-icon mb-3">
+        <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6"></i>
+      </div>
+      <h5 class="text-muted mb-2">
+        {{
+          list.length === 0 ? 'Chưa có dữ liệu phiếu bảo hành' : 'Không tìm thấy kết quả phù hợp'
+        }}
+      </h5>
+      <p class="text-muted">
+        {{
+          list.length === 0
+            ? 'Hãy thêm phiếu bảo hành mới để bắt đầu quản lý'
+            : 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm'
+        }}
+      </p>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="!loading && filtered.length > 0" class="pagination-wrapper mt-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="pagination-info">
+              <span class="text-muted">
+                Hiển thị <strong>{{ (page - 1) * pageSize + 1 }}</strong> -
+                <strong>{{ Math.min(page * pageSize, filtered.length) }}</strong>
+                trong tổng số <strong>{{ filtered.length }}</strong> phiếu bảo hành
+              </span>
+            </div>
+            <nav aria-label="Phân trang">
+              <ul class="pagination mb-0">
+                <li class="page-item" :class="{ disabled: page <= 1 }">
+                  <button class="page-link" @click="prevPage" :disabled="page <= 1">
+                    <i class="bi bi-chevron-left"></i>
+                  </button>
+                </li>
+                <li class="page-item active">
+                  <span class="page-link">{{ page }} / {{ totalPages || 1 }}</span>
+                </li>
+                <li class="page-item" :class="{ disabled: page >= totalPages }">
+                  <button class="page-link" @click="nextPage" :disabled="page >= totalPages">
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getPhieuBaoHanh, deletePhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
+import { getPhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 const list = ref([])
 const q = ref('')
+const loading = ref(false)
 
 // --- state phân trang ---
-const page = ref(1)       // 1-based
-const pageSize = ref(5)   // số dòng mỗi trang
+const page = ref(1) // 1-based
+const pageSize = ref(6) // số dòng mỗi trang (tăng lên 6 cho card layout)
 
 // Nạp danh sách
 const fetchList = async () => {
+  loading.value = true
   try {
     const res = await getPhieuBaoHanh()
-    list.value = res?.data ?? res ?? []
+    // Service đã xử lý và trả về array trực tiếp
+    const data = Array.isArray(res) ? res : []
+    // Sắp xếp: chưa hoàn thành (trangThai !== 3) lên đầu, hoàn thành (trangThai === 3) xuống cuối
+    list.value = data.sort((a, b) => {
+      // Nếu cả hai đều hoàn thành hoặc chưa hoàn thành, giữ nguyên thứ tự
+      const aCompleted = a.trangThai === 3
+      const bCompleted = b.trangThai === 3
+      if (aCompleted === bCompleted) return 0
+      // Chưa hoàn thành lên đầu
+      return aCompleted ? 1 : -1
+    })
     page.value = 1
+    console.log('Danh sách phiếu bảo hành:', list.value)
   } catch (e) {
-    console.error(e)
+    console.error('Lỗi khi tải danh sách phiếu bảo hành:', e)
+    alert('Không thể tải danh sách phiếu bảo hành. Vui lòng thử lại.')
+    list.value = []
+  } finally {
+    loading.value = false
   }
 }
 
@@ -100,14 +249,16 @@ const status = ref('') // '' = tất cả; 0/1/2 = lọc theo trạng thái
 
 const filtered = computed(() => {
   const s = q.value.trim().toLowerCase()
-  return list.value.filter(x => {
+  return list.value.filter((x) => {
     // text
     const textOk =
       !s ||
       (x.soDienThoai || '').toLowerCase().includes(s) ||
-      (x.soSerial || '').toLowerCase().includes(s)
+      (x.soSerial || '').toLowerCase().includes(s) ||
+      (x.hoTenKhachHang || '').toLowerCase().includes(s) ||
+      (x.tenSP || '').toLowerCase().includes(s)
 
-    // status (đổi x.trangThaiTinh -> nếu BE trả trường ấy; còn không thì x.trangThai)
+    // status
     const cur = Number(x.trangThai)
     const statusOk = status.value === '' || cur === Number(status.value)
 
@@ -123,40 +274,294 @@ const paged = computed(() => {
 })
 
 // Chuyển trang
-const prevPage = () => { if (page.value > 1) page.value-- }
-const nextPage = () => { if (page.value < totalPages.value) page.value++ }
-const ViewLichSuBaoHanh = (id) => router.push(`/lich-su-bao-hanh/${id}`)
+const prevPage = () => {
+  if (page.value > 1) page.value--
+}
+const nextPage = () => {
+  if (page.value < totalPages.value) page.value++
+}
 
-// Khi gõ tìm kiếm -> quay về trang 1
-watch(q, () => { page.value = 1 })
+// Khi gõ tìm kiếm hoặc thay đổi filter -> quay về trang 1
+watch([q, status], () => {
+  page.value = 1
+})
 
-// Xóa
-const remove = async (id) => {
-  if (!confirm('Bạn có chắc muốn xóa không?')) return
-  try {
-    const resp = await deletePhieuBaoHanh(id)
-    alert(resp?.message || 'Xóa thành công!')
-    await fetchList()
-    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
-    if (page.value > totalPages.value) page.value = totalPages.value
-  } catch (e) {
-    console.error(e)
-  }
+// Xem chi tiết
+const viewDetail = (id) => {
+  router.push(`/quan-li-bao-hanh/chi-tiet/${id}`)
 }
 
 // Helpers hiển thị
-const showTrangThai = (n) => (n === 0 ? 'Đang hiệu lực' : n === 1 ? 'Hết hạn' : 'Không xác định')
+const showTrangThai = (n) => {
+  if (n === 1) return 'Chờ xác nhận'
+  if (n === 2) return 'Xác nhận'
+  if (n === 0) return 'Từ chối'
+  if (n === 3) return 'Hoàn thành'
+  return 'Không xác định'
+}
+
+const getStatusClass = (n) => {
+  if (n === 1) return 'badge bg-success'
+  if (n === 0) return 'badge bg-danger'
+  if (n === 2) return 'badge bg-warning text-dark'
+  if (n === 3) return 'badge bg-info'
+  return 'badge bg-secondary'
+}
+
+const getStatusIcon = (n) => {
+  if (n === 1) return 'bi bi-shield-check'
+  if (n === 0) return 'bi bi-shield-x'
+  if (n === 2) return 'bi bi-tools'
+  if (n === 3) return 'bi bi-check-circle'
+  return 'bi bi-question-circle'
+}
+
 const showDate = (v) => {
-  if (!v) return ''
+  if (!v) return 'N/A'
   const d = new Date(String(v))
   if (isNaN(d)) return String(v)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 onMounted(fetchList)
 </script>
 
 <style scoped>
-h1 { text-align: center; margin-bottom: 16px; }
+.warranty-management {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #212529;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Filter Card */
+.filter-card {
+  border: none;
+  border-radius: 12px;
+  background: white;
+}
+
+.filter-card .form-label {
+  font-size: 0.875rem;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+/* Warranty Cards */
+.warranty-card {
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+}
+
+.warranty-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.hover-lift {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Status Badge */
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Customer Info */
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+}
+
+/* Info Rows */
+.info-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.serial-code {
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+/* Date Items */
+.date-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.date-item i {
+  font-size: 1.1rem;
+}
+
+/* Action Buttons */
+.action-buttons .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.action-buttons .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Empty State */
+.empty-state {
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  opacity: 0.5;
+}
+
+/* Pagination */
+.pagination-wrapper {
+  margin-top: 2rem;
+}
+
+.pagination-info {
+  font-size: 0.9rem;
+}
+
+.pagination .page-link {
+  border-radius: 8px;
+  margin: 0 0.25rem;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover:not(.disabled) {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+  transform: translateY(-1px);
+}
+
+.pagination .page-item.active .page-link {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinning Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .warranty-management {
+    padding: 1rem;
+  }
+
+  .page-header {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .stats-summary {
+    display: none;
+  }
+
+  .filter-card .row {
+    flex-direction: column;
+  }
+
+  .pagination-wrapper .d-flex {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Card Body Spacing */
+.warranty-card .card-body {
+  padding: 1.5rem;
+}
+
+/* Smooth Transitions */
+* {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
 </style>
