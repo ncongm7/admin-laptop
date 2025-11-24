@@ -25,7 +25,6 @@
           <option :value="1">VND</option>
         </select>
       </div>
-
       <div class="col-md-4">
         <label class="form-label">Hoạt động</label>
         <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">

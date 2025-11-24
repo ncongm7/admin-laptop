@@ -91,3 +91,10 @@ export const capNhatKhachHangChoPhieuGiamGia = async (phieuGiamGiaId, khachHangI
   return handleResponse(res);
 };
 
+export const xoaKhachHangKhoiPhieuGiamGia = async (phieuGiamGiaId, khachHangId, guiEmailXinLoi = true) => {
+  const res = await fetch(`${API}/${phieuGiamGiaId}/khach-hang/${khachHangId}?guiEmailXinLoi=${guiEmailXinLoi}`, {
+    method: 'DELETE',
+  });
+  return handleResponse(res);
+};
+

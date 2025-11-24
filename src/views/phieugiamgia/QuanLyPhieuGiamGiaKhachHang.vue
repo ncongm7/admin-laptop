@@ -183,7 +183,7 @@
               <th>Tên khách</th>
               <th>Email</th>
               <th>SĐT</th>
-              <th width="120">Hành động</th>
+              <th width="200">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -194,14 +194,24 @@
               <td>{{ kh.email || '-' }}</td>
               <td>{{ kh.soDienThoai || '-' }}</td>
               <td>
-                <button
-                  class="btn btn-sm btn-outline-primary"
-                  @click="sendEmailToKhachHang(kh.id)"
-                  :disabled="loadingEmail === kh.id"
-                >
-                  <span v-if="loadingEmail === kh.id" class="spinner-border spinner-border-sm me-1"></span>
-                  Gửi email
-                </button>
+                <div class="d-flex gap-2">
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    @click="sendEmailToKhachHang(kh.id)"
+                    :disabled="loadingEmail === kh.id || loadingDelete === kh.id"
+                  >
+                    <span v-if="loadingEmail === kh.id" class="spinner-border spinner-border-sm me-1"></span>
+                    Gửi email
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="xoaKhachHangKhoiPhieuGiamGia(kh.id)"
+                    :disabled="loadingEmail === kh.id || loadingDelete === kh.id"
+                  >
+                    <span v-if="loadingDelete === kh.id" class="spinner-border spinner-border-sm me-1"></span>
+                    Xóa
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="filteredKhachHangDaGan.length === 0">
@@ -233,6 +243,7 @@ const phieuGiamGiaId = route.params.id
 const phieuGiamGia = ref(null)
 const loading = ref(false)
 const loadingEmail = ref(null)
+const loadingDelete = ref(null)
 
 const searchKhachHang = ref('')
 const ketQuaTimKiem = ref([])
@@ -380,6 +391,29 @@ const sendEmailToKhachHang = async (customerId) => {
     showError(errorMessage)
   } finally {
     loadingEmail.value = null
+  }
+}
+
+const xoaKhachHangKhoiPhieuGiamGia = async (customerId) => {
+  if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này khỏi phiếu giảm giá? Hệ thống sẽ tự động gửi email xin lỗi cho khách hàng.')) {
+    return
+  }
+  
+  loadingDelete.value = customerId
+  try {
+    const response = await phieuGiamGiaKhachHangService.xoaKhachHangKhoiPhieuGiamGia(phieuGiamGiaId, customerId, true)
+    if (response?.message) {
+      showSuccess(response.message)
+    } else {
+      showSuccess('Đã xóa khách hàng khỏi phiếu giảm giá và gửi email xin lỗi thành công')
+    }
+    await fetchKhachHangDaGan()
+  } catch (e) {
+    console.error('Lỗi khi xóa khách hàng:', e)
+    const errorMessage = e?.message || e?.data?.message || 'Lỗi khi xóa khách hàng khỏi phiếu giảm giá'
+    showError(errorMessage)
+  } finally {
+    loadingDelete.value = null
   }
 }
 

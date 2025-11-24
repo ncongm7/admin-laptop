@@ -158,6 +158,7 @@
                                         <th class="text-center">Số lượng</th>
                                         <th class="text-end">Đơn giá</th>
                                         <th class="text-end">Thành tiền</th>
+                                        <th>Serial/IMEI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -168,6 +169,18 @@
                                         <td class="text-center">{{ item.soLuong }}</td>
                                         <td class="text-end">{{ formatCurrency(item.donGia) }}</td>
                                         <td class="text-end fw-semibold">{{ formatCurrency(item.thanhTien) }}</td>
+                                        <td>
+                                            <div v-if="getSerialsForItem(item) && getSerialsForItem(item).length > 0" class="serial-list">
+                                                <small class="text-info">
+                                                    <i class="bi bi-upc-scan"></i>
+                                                    <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx" class="serial-badge">
+                                                        {{ serial }}
+                                                        <span v-if="idx < getSerialsForItem(item).length - 1">, </span>
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            <span v-else class="text-muted small">-</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -332,6 +345,22 @@ const getStatusBadgeClass = (trangThai) => {
     }
     return classes[trangThai] || 'bg-secondary'
 }
+
+/**
+ * Lấy serial numbers cho item (nếu có)
+ * @param {Object} item - chiTietList item
+ * @returns {Array|null} - Danh sách serial numbers hoặc null
+ */
+const getSerialsForItem = (item) => {
+    // Kiểm tra xem item có serialNumbers không (từ backend)
+    if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
+        return item.serialNumbers.map(s => {
+            // Hỗ trợ nhiều format: { serialNumber, serialNo, serial_no } hoặc string
+            return typeof s === 'string' ? s : (s.serialNumber || s.serialNo || s.serial_no || s)
+        })
+    }
+    return null
+}
 </script>
 
 <style scoped>
@@ -354,6 +383,19 @@ const getStatusBadgeClass = (trangThai) => {
 
 .table td, .table th {
     vertical-align: middle;
+}
+
+.serial-list {
+    max-width: 300px;
+}
+
+.serial-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    background-color: #e7f3ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
 }
 </style>
 

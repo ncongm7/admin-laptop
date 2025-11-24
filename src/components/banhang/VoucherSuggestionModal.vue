@@ -123,6 +123,10 @@ const props = defineProps({
     idHoaDon: {
         type: String,
         required: true
+    },
+    customerId: {
+        type: String,
+        default: null
     }
 })
 
@@ -145,6 +149,14 @@ watch(() => props.visible, (newVal) => {
 // Watch idHoaDon - reload khi đổi hóa đơn
 watch(() => props.idHoaDon, (newId) => {
     if (isVisible.value && newId) {
+        loadVoucherSuggestions()
+    }
+})
+
+// Watch customerId - reload khi khách hàng thay đổi (để load voucher cá nhân)
+watch(() => props.customerId, (newCustomerId, oldCustomerId) => {
+    if (isVisible.value && props.idHoaDon && newCustomerId !== oldCustomerId) {
+        console.log('🔄 [VoucherSuggestionModal] Khách hàng thay đổi, reload voucher suggestions')
         loadVoucherSuggestions()
     }
 })
