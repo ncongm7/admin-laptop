@@ -109,6 +109,12 @@ const menuItems = ref([
     icon: 'bi-arrow-counterclockwise',
     label: 'Quản lý trả hàng',
     to: '/quan-li-tra-hang'
+  },
+  { 
+    id: 'chat',
+    icon: 'bi-chat-dots',
+    label: 'Quản lý chat',
+    to: '/quan-li-chat'
   }
 ])
 

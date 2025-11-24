@@ -66,11 +66,16 @@ const routes = [
     name: 'QuanLiBaoHanh',
     component: () => import('@/views/baohanh/QuanLiBaoHanhView.vue'),
   },
-  {
-    path: '/quan-li-thong-bao',
-    name: 'QuanLiThongBao',
-    component: () => import('@/views/QuanLiThongBao.vue'),
-  },
+    {
+      path: '/quan-li-thong-bao',
+      name: 'QuanLiThongBao',
+      component: () => import('@/views/QuanLiThongBao.vue'),
+    },
+    {
+      path: '/quan-li-chat',
+      name: 'QuanLiChat',
+      component: () => import('@/views/chat/ChatManagement.vue'),
+    },
   {
     path: '/quan-li-he-thong',
     name: 'QuanLiHeThong',
