@@ -16,7 +16,9 @@ export default defineConfig({
     },
   },
   define: {
-    // Polyfill cho sockjs-client (cần biến global)
-    global: 'globalThis',
+    global: 'globalThis'
   },
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia']
+  }
 })

@@ -125,8 +125,18 @@
       @payment-confirmed="handlePaymentConfirmed" />
 
     <!-- Modal gợi ý voucher -->
+<<<<<<< HEAD
     <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
+=======
+    <VoucherSuggestionModal
+      :visible="showVoucherModal"
+      :idHoaDon="hoaDonHienTai?.id"
+      :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId"
+      @close="closeVoucherModal"
+      @voucher-selected="handleVoucherSelected"
+    />
+>>>>>>> origin/longupdatev3
 
     <!-- Modal tạo khách hàng mới -->
     <template v-if="showCustomerFormModal">

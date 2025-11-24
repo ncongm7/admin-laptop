@@ -72,11 +72,16 @@ const routes = [
     component: () => import('@/views/baohanh/PhieuBaoHanhDetailView.vue'),
     meta: { requiresAuth: true },
   },
-  {
-    path: '/quan-li-thong-bao',
-    name: 'QuanLiThongBao',
-    component: () => import('@/views/QuanLiThongBao.vue'),
-  },
+    {
+      path: '/quan-li-thong-bao',
+      name: 'QuanLiThongBao',
+      component: () => import('@/views/QuanLiThongBao.vue'),
+    },
+    {
+      path: '/quan-li-chat',
+      name: 'QuanLiChat',
+      component: () => import('@/views/chat/ChatManagement.vue'),
+    },
   {
     path: '/quan-li-he-thong',
     name: 'QuanLiHeThong',
@@ -117,6 +122,11 @@ const routes = [
     name: 'EditPhieuGiamGia',
     component: () => import('@/views/AddPhieuGiamGia.vue'),
     props: true,
+  },
+  {
+    path: '/quan-li-phieu-giam-gia/:id/khach-hang',
+    name: 'QuanLyPhieuGiamGiaKhachHang',
+    component: () => import('@/views/phieugiamgia/QuanLyPhieuGiamGiaKhachHang.vue'),
   },
   // {
   //   path: '/product-variants',

@@ -139,6 +139,113 @@
                                 <textarea class="form-control" rows="2" v-model="formData.ghiChu"
                                     placeholder="Ghi chú thanh toán (nếu có)" :disabled="isProcessing"></textarea>
                             </div>
+
+                            <hr />
+
+                            <!-- Lựa chọn giao hàng -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="checkbox" 
+                                        id="canGiaoHang"
+                                        v-model="formData.canGiaoHang"
+                                        :disabled="isProcessing"
+                                        @change="handleGiaoHangChange"
+                                    />
+                                    <label class="form-check-label fw-semibold" for="canGiaoHang">
+                                        <i class="bi bi-truck text-primary"></i> Cần giao hàng
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Form thông tin giao hàng (hiện khi chọn giao hàng) -->
+                            <div v-if="formData.canGiaoHang" class="delivery-info-section p-3 bg-light rounded border">
+                                <h6 class="mb-3">
+                                    <i class="bi bi-geo-alt text-success"></i> Thông tin giao hàng
+                                </h6>
+
+                                <!-- Chọn địa chỉ đã lưu -->
+                                <div class="mb-3" v-if="savedAddresses.length > 0">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-bookmark-check me-1"></i> Chọn địa chỉ đã lưu
+                                    </label>
+                                    <select 
+                                        class="form-select" 
+                                        v-model="selectedSavedAddressId"
+                                        @change="loadSavedAddress"
+                                        :disabled="isProcessing"
+                                    >
+                                        <option value="">-- Chọn địa chỉ đã lưu --</option>
+                                        <option v-for="addr in savedAddresses" :key="addr.id" :value="addr.id">
+                                            {{ formatAddressDisplay(addr) }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="row g-3">
+                                    <!-- Tên người nhận -->
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            Tên người nhận <span class="text-danger">*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            v-model="formData.tenNguoiNhan"
+                                            placeholder="Nhập tên người nhận"
+                                            :disabled="isProcessing"
+                                        />
+                                        <small class="text-muted">Để trống nếu người nhận là khách hàng</small>
+                                    </div>
+
+                                    <!-- Số điện thoại người nhận -->
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            Số điện thoại người nhận <span class="text-danger">*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            v-model="formData.sdtNguoiNhan"
+                                            placeholder="Nhập số điện thoại người nhận"
+                                            :disabled="isProcessing"
+                                        />
+                                        <small class="text-muted">Để trống nếu người nhận là khách hàng</small>
+                                    </div>
+                                </div>
+
+                                <hr class="my-3">
+
+                                <!-- Địa chỉ giao hàng -->
+                                <h6 class="mb-3">
+                                    <i class="bi bi-geo-alt me-1"></i> Địa chỉ giao hàng
+                                </h6>
+
+                                <!-- Component DiaChiForm để nhập địa chỉ (ẩn các trường không cần thiết) -->
+                                <div class="address-form-wrapper">
+                                    <DiaChiForm
+                                        :maKhachHang="props.hoaDon?.khachHang?.maKhachHang || ''"
+                                        :customerInfo="customerInfoForAddress"
+                                        :hideCustomerFields="true"
+                                        :checkDuplicateFn="checkDuplicateAddress"
+                                        @success="handleAddressSaved"
+                                        ref="diaChiFormRef"
+                                    />
+                                </div>
+
+                                <!-- Ghi chú giao hàng -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Ghi chú giao hàng</label>
+                                    <textarea 
+                                        class="form-control" 
+                                        rows="2"
+                                        v-model="formData.ghiChuGiaoHang"
+                                        placeholder="Ghi chú về giao hàng (nếu có)"
+                                        :disabled="isProcessing"
+                                    ></textarea>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- CỘT 2: Quét Serial Number (YÊU CẦU QUAN TRỌNG) -->
@@ -361,13 +468,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
 import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
 import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
+import DiaChiService from '@/service/taikhoan/diaChiService'
+import DiaChiForm from '@/components/taikhoan/khachhang/DiaChiForm.vue'
 
 const props = defineProps({
     hoaDon: {
@@ -383,7 +492,18 @@ const formData = ref({
     idPhuongThucThanhToan: '',
     soTienThanhToan: 0,
     ghiChu: '',
-    maGiaoDich: ''
+    maGiaoDich: '',
+    // Thông tin giao hàng
+    canGiaoHang: false,
+    tenNguoiNhan: '',
+    sdtNguoiNhan: '',
+    diaChiChiTiet: '', // Địa chỉ chi tiết (số nhà, tên đường)
+    tinhCode: '', // Mã tỉnh/thành phố
+    tinh: '', // Tên tỉnh/thành phố
+    xaCode: '', // Tên xã/phường
+    xa: '', // Tên xã/phường (để lưu)
+    diaChiGiaoHang: '', // Địa chỉ đầy đủ (sẽ được tạo từ các trường trên)
+    ghiChuGiaoHang: ''
 })
 const tienKhachDua = ref(0)
 const isProcessing = ref(false)
@@ -396,6 +516,33 @@ const isLoadingSerials = ref(false)
 // State - Scan feedback
 const scanSuccess = ref({})
 const scanError = ref({})
+
+// ==================== ADDRESS SELECTION ====================
+// Danh sách tỉnh/thành phố và xã/phường
+const provinces = ref([])
+const wards = ref([])
+const loadingProvinces = ref(false)
+const loadingWards = ref(false)
+const showProvinceDropdown = ref(false)
+const showWardDropdown = ref(false)
+const provinceSearchText = ref('')
+const wardSearchText = ref('')
+
+// Danh sách địa chỉ đã lưu của khách hàng
+const savedAddresses = ref([])
+const selectedSavedAddressId = ref('')
+const isLoadingAddresses = ref(false)
+const diaChiFormRef = ref(null)
+
+// Computed để tạo customerInfo cho DiaChiForm
+const customerInfoForAddress = computed(() => {
+    if (!props.hoaDon?.khachHang) return null
+    return {
+        maKhachHang: props.hoaDon.khachHang.maKhachHang,
+        hoTen: props.hoaDon.khachHang.hoTen,
+        soDienThoai: props.hoaDon.khachHang.soDienThoai
+    }
+})
 
 // ==================== SERIAL VALIDATION ====================
 // Normalize hoaDon trước khi truyền vào useSerialValidation
@@ -473,11 +620,62 @@ const canPay = computed(() => {
 
     // Nếu là tiền mặt, phải đủ tiền
     if (isTienMat.value) {
-        return tienKhachDua.value >= tongTien.value
+        if (tienKhachDua.value < tongTien.value) return false
+    }
+
+    // Nếu chọn giao hàng, phải có địa chỉ từ DiaChiForm
+    if (formData.value.canGiaoHang) {
+        if (!diaChiFormRef.value) return false
+        const diaChiForm = diaChiFormRef.value.form
+        if (!diaChiForm.diaChi || diaChiForm.diaChi.trim().length === 0) {
+            return false
+        }
+        if (!diaChiForm.tinhCode || !diaChiForm.tinh) {
+            return false
+        }
     }
 
     return true
 })
+
+// Computed cho dropdown địa chỉ
+const filteredProvinces = computed(() => {
+    if (!provinceSearchText.value.trim()) {
+        return provinces.value
+    }
+    const searchText = provinceSearchText.value.toLowerCase().trim()
+    return provinces.value.filter((province) => province.name.toLowerCase().includes(searchText))
+})
+
+const filteredWards = computed(() => {
+    if (!wardSearchText.value.trim()) {
+        return wards.value
+    }
+    const searchText = wardSearchText.value.toLowerCase().trim()
+    return wards.value.filter((ward) => ward.name.toLowerCase().includes(searchText))
+})
+
+const selectedProvinceName = computed(() => {
+    if (provinceSearchText.value && showProvinceDropdown.value) {
+        return provinceSearchText.value
+    }
+    if (formData.value.tinhCode) {
+        const selected = provinces.value.find((p) => p.id === formData.value.tinhCode)
+        return selected ? selected.name : ''
+    }
+    return ''
+})
+
+const selectedWardName = computed(() => {
+    if (wardSearchText.value && showWardDropdown.value) {
+        return wardSearchText.value
+    }
+    if (formData.value.xaCode) {
+        return formData.value.xaCode
+    }
+    return ''
+})
+
 
 // Methods
 const loadPaymentMethods = async () => {
@@ -749,7 +947,35 @@ const validateTienKhachDua = () => {
 
 const handlePayment = async () => {
     if (!canPay.value) {
-        showWarning('Vui lòng kiểm tra lại thông tin thanh toán và đảm bảo đã quét đủ serial!')
+        // Kiểm tra cụ thể từng điều kiện để hiển thị thông báo phù hợp
+        if (!formData.value.idPhuongThucThanhToan) {
+            showWarning('Vui lòng chọn phương thức thanh toán!')
+            return
+        }
+        if (!daQuetDu.value) {
+            showWarning('Vui lòng quét đủ serial cho tất cả sản phẩm!')
+            return
+        }
+        if (isTienMat.value && tienKhachDua.value < tongTien.value) {
+            showError('Số tiền khách đưa chưa đủ!')
+            return
+        }
+        if (formData.value.canGiaoHang) {
+            if (!diaChiFormRef.value) {
+                showError('Vui lòng nhập địa chỉ giao hàng!')
+                return
+            }
+            const diaChiForm = diaChiFormRef.value.form
+            if (!diaChiForm.diaChi || diaChiForm.diaChi.trim().length === 0) {
+                showError('Vui lòng nhập địa chỉ giao hàng!')
+                return
+            }
+            if (!diaChiForm.tinhCode || !diaChiForm.tinh) {
+                showError('Vui lòng chọn tỉnh/thành phố!')
+                return
+            }
+        }
+        showWarning('Vui lòng kiểm tra lại thông tin thanh toán!')
         return
     }
 
@@ -776,6 +1002,50 @@ const handlePayment = async () => {
         }
         if (payloadData.maGiaoDich) {
             payloadData.maGiaoDich = sanitizeInput(payloadData.maGiaoDich)
+        }
+
+        // Xử lý thông tin giao hàng
+        if (formData.value.canGiaoHang) {
+            // Nếu không có tên người nhận, dùng tên khách hàng
+            if (!formData.value.tenNguoiNhan || formData.value.tenNguoiNhan.trim().length === 0) {
+                payloadData.tenNguoiNhan = props.hoaDon?.khachHang?.hoTen || props.hoaDon?.tenKhachHang || null
+            } else {
+                payloadData.tenNguoiNhan = formData.value.tenNguoiNhan
+            }
+            // Nếu không có SĐT người nhận, dùng SĐT khách hàng
+            if (!formData.value.sdtNguoiNhan || formData.value.sdtNguoiNhan.trim().length === 0) {
+                payloadData.sdtNguoiNhan = props.hoaDon?.khachHang?.soDienThoai || props.hoaDon?.sdt || null
+            } else {
+                payloadData.sdtNguoiNhan = formData.value.sdtNguoiNhan
+            }
+            // Lấy địa chỉ từ DiaChiForm
+            if (diaChiFormRef.value) {
+                const diaChiForm = diaChiFormRef.value.form
+                const parts = []
+                if (diaChiForm.diaChi) parts.push(diaChiForm.diaChi)
+                if (diaChiForm.xa) parts.push(diaChiForm.xa)
+                if (diaChiForm.tinh) parts.push(diaChiForm.tinh)
+                payloadData.diaChiGiaoHang = parts.join(', ') || null
+                payloadData.diaChiChiTiet = diaChiForm.diaChi || null
+                payloadData.tinh = diaChiForm.tinh || null
+                payloadData.xa = diaChiForm.xa || null
+            } else {
+                payloadData.diaChiGiaoHang = null
+                payloadData.diaChiChiTiet = null
+                payloadData.tinh = null
+                payloadData.xa = null
+            }
+            payloadData.ghiChuGiaoHang = formData.value.ghiChuGiaoHang || null
+        } else {
+            // Nếu không chọn giao hàng, set null
+            payloadData.canGiaoHang = false
+            payloadData.tenNguoiNhan = null
+            payloadData.sdtNguoiNhan = null
+            payloadData.diaChiGiaoHang = null
+            payloadData.diaChiChiTiet = null
+            payloadData.tinh = null
+            payloadData.xa = null
+            payloadData.ghiChuGiaoHang = null
         }
 
         // Nếu là tiền mặt, lưu thêm thông tin tiền khách đưa và tiền trả lại
@@ -811,6 +1081,293 @@ const close = async () => {
         resetSerials()
         emit('close')
     }
+}
+
+/**
+ * Xử lý khi thay đổi checkbox giao hàng
+ */
+const handleGiaoHangChange = () => {
+    if (formData.value.canGiaoHang) {
+        // Tự động điền thông tin khách hàng nếu có
+        if (!formData.value.tenNguoiNhan && props.hoaDon?.khachHang?.hoTen) {
+            formData.value.tenNguoiNhan = props.hoaDon.khachHang.hoTen
+        }
+        if (!formData.value.sdtNguoiNhan && props.hoaDon?.khachHang?.soDienThoai) {
+            formData.value.sdtNguoiNhan = props.hoaDon.khachHang.soDienThoai
+        }
+        // Không tự động điền địa chỉ nữa vì đã dùng dropdown
+    } else {
+        // Xóa thông tin giao hàng khi bỏ chọn
+        formData.value.tenNguoiNhan = ''
+        formData.value.sdtNguoiNhan = ''
+        formData.value.diaChiChiTiet = ''
+        formData.value.tinhCode = ''
+        formData.value.tinh = ''
+        formData.value.xaCode = ''
+        formData.value.xa = ''
+        formData.value.diaChiGiaoHang = ''
+        formData.value.ghiChuGiaoHang = ''
+        wards.value = []
+        wardSearchText.value = ''
+    }
+}
+
+// ==================== ADDRESS METHODS ====================
+/**
+ * Lấy danh sách tỉnh/thành phố từ API
+ */
+const fetchProvinces = async () => {
+    try {
+        loadingProvinces.value = true
+        const provincesData = await VietnamAddressService.getAllProvinces()
+        provinces.value = provincesData || []
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách tỉnh/thành phố:', error)
+        showError('Không thể tải danh sách tỉnh/thành phố. Vui lòng thử lại sau.')
+        provinces.value = []
+    } finally {
+        loadingProvinces.value = false
+    }
+}
+
+/**
+ * Xử lý khi người dùng nhập text để tìm kiếm tỉnh/thành phố
+ */
+const handleProvinceSearch = (event) => {
+    provinceSearchText.value = event.target.value
+    showProvinceDropdown.value = true
+}
+
+/**
+ * Xử lý khi blur khỏi input tỉnh/thành phố
+ */
+const handleProvinceBlur = () => {
+    setTimeout(() => {
+        showProvinceDropdown.value = false
+        if (formData.value.tinhCode) {
+            provinceSearchText.value = ''
+        }
+    }, 200)
+}
+
+/**
+ * Xử lý khi người dùng chọn tỉnh/thành phố từ dropdown
+ */
+const selectProvince = async (province) => {
+    formData.value.tinhCode = province.id
+    formData.value.tinh = province.name
+    provinceSearchText.value = ''
+    showProvinceDropdown.value = false
+
+    // Reset xã/phường khi đổi tỉnh
+    formData.value.xaCode = ''
+    formData.value.xa = ''
+    wards.value = []
+    wardSearchText.value = ''
+
+    // Gọi API để lấy danh sách xã/phường
+    try {
+        loadingWards.value = true
+        const wardsData = await VietnamAddressService.getWardsByProvince(formData.value.tinhCode)
+        wards.value = wardsData || []
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách xã/phường:', error)
+        showError('Không thể tải danh sách xã/phường. Vui lòng thử lại sau.')
+        wards.value = []
+    } finally {
+        loadingWards.value = false
+    }
+}
+
+/**
+ * Xử lý khi người dùng nhập text để tìm kiếm xã/phường
+ */
+const handleWardSearch = (event) => {
+    wardSearchText.value = event.target.value
+    showWardDropdown.value = true
+}
+
+/**
+ * Xử lý khi focus vào input xã/phường
+ */
+const handleWardFocus = () => {
+    if (formData.value.tinhCode && !loadingWards.value) {
+        showWardDropdown.value = true
+    }
+}
+
+/**
+ * Xử lý khi blur khỏi input xã/phường
+ */
+const handleWardBlur = () => {
+    setTimeout(() => {
+        showWardDropdown.value = false
+        if (formData.value.xaCode) {
+            wardSearchText.value = ''
+        }
+    }, 200)
+}
+
+/**
+ * Xử lý khi người dùng chọn xã/phường từ dropdown
+ */
+const selectWard = (ward) => {
+    formData.value.xaCode = ward.name
+    formData.value.xa = ward.name
+    wardSearchText.value = ''
+    showWardDropdown.value = false
+}
+
+/**
+ * Tạo địa chỉ đầy đủ từ các trường địa chỉ
+ */
+const buildFullAddress = () => {
+    const parts = []
+    if (formData.value.diaChiChiTiet) {
+        parts.push(formData.value.diaChiChiTiet)
+    }
+    if (formData.value.xa) {
+        parts.push(formData.value.xa)
+    }
+    if (formData.value.tinh) {
+        parts.push(formData.value.tinh)
+    }
+    return parts.join(', ') || ''
+}
+
+// ==================== SAVED ADDRESSES ====================
+/**
+ * Load danh sách địa chỉ đã lưu của khách hàng
+ */
+const loadSavedAddresses = async () => {
+    const maKhachHang = props.hoaDon?.khachHang?.maKhachHang
+    if (!maKhachHang) {
+        savedAddresses.value = []
+        return
+    }
+
+    try {
+        isLoadingAddresses.value = true
+        const response = await DiaChiService.findByMaKhachHang(maKhachHang)
+        savedAddresses.value = response.data || []
+    } catch (error) {
+        console.error('Lỗi khi load danh sách địa chỉ:', error)
+        savedAddresses.value = []
+    } finally {
+        isLoadingAddresses.value = false
+    }
+}
+
+/**
+ * Xử lý khi DiaChiForm lưu địa chỉ thành công
+ */
+const handleAddressSaved = () => {
+    // Reload danh sách địa chỉ
+    loadSavedAddresses()
+    showSuccess('Đã lưu địa chỉ thành công!')
+}
+
+/**
+ * Điền form khi chọn địa chỉ đã lưu
+ */
+const loadSavedAddress = () => {
+    if (!selectedSavedAddressId.value) {
+        return
+    }
+
+    const address = savedAddresses.value.find(addr => addr.id === selectedSavedAddressId.value)
+    if (!address) {
+        return
+    }
+
+    // Điền thông tin vào DiaChiForm thông qua ref
+    if (diaChiFormRef.value) {
+        // Set form data của DiaChiForm
+        diaChiFormRef.value.form.diaChi = address.diaChi || ''
+        diaChiFormRef.value.form.tinh = address.tinh || ''
+        diaChiFormRef.value.form.xa = address.xa || ''
+        diaChiFormRef.value.form.xaCode = address.xa || ''
+
+        // Tìm mã tỉnh từ tên tỉnh và set vào form
+        if (address.tinh && diaChiFormRef.value.provinces) {
+            const province = diaChiFormRef.value.provinces.find(p => p.name === address.tinh)
+            if (province) {
+                diaChiFormRef.value.form.tinhCode = province.id
+                // Load danh sách xã/phường
+                diaChiFormRef.value.selectProvince(province)
+            }
+        }
+    }
+
+    // Điền tên và SĐT nếu có
+    if (address.hoTen && !formData.value.tenNguoiNhan) {
+        formData.value.tenNguoiNhan = address.hoTen
+    }
+    if (address.sdt && !formData.value.sdtNguoiNhan) {
+        formData.value.sdtNguoiNhan = address.sdt
+    }
+}
+
+/**
+ * Format địa chỉ để hiển thị trong dropdown
+ */
+const formatAddressDisplay = (address) => {
+    const parts = []
+    if (address.diaChi) parts.push(address.diaChi)
+    if (address.xa) parts.push(address.xa)
+    if (address.tinh) parts.push(address.tinh)
+    return parts.join(', ') || 'Địa chỉ'
+}
+
+/**
+ * Kiểm tra địa chỉ có trùng với địa chỉ đã lưu không
+ * Được gọi từ DiaChiForm để kiểm tra trước khi lưu
+ */
+const checkDuplicateAddress = async (formData) => {
+    if (!formData || !savedAddresses.value.length) return false
+
+    const normalize = (str) => (str || '').trim().toLowerCase()
+    const currentAddress = {
+        diaChi: normalize(formData.diaChi || ''),
+        tinh: normalize(formData.tinh || ''),
+        xa: normalize(formData.xa || '')
+    }
+
+    // Kiểm tra với tất cả địa chỉ đã lưu
+    const duplicate = savedAddresses.value.find(addr => {
+        const savedAddr = {
+            diaChi: normalize(addr.diaChi || ''),
+            tinh: normalize(addr.tinh || ''),
+            xa: normalize(addr.xa || '')
+        }
+        return (
+            savedAddr.diaChi === currentAddress.diaChi &&
+            savedAddr.tinh === currentAddress.tinh &&
+            savedAddr.xa === currentAddress.xa
+        )
+    })
+
+    if (duplicate) {
+        // Tự động chọn địa chỉ trùng trong dropdown
+        selectedSavedAddressId.value = duplicate.id
+        return true
+    }
+
+    return false
+}
+
+/**
+ * Lưu địa chỉ mới vào danh sách địa chỉ của khách hàng
+ * Sử dụng DiaChiForm để lưu (gọi handleSave của DiaChiForm)
+ * Method này không còn cần thiết vì DiaChiForm đã có nút lưu riêng
+ */
+const saveAddressToCustomer = async () => {
+    if (!diaChiFormRef.value) {
+        showError('Không tìm thấy form địa chỉ')
+        return
+    }
+    // Gọi handleSave của DiaChiForm
+    await diaChiFormRef.value.handleSave()
 }
 
 const formatCurrency = (value) => {
@@ -885,9 +1442,30 @@ const onBarcodeDetected = async (result) => {
     }
 }
 
+// Watch để load địa chỉ khi có khách hàng
+watch(() => props.hoaDon?.khachHang?.maKhachHang, (newVal) => {
+    if (newVal && formData.value.canGiaoHang) {
+        loadSavedAddresses()
+    }
+})
+
+// Watch để load địa chỉ khi bật giao hàng
+watch(() => formData.value.canGiaoHang, (newVal) => {
+    if (newVal && props.hoaDon?.khachHang?.maKhachHang) {
+        loadSavedAddresses()
+    }
+})
+
+
 // Lifecycle
 onMounted(() => {
     loadPaymentMethods()
+    fetchProvinces() // Load danh sách tỉnh/thành phố
+
+    // Load danh sách địa chỉ nếu có khách hàng và đang chọn giao hàng
+    if (props.hoaDon?.khachHang?.maKhachHang && formData.value.canGiaoHang) {
+        loadSavedAddresses()
+    }
 
     // Tự động set số tiền khách đưa bằng tổng tiền (tiện lợi hơn)
     if (tongTien.value > 0) {
@@ -1278,6 +1856,16 @@ onMounted(() => {
     }
 }
 
+.delivery-info-section {
+    border: 2px solid #28a745;
+    background: #f0fff4 !important;
+}
+
+.delivery-info-section h6 {
+    color: #28a745;
+    font-weight: 600;
+}
+
 @media (max-width: 767.98px) {
     .modal-dialog {
         margin: 0.5rem;
@@ -1371,5 +1959,93 @@ onMounted(() => {
         font-size: 0.7rem;
         padding: 0.2rem 0.4rem;
     }
+}
+/* Address Dropdown Styles */
+.position-relative {
+    position: relative;
+}
+
+.dropdown-menu {
+    display: block;
+    width: 100%;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    background-color: #fff;
+    margin-top: 2px;
+}
+
+.dropdown-item {
+    padding: 0.375rem 0.75rem;
+    cursor: pointer;
+    color: #212529;
+    text-decoration: none;
+    display: block;
+    font-size: 0.875rem;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #16181b;
+}
+
+.dropdown-item.active {
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+.dropdown-item.active:hover {
+    background-color: #0b5ed7;
+    color: #fff;
+}
+
+.dropdown-menu {
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: 0.875rem;
+}
+
+/* Custom scrollbar cho dropdown (WebKit browsers) */
+.dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Style cho input khi disabled */
+.form-control:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+/* Style cho address form wrapper */
+.address-form-wrapper {
+    background-color: #fff;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+}
+
+.address-form-wrapper .card {
+    border: none !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+}
+
+.address-form-wrapper .card-body {
+    padding: 0.5rem !important;
 }
 </style>

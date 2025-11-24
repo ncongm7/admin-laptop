@@ -62,15 +62,15 @@
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <td class="text-muted" style="width: 40%">Họ tên:</td>
-                                        <td class="fw-semibold">{{ hoaDon.nhanVien?.hoTen || 'N/A' }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.nhanVien?.hoTen || hoaDon.tenNhanVien || 'N/A' }}</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted">Mã NV:</td>
-                                        <td class="fw-semibold">{{ hoaDon.nhanVien?.maNhanVien || 'N/A' }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.nhanVien?.maNhanVien || hoaDon.maNhanVien || 'N/A' }}</td>
                                     </tr>
-                                    <tr v-if="hoaDon.nhanVien?.chucVu">
+                                    <tr v-if="hoaDon.nhanVien?.chucVu || hoaDon.chucVu">
                                         <td class="text-muted">Chức vụ:</td>
-                                        <td class="fw-semibold">{{ hoaDon.nhanVien.chucVu }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.nhanVien?.chucVu || hoaDon.chucVu || '' }}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -118,9 +118,19 @@
                                             <tr>
                                                 <td class="text-muted">Trạng thái:</td>
                                                 <td>
-                                                    <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
-                                                        {{ getTrangThaiLabel(hoaDon.trangThai) }}
-                                                    </span>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
+                                                            {{ getTrangThaiLabel(hoaDon.trangThai) }}
+                                                        </span>
+                                                        <button 
+                                                            v-if="canChangeStatus"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            @click="openStatusModal"
+                                                            title="Chuyển trạng thái"
+                                                        >
+                                                            <i class="bi bi-arrow-repeat"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -154,6 +164,7 @@
                                         <th class="text-center" style="width: 100px">SL</th>
                                         <th class="text-end" style="width: 120px">Đơn giá</th>
                                         <th class="text-end" style="width: 120px">Thành tiền</th>
+                                        <th>Serial/IMEI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -204,6 +215,18 @@
                                         <td class="text-center">{{ item.soLuong || 0 }}</td>
                                         <td class="text-end">{{ formatCurrency(item.donGia) }}</td>
                                         <td class="text-end fw-semibold text-danger">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</td>
+                                        <td>
+                                            <div v-if="getSerialsForItem(item) && getSerialsForItem(item).length > 0" class="serial-list">
+                                                <small class="text-info">
+                                                    <i class="bi bi-upc-scan"></i>
+                                                    <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx" class="serial-badge">
+                                                        {{ serial }}
+                                                        <span v-if="idx < getSerialsForItem(item).length - 1">, </span>
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            <span v-else class="text-muted small">-</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -267,6 +290,54 @@
                     </div>
                 </div>
 
+                <!-- Modal chuyển trạng thái -->
+                <div v-if="showStatusModal" class="modal fade show d-block" style="z-index: 10000; background-color: rgba(0,0,0,0.5);">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-arrow-repeat"></i> Chuyển trạng thái hóa đơn
+                                </h5>
+                                <button type="button" class="btn-close" @click="showStatusModal = false"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Trạng thái hiện tại:</label>
+                                    <div>
+                                        <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
+                                            {{ getTrangThaiLabel(hoaDon.trangThai) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Chuyển sang trạng thái:</label>
+                                    <select v-model="newStatus" class="form-select">
+                                        <option :value="0">Chờ xác nhận</option>
+                                        <option :value="1">Đã xác nhận</option>
+                                        <option :value="2">Đang giao</option>
+                                        <option :value="3">Hoàn thành</option>
+                                        <option :value="4">Đã hủy</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @click="showStatusModal = false">
+                                    Hủy
+                                </button>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-primary" 
+                                    @click="handleChangeStatus"
+                                    :disabled="changingStatus || newStatus === hoaDon.trangThai"
+                                >
+                                    <span v-if="changingStatus" class="spinner-border spinner-border-sm me-2"></span>
+                                    Xác nhận
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @click="close">
@@ -285,10 +356,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getHoaDonDetail } from '@/service/hoaDonService'
+import { ref, onMounted, computed } from 'vue'
+import { getHoaDonDetail, capNhatTrangThai } from '@/service/hoaDonService'
 import { inHoaDon } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 import SkeletonLoader from '@/components/common/SkeletonLoader.vue'
 import SendEmailModal from './SendEmailModal.vue'
 
@@ -304,6 +376,11 @@ const emit = defineEmits(['close'])
 const hoaDon = ref(null)
 const loading = ref(false)
 const error = ref(null)
+
+// Status change
+const showStatusModal = ref(false)
+const newStatus = ref(null)
+const changingStatus = ref(false)
 
 // Serial/IMEI view
 const expandedSerials = ref({})
@@ -342,6 +419,14 @@ const handleEmailSent = () => {
 }
 
 const { success: showSuccess, error: showError } = useToast()
+const { confirm } = useConfirm()
+
+// Kiểm tra xem có thể chuyển trạng thái không
+const canChangeStatus = computed(() => {
+    if (!hoaDon.value) return false
+    // Chỉ cho phép chuyển trạng thái nếu chưa hủy và chưa hoàn thành (hoặc có thể chuyển từ hoàn thành)
+    return hoaDon.value.trangThai !== 4 // Không cho chuyển nếu đã hủy
+})
 
 // Load data
 onMounted(async () => {
@@ -424,6 +509,18 @@ const formatDate = (dateStr) => {
 }
 
 const getTrangThaiLabel = (trangThai) => {
+    // Hỗ trợ cả string và number
+    if (typeof trangThai === 'number') {
+        const labels = {
+            0: 'Chờ xác nhận',
+            1: 'Đã xác nhận',
+            2: 'Đang giao',
+            3: 'Hoàn thành',
+            4: 'Đã hủy'
+        }
+        return labels[trangThai] || `Trạng thái ${trangThai}`
+    }
+    
     const labels = {
         'CHO_THANH_TOAN': 'Chờ thanh toán',
         'CHO_XAC_NHAN': 'Chờ xác nhận',
@@ -436,6 +533,18 @@ const getTrangThaiLabel = (trangThai) => {
 }
 
 const getStatusBadgeClass = (trangThai) => {
+    // Hỗ trợ cả string và number
+    if (typeof trangThai === 'number') {
+        const classes = {
+            0: 'bg-warning',
+            1: 'bg-info',
+            2: 'bg-primary',
+            3: 'bg-success',
+            4: 'bg-danger'
+        }
+        return classes[trangThai] || 'bg-secondary'
+    }
+    
     const classes = {
         'CHO_THANH_TOAN': 'bg-secondary',
         'CHO_XAC_NHAN': 'bg-warning',
@@ -447,7 +556,57 @@ const getStatusBadgeClass = (trangThai) => {
     return classes[trangThai] || 'bg-secondary'
 }
 
+// Xử lý chuyển trạng thái
+const handleChangeStatus = async () => {
+    if (!hoaDon.value || newStatus.value === null) {
+        showError('Vui lòng chọn trạng thái mới!')
+        return
+    }
+    
+    if (newStatus.value === hoaDon.value.trangThai) {
+        showError('Trạng thái mới phải khác trạng thái hiện tại!')
+        return
+    }
+    
+    const confirmed = await confirm(
+        'Xác nhận chuyển trạng thái',
+        `Bạn có chắc chắn muốn chuyển hóa đơn từ "${getTrangThaiLabel(hoaDon.value.trangThai)}" sang "${getTrangThaiLabel(newStatus.value)}"?`
+    )
+    
+    if (!confirmed) return
+    
+    changingStatus.value = true
+    
+    try {
+        await capNhatTrangThai(hoaDon.value.id, newStatus.value)
+        showSuccess('Chuyển trạng thái thành công!')
+        
+        // Reload chi tiết hóa đơn
+        await loadHoaDonDetail()
+        
+        // Đóng modal
+        showStatusModal.value = false
+        newStatus.value = null
+        
+        // Emit event để parent component có thể refresh danh sách
+        emit('status-changed')
+    } catch (err) {
+        console.error('❌ Lỗi khi chuyển trạng thái:', err)
+        showError(err.response?.data?.message || 'Không thể chuyển trạng thái. Vui lòng thử lại!')
+    } finally {
+        changingStatus.value = false
+    }
+}
+
+// Mở modal chuyển trạng thái
+const openStatusModal = () => {
+    if (!hoaDon.value) return
+    newStatus.value = hoaDon.value.trangThai
+    showStatusModal.value = true
+}
+
 /**
+<<<<<<< HEAD
  * Lấy mã CTSP từ item
  */
 const getCTSPCode = (item) => {
@@ -489,12 +648,15 @@ const getCTSPSpecs = (item) => {
 
 /**
  * Lấy serial numbers cho item (nếu có)
+ * @param {Object} item - chiTietList item
+ * @returns {Array|null} - Danh sách serial numbers hoặc null
  */
 const getSerialsForItem = (item) => {
     // Kiểm tra từ backend response
     if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
         return item.serialNumbers.map(s => {
-            return s.serialNumber || s.serialNo || s.serial_no || s
+            // Hỗ trợ nhiều format: { serialNumber, serialNo, serial_no } hoặc string
+            return typeof s === 'string' ? s : (s.serialNumber || s.serialNo || s.serial_no || s)
         })
     }
     
@@ -529,6 +691,7 @@ const getSerialsForItem = (item) => {
     vertical-align: middle;
 }
 
+<<<<<<< HEAD
 /* CTSP Code - NỔI BẬT */
 .ctsp-code-cell {
     padding: 0.25rem 0;
@@ -588,6 +751,19 @@ const getSerialsForItem = (item) => {
 .product-name-cell {
     font-weight: 600;
     color: #212529;
+}
+
+.serial-list {
+    max-width: 300px;
+}
+
+.serial-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    background-color: #e7f3ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
 }
 </style>
 

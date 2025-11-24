@@ -4,7 +4,7 @@
     <div class="card mb-2 border-0 shadow-sm">
       <div class="card-body p-2">
         <div class="row g-2 mb-1">
-          <div class="col-12 col-md-6">
+          <div v-if="!hideCustomerFields" class="col-12 col-md-6">
             <label class="form-label small mb-1">Mã khách hàng <span class="text-danger">*</span></label>
             <div class="input-group input-group-sm">
               <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.maKhachHang }"
@@ -16,7 +16,7 @@
             </div>
           </div>
 
-          <div class="col-12 col-md-6">
+          <div v-if="!hideCustomerFields" class="col-12 col-md-6">
             <label class="form-label small mb-1">Họ và tên <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.hoTen }"
               placeholder="Nhập họ và tên" v-model="form.hoTen" @blur="validateHoTen" />
@@ -25,7 +25,7 @@
             </div>
           </div>
 
-          <div class="col-12 col-md-6">
+          <div v-if="!hideCustomerFields" class="col-12 col-md-6">
             <label class="form-label small mb-1">Số điện thoại <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.sdt }"
               placeholder="Nhập số điện thoại" v-model="form.sdt" @blur="validateSDT" />
@@ -34,10 +34,10 @@
             </div>
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label small mb-1">Địa chỉ chi tiết</label>
+          <div class="col-12" :class="{ 'col-md-6': !hideCustomerFields }">
+            <label class="form-label small mb-1">Địa chỉ chi tiết <span class="text-danger">*</span></label>
             <input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': errors.diaChi }"
-              placeholder="Nhập địa chỉ chi tiết" v-model="form.diaChi" />
+              placeholder="Nhập số nhà, tên đường, khu vực..." v-model="form.diaChi" />
             <div v-if="errors.diaChi" class="invalid-feedback d-block small">
               {{ errors.diaChi }}
             </div>
@@ -148,7 +148,7 @@
             </div>
           </div>
 
-          <div class="col-md-12">
+          <div v-if="!hideCustomerFields" class="col-md-12">
             <label class="form-label me-2 mb-1 d-block">Trạng thái</label>
             <div class="form-check form-check-inline">
               <input class="form-check-input" type="radio" id="macDinh" :value="true" v-model="form.macDinh" />
@@ -164,12 +164,24 @@
     </div>
 
     <!-- 🔹 Thanh nút chức năng -->
-    <div class="d-flex justify-content-center align-items-center mb-2 py-2 gap-2">
+    <div v-if="!hideCustomerFields" class="d-flex justify-content-center align-items-center mb-2 py-2 gap-2">
       <button class="btn btn-primary btn-sm" @click="handleSave">
         <i class="fas fa-save me-1"></i> Lưu
       </button>
       <button class="btn btn-secondary btn-sm" @click="$emit('close')">
         <i class="fas fa-times me-1"></i> Đóng
+      </button>
+    </div>
+    <!-- Nút lưu địa chỉ khi hideCustomerFields = true (dùng trong ModalThanhToan) -->
+    <div v-else class="d-flex justify-content-end align-items-center mb-2 py-2">
+      <button 
+        class="btn btn-outline-primary btn-sm"
+        @click="handleSave"
+        :disabled="isSaving"
+      >
+        <span v-if="isSaving" class="spinner-border spinner-border-sm me-1"></span>
+        <i v-else class="bi bi-bookmark-plus me-1"></i>
+        {{ isSaving ? 'Đang lưu...' : 'Lưu địa chỉ vào danh sách' }}
       </button>
     </div>
   </div>
@@ -196,6 +208,14 @@ export default {
     },
     customerInfo: {
       type: Object,
+      default: null,
+    },
+    hideCustomerFields: {
+      type: Boolean,
+      default: false,
+    },
+    checkDuplicateFn: {
+      type: Function,
       default: null,
     },
   },
@@ -231,6 +251,8 @@ export default {
       provinceSearchText: '',
       // Text tìm kiếm xã/phường
       wardSearchText: '',
+      // Trạng thái đang lưu
+      isSaving: false,
     }
   },
   // Computed properties: tính toán các giá trị dựa trên data
@@ -756,6 +778,38 @@ export default {
         return
       }
 
+      // Nếu hideCustomerFields = true, chỉ validate địa chỉ
+      if (this.hideCustomerFields) {
+        if (!this.form.diaChi || this.form.diaChi.trim().length === 0) {
+          this.showWarning('Vui lòng nhập địa chỉ chi tiết')
+          return
+        }
+        if (!this.form.tinhCode || !this.form.tinh) {
+          this.showWarning('Vui lòng chọn tỉnh/thành phố')
+          return
+        }
+        // Tự động điền maKhachHang, hoTen, sdt từ props nếu chưa có
+        if (!this.form.maKhachHang && this.maKhachHang) {
+          this.form.maKhachHang = this.maKhachHang
+        }
+        if (!this.form.hoTen && this.customerInfo?.hoTen) {
+          this.form.hoTen = this.customerInfo.hoTen
+        }
+        if (!this.form.sdt && this.customerInfo?.soDienThoai) {
+          this.form.sdt = this.customerInfo.soDienThoai
+        }
+
+        // Kiểm tra địa chỉ trùng lặp thông qua function từ props
+        if (this.checkDuplicateFn && typeof this.checkDuplicateFn === 'function') {
+          const isDuplicate = await this.checkDuplicateFn(this.form)
+          if (isDuplicate) {
+            this.showWarning('Địa chỉ này đã có trong danh sách. Vui lòng chọn từ danh sách địa chỉ đã lưu.')
+            return
+          }
+        }
+      }
+
+      this.isSaving = true
       try {
         // Retry logic: thử lại 3 lần với delay giữa các lần thử
         // Điều này giúp xử lý trường hợp khách hàng vừa được tạo nhưng backend chưa commit transaction
@@ -807,6 +861,8 @@ export default {
         const errorMessage =
           error.response?.data?.message || error.message || 'Có lỗi xảy ra khi thêm địa chỉ'
         this.showError('Có lỗi xảy ra khi thêm địa chỉ: ' + errorMessage)
+      } finally {
+        this.isSaving = false
       }
     },
   },
