@@ -7,10 +7,14 @@
           <button class="btn btn-outline-secondary mb-2" @click="goBack">
             <i class="bi bi-arrow-left me-1"></i>Quay lại
           </button>
-          <h1 class="page-title mb-2">
+          <h1 class="page-title mb-1">
             <i class="bi bi-shield-check me-2"></i>
             Chi Tiết Phiếu Bảo Hành
           </h1>
+          <p class="text-muted mb-0">
+            Mã phiếu:
+            <code class="serial-code">{{ detail?.id || 'N/A' }}</code>
+          </p>
         </div>
         <span :class="getStatusClass(detail?.trangThai)" class="status-badge-large">
           <i :class="getStatusIcon(detail?.trangThai)" class="me-1"></i>
@@ -32,8 +36,8 @@
       <!-- Left Column - Thông tin chính -->
       <div class="col-lg-8">
         <!-- Thông tin khách hàng -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-primary text-white">
+        <div class="card shadow-sm mb-4 card-plain">
+          <div class="card-header card-header-light">
             <h5 class="mb-0"><i class="bi bi-person me-2"></i>Thông tin khách hàng</h5>
           </div>
           <div class="card-body">
@@ -57,8 +61,8 @@
         </div>
 
         <!-- Thông tin sản phẩm -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-info text-white">
+        <div class="card shadow-sm mb-4 card-plain">
+          <div class="card-header card-header-light">
             <h5 class="mb-0"><i class="bi bi-laptop me-2"></i>Thông tin sản phẩm</h5>
           </div>
           <div class="card-body">
@@ -81,9 +85,43 @@
           </div>
         </div>
 
+        <!-- Thông tin chi tiết -->
+        <div class="card shadow-sm mb-4 card-plain">
+          <div class="card-header card-header-light">
+            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin chi tiết</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="info-item mb-3">
+                  <label class="text-muted small">Số lần sửa chữa</label>
+                  <p class="fw-bold mb-0">
+                    {{ detail.soLanSuaChua != null ? detail.soLanSuaChua : 0 }} lần
+                  </p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-item mb-3">
+                  <label class="text-muted small">Tổng chi phí</label>
+                  <p class="fw-bold mb-0">{{ showCurrency(detail.chiPhi) }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="info-item">
+              <label class="text-muted small d-block">Mô tả yêu cầu</label>
+              <div class="description-box">
+                {{ detail.moTa && detail.moTa.trim() ? detail.moTa : 'Không có mô tả' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Hình ảnh -->
-        <div v-if="detail.hinhAnh && detail.hinhAnh.length > 0" class="card shadow-sm mb-4">
-          <div class="card-header bg-success text-white">
+        <div
+          v-if="detail.hinhAnh && detail.hinhAnh.length > 0"
+          class="card shadow-sm mb-4 card-plain"
+        >
+          <div class="card-header card-header-light">
             <h5 class="mb-0"><i class="bi bi-images me-2"></i>Hình ảnh minh chứng</h5>
           </div>
           <div class="card-body">
@@ -109,8 +147,8 @@
       <!-- Right Column - Thông tin bảo hành & Actions -->
       <div class="col-lg-4">
         <!-- Thông tin bảo hành -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-warning text-dark">
+        <div class="card shadow-sm mb-4 card-plain">
+          <div class="card-header card-header-light">
             <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Thông tin bảo hành</h5>
           </div>
           <div class="card-body">
@@ -140,8 +178,8 @@
         </div>
 
         <!-- Thay đổi trạng thái -->
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
+        <div class="card shadow-sm card-plain">
+          <div class="card-header card-header-light">
             <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Thay đổi trạng thái</h5>
           </div>
           <div class="card-body">
@@ -200,6 +238,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPhieuBaoHanhById, updateTrangThai } from '@/service/baohanh/PhieuBaoHanhService'
+import { formatCurrency } from '@/utils/formatters'
 
 const route = useRoute()
 const router = useRouter()
@@ -267,11 +306,11 @@ const showTrangThai = (n) => {
 }
 
 const getStatusClass = (n) => {
-  if (n === 1) return 'badge bg-warning text-dark'
-  if (n === 2) return 'badge bg-info'
-  if (n === 0) return 'badge bg-danger'
-  if (n === 3) return 'badge bg-success'
-  return 'badge bg-secondary'
+  if (n === 1) return 'status-soft status-soft-warning'
+  if (n === 2) return 'status-soft status-soft-info'
+  if (n === 0) return 'status-soft status-soft-danger'
+  if (n === 3) return 'status-soft status-soft-success'
+  return 'status-soft status-soft-muted'
 }
 
 const getStatusIcon = (n) => {
@@ -294,6 +333,11 @@ const handleImageError = (e) => {
   e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found'
 }
 
+const showCurrency = (value) => {
+  if (value === null || value === undefined) return 'N/A'
+  return formatCurrency(value)
+}
+
 const goBack = () => {
   router.push('/quan-li-bao-hanh')
 }
@@ -306,14 +350,16 @@ onMounted(fetchDetail)
   padding: 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f7fb 60%, #f0f2f8 100%);
+  border-radius: 24px;
 }
 
 .page-header {
-  background: white;
+  background: #ffffff;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  box-shadow: 0 15px 45px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
 }
 
 .page-title {
@@ -323,22 +369,65 @@ onMounted(fetchDetail)
   color: #212529;
 }
 
-.status-badge-large {
-  font-size: 1rem;
-  padding: 0.6rem 1.2rem;
-  border-radius: 20px;
+.status-badge-large,
+.status-badge {
+  font-size: 0.85rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+  border: 1px solid transparent;
 }
 
-.status-badge {
-  font-size: 0.75rem;
-  padding: 0.4rem 0.8rem;
+.status-soft {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  border-color: transparent;
+}
+
+.status-soft-warning {
+  background: rgba(251, 191, 36, 0.18);
+  color: #92400e;
+}
+
+.status-soft-info {
+  background: rgba(14, 165, 233, 0.18);
+  color: #075985;
+}
+
+.status-soft-danger {
+  background: rgba(248, 113, 113, 0.18);
+  color: #7f1d1d;
+}
+
+.status-soft-success {
+  background: rgba(52, 211, 153, 0.18);
+  color: #065f46;
+}
+
+.status-soft-muted {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
+
+.card-plain {
+  border: 1px solid rgba(15, 23, 42, 0.05);
   border-radius: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.card-header-light {
+  background-color: transparent;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 1rem;
+  color: #0f172a;
+  padding: 1.2rem 1.5rem;
+}
+
+.card-plain .card-body {
+  padding: 1.5rem;
 }
 
 .info-item {
@@ -351,6 +440,15 @@ onMounted(fetchDetail)
   border-radius: 4px;
   font-size: 0.9rem;
   color: #495057;
+}
+
+.description-box {
+  border: 1px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  white-space: pre-line;
+  min-height: 60px;
 }
 
 .image-wrapper {
