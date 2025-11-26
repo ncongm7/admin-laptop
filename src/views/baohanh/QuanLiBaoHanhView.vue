@@ -69,80 +69,59 @@
       <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
     </div>
 
-    <!-- Warranty Cards -->
-    <div v-else-if="paged.length > 0" class="warranty-cards">
-      <div class="row g-4">
-        <div v-for="(it, idx) in paged" :key="it.id" class="col-12 col-lg-6 col-xl-4">
-          <div class="card warranty-card h-100 shadow-sm border-0 hover-lift">
-            <div class="card-body">
-              <!-- Header với trạng thái -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div class="warranty-id">
-                  <span class="text-muted small">#{{ (page - 1) * pageSize + idx + 1 }}</span>
-                </div>
-                <span :class="getStatusClass(it.trangThai)" class="status-badge">
-                  <i :class="getStatusIcon(it.trangThai)" class="me-1"></i>
-                  {{ showTrangThai(it.trangThai) }}
-                </span>
-              </div>
-
-              <!-- Thông tin khách hàng -->
-              <div class="customer-info mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <div class="avatar-circle me-2">
-                    <i class="bi bi-person-fill"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0 fw-bold">{{ it.hoTenKhachHang || 'N/A' }}</h6>
-                    <small class="text-muted">
-                      <i class="bi bi-telephone me-1"></i>{{ it.soDienThoai || 'N/A' }}
-                    </small>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Thông tin sản phẩm -->
-              <div class="product-info mb-3">
-                <div class="info-row">
-                  <i class="bi bi-laptop me-2 text-primary"></i>
-                  <span class="fw-semibold">{{ it.tenSP || 'N/A' }}</span>
-                </div>
-                <div class="info-row mt-2">
-                  <i class="bi bi-upc-scan me-2 text-info"></i>
+    <!-- Warranty Table -->
+    <div v-else-if="paged.length > 0" class="card shadow-sm table-card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-white align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="text-muted">#</th>
+                <th>Mã phiếu</th>
+                <th>Khách hàng</th>
+                <th>Sản phẩm</th>
+                <th>Serial/IMEI</th>
+                <th>Ngày bắt đầu</th>
+                <th>Ngày kết thúc</th>
+                <th>Trạng thái</th>
+                <th class="text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(it, idx) in paged" :key="it.id">
+                <td class="text-muted small">{{ (page - 1) * pageSize + idx + 1 }}</td>
+                <td>
+                  <div class="fw-semibold text-primary">{{ shortId(it.id) }}</div>
+                  <small class="text-muted">{{ it.id }}</small>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ it.hoTenKhachHang || 'N/A' }}</div>
+                  <small class="text-muted">
+                    <i class="bi bi-telephone me-1"></i>{{ it.soDienThoai || 'N/A' }}
+                  </small>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ it.tenSP || 'N/A' }}</div>
+                </td>
+                <td>
                   <code class="serial-code">{{ it.soSerial || 'N/A' }}</code>
-                </div>
-              </div>
-
-              <!-- Thời gian bảo hành -->
-              <div class="warranty-dates mb-3">
-                <div class="date-item">
-                  <i class="bi bi-calendar-check me-2 text-success"></i>
-                  <div>
-                    <small class="text-muted d-block">Ngày bắt đầu</small>
-                    <span class="fw-semibold">{{ showDate(it.ngayBatDau) }}</span>
-                  </div>
-                </div>
-                <div class="date-item mt-2">
-                  <i class="bi bi-calendar-x me-2 text-danger"></i>
-                  <div>
-                    <small class="text-muted d-block">Ngày kết thúc</small>
-                    <span class="fw-semibold">{{ showDate(it.ngayKetThuc) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Action Button -->
-              <div class="action-buttons mt-3 pt-3 border-top">
-                <button
-                  class="btn btn-primary btn-sm w-100"
-                  @click="viewDetail(it.id)"
-                  title="Xem chi tiết phiếu bảo hành"
-                >
-                  <i class="bi bi-eye me-1"></i>Xem chi tiết
-                </button>
-              </div>
-            </div>
-          </div>
+                </td>
+                <td>{{ showDate(it.ngayBatDau) }}</td>
+                <td>{{ showDate(it.ngayKetThuc) }}</td>
+                <td>
+                  <span :class="getStatusClass(it.trangThai)">
+                    <i :class="getStatusIcon(it.trangThai)" class="me-1"></i>
+                    {{ showTrangThai(it.trangThai) }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-outline-primary btn-sm" @click="viewDetail(it.id)">
+                    <i class="bi bi-eye me-1"></i>Xem
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -324,6 +303,11 @@ const showDate = (v) => {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+const shortId = (id) => {
+  if (!id) return 'N/A'
+  return `${String(id).slice(0, 8)}...${String(id).slice(-4)}`
+}
+
 onMounted(fetchList)
 </script>
 
@@ -384,26 +368,37 @@ onMounted(fetchList)
   margin-bottom: 0.5rem;
 }
 
-/* Warranty Cards */
-.warranty-card {
+/* Table */
+.table-card {
   border-radius: 12px;
-  transition: all 0.3s ease;
   border: 1px solid #e9ecef;
 }
 
-.warranty-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+.table-white {
+  background-color: #fff;
 }
 
-.hover-lift {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+.table-white thead th {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.hover-lift:hover {
-  transform: translateY(-4px);
+.table-white tbody td {
+  vertical-align: middle;
+  padding: 1rem 1.25rem;
+  border-color: #f1f3f5;
+}
+
+.table-white tbody tr:hover {
+  background-color: #fdfdfd;
+}
+
+.serial-code {
+  font-size: 0.875rem;
+  color: #495057;
 }
 
 /* Status Badge */
