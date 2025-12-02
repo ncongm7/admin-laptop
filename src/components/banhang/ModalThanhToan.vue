@@ -18,7 +18,7 @@
                     <!-- Alert thông báo thay đổi giá/voucher/điểm -->
                     <div v-if="thongBaoThayDoi" class="alert alert-warning alert-dismissible fade show mb-3 shadow-sm" role="alert" style="border-left: 4px solid #ffc107;">
                         <h6 class="alert-heading mb-3 d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> 
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
                             <span>Đã phát hiện thay đổi trong hóa đơn</span>
                         </h6>
                         <div v-html="thongBaoThayDoi" class="mb-3"></div>
@@ -47,15 +47,13 @@
                             <div class="col-12">
                                 <small class="text-muted">Sản phẩm:</small>
                                 <div class="preview-products">
-                                    <div
-                                        v-for="item in hoaDon?.hoaDonChiTiet || []"
-                                        :key="item.id"
-                                        class="preview-product-item"
-                                    >
+                                    <div v-for="item in hoaDon?.hoaDonChiTiet || []" :key="item.id"
+                                        class="preview-product-item">
                                         <span>{{ item.tenSanPham }}</span>
                                         <span class="text-muted">× {{ item.soLuong }}</span>
                                         <!-- TODO: Backend nên trả về thanhTien, nếu không FE tính = donGia * soLuong -->
-                                        <span class="fw-bold">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</span>
+                                        <span class="fw-bold">{{ formatCurrency(item.thanhTien || (item.donGia *
+                                            item.soLuong)) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -95,7 +93,7 @@
                                 </label>
 
                                 <!-- Cảnh báo khi không có phương thức thanh toán -->
-                                <div v-if="paymentMethods.length === 0" class="alert alert-warning mb-2">
+                                <div v-if="filteredPaymentMethods.length === 0" class="alert alert-warning mb-2">
                                     <i class="bi bi-exclamation-triangle"></i>
                                     <strong>Chưa có phương thức thanh toán!</strong>
                                     <br>
@@ -104,9 +102,10 @@
                                 </div>
 
                                 <select class="form-select" v-model="formData.idPhuongThucThanhToan"
-                                    :disabled="isProcessing || paymentMethods.length === 0">
+                                    :disabled="isProcessing || filteredPaymentMethods.length === 0">
                                     <option value="">-- Chọn phương thức --</option>
-                                    <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
+                                    <option v-for="method in filteredPaymentMethods" :key="method.id"
+                                        :value="method.id">
                                         {{ method.tenPhuongThuc }}
                                     </option>
                                 </select>
@@ -117,17 +116,9 @@
                                 <label class="form-label fw-semibold">
                                     Số tiền khách đưa
                                 </label>
-                                <input
-                                type="number"
-                                class="form-control"
-                                v-model.number="tienKhachDua"
-                                :min="tongTien"
-                                :max="tongTien * 10"
-                                :step="1000"
-                                placeholder="Nhập số tiền khách đưa"
-                                :disabled="isProcessing"
-                                @blur="validateTienKhachDua"
-                            />
+                                <input type="number" class="form-control" v-model.number="tienKhachDua" :min="tongTien"
+                                    :max="tongTien * 10" :step="1000" placeholder="Nhập số tiền khách đưa"
+                                    :disabled="isProcessing" @blur="validateTienKhachDua" />
                                 <div v-if="tienThua > 0" class="mt-2">
                                     <span class="text-success fw-bold">
                                         Tiền thừa trả khách: {{ formatCurrency(tienThua) }}
@@ -141,11 +132,27 @@
                             </div>
 
                             <!-- Mã giao dịch (cho chuyển khoản/thẻ) -->
-                            <div v-if="!isTienMat && formData.idPhuongThucThanhToan"
-                                class="mb-3">
+                            <div v-if="!isTienMat && formData.idPhuongThucThanhToan" class="mb-3">
                                 <label class="form-label fw-semibold">Mã giao dịch</label>
-                                <input type="text" class="form-control" v-model="formData.maGiaoDich"
-                                    placeholder="Nhập mã giao dịch (nếu có)" :disabled="isProcessing" />
+                                <div class="input-group">
+                                    <input type="text" class="form-control" v-model="formData.maGiaoDich"
+                                        placeholder="Nhập mã giao dịch (nếu có)" :disabled="isProcessing" />
+                                    <!-- Nút hiện QR (chỉ hiện với phương thức QR) -->
+                                    <button v-if="isQRPayment" type="button" class="btn btn-primary" @click="generateQR"
+                                        :disabled="qrLoading || isProcessing">
+                                        <span v-if="qrLoading" class="spinner-border spinner-border-sm me-1"></span>
+                                        <i v-else class="bi bi-qr-code me-1"></i>
+                                        {{ qrStatus === 'confirmed' ? 'Đã thanh toán' : 'Hiện QR' }}
+                                    </button>
+                                </div>
+                                <small v-if="isQRPayment && !qrTransactionId" class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Nhấn "Hiện QR" để khách hàng quét mã thanh toán
+                                </small>
+                                <div v-if="qrTransactionId" class="alert alert-success alert-sm mt-2 mb-0">
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                    Đã nhận thanh toán QR! Mã GD: <code>{{ qrTransactionId }}</code>
+                                </div>
                             </div>
 
                             <!-- Ghi chú -->
@@ -160,14 +167,9 @@
                             <!-- Lựa chọn giao hàng -->
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input 
-                                        class="form-check-input" 
-                                        type="checkbox" 
-                                        id="canGiaoHang"
-                                        v-model="formData.canGiaoHang"
-                                        :disabled="isProcessing"
-                                        @change="handleGiaoHangChange"
-                                    />
+                                    <input class="form-check-input" type="checkbox" id="canGiaoHang"
+                                        v-model="formData.canGiaoHang" :disabled="isProcessing"
+                                        @change="handleGiaoHangChange" />
                                     <label class="form-check-label fw-semibold" for="canGiaoHang">
                                         <i class="bi bi-truck text-primary"></i> Cần giao hàng
                                     </label>
@@ -185,12 +187,8 @@
                                     <label class="form-label fw-semibold">
                                         <i class="bi bi-bookmark-check me-1"></i> Chọn địa chỉ đã lưu
                                     </label>
-                                    <select 
-                                        class="form-select" 
-                                        v-model="selectedSavedAddressId"
-                                        @change="loadSavedAddress"
-                                        :disabled="isProcessing"
-                                    >
+                                    <select class="form-select" v-model="selectedSavedAddressId"
+                                        @change="loadSavedAddress" :disabled="isProcessing">
                                         <option value="">-- Chọn địa chỉ đã lưu --</option>
                                         <option v-for="addr in savedAddresses" :key="addr.id" :value="addr.id">
                                             {{ formatAddressDisplay(addr) }}
@@ -204,13 +202,8 @@
                                         <label class="form-label fw-semibold">
                                             Tên người nhận <span class="text-danger">*</span>
                                         </label>
-                                        <input 
-                                            type="text" 
-                                            class="form-control" 
-                                            v-model="formData.tenNguoiNhan"
-                                            placeholder="Nhập tên người nhận"
-                                            :disabled="isProcessing"
-                                        />
+                                        <input type="text" class="form-control" v-model="formData.tenNguoiNhan"
+                                            placeholder="Nhập tên người nhận" :disabled="isProcessing" />
                                         <small class="text-muted">Để trống nếu người nhận là khách hàng</small>
                                     </div>
 
@@ -219,13 +212,8 @@
                                         <label class="form-label fw-semibold">
                                             Số điện thoại người nhận <span class="text-danger">*</span>
                                         </label>
-                                        <input 
-                                            type="text" 
-                                            class="form-control" 
-                                            v-model="formData.sdtNguoiNhan"
-                                            placeholder="Nhập số điện thoại người nhận"
-                                            :disabled="isProcessing"
-                                        />
+                                        <input type="text" class="form-control" v-model="formData.sdtNguoiNhan"
+                                            placeholder="Nhập số điện thoại người nhận" :disabled="isProcessing" />
                                         <small class="text-muted">Để trống nếu người nhận là khách hàng</small>
                                     </div>
                                 </div>
@@ -239,26 +227,17 @@
 
                                 <!-- Component DiaChiForm để nhập địa chỉ (ẩn các trường không cần thiết) -->
                                 <div class="address-form-wrapper">
-                                    <DiaChiForm
-                                        :maKhachHang="props.hoaDon?.khachHang?.maKhachHang || ''"
-                                        :customerInfo="customerInfoForAddress"
-                                        :hideCustomerFields="true"
-                                        :checkDuplicateFn="checkDuplicateAddress"
-                                        @success="handleAddressSaved"
-                                        ref="diaChiFormRef"
-                                    />
+                                    <DiaChiForm :maKhachHang="props.hoaDon?.khachHang?.maKhachHang || ''"
+                                        :customerInfo="customerInfoForAddress" :hideCustomerFields="true"
+                                        :checkDuplicateFn="checkDuplicateAddress" @success="handleAddressSaved"
+                                        ref="diaChiFormRef" />
                                 </div>
 
                                 <!-- Ghi chú giao hàng -->
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Ghi chú giao hàng</label>
-                                    <textarea 
-                                        class="form-control" 
-                                        rows="2"
-                                        v-model="formData.ghiChuGiaoHang"
-                                        placeholder="Ghi chú về giao hàng (nếu có)"
-                                        :disabled="isProcessing"
-                                    ></textarea>
+                                    <textarea class="form-control" rows="2" v-model="formData.ghiChuGiaoHang"
+                                        placeholder="Ghi chú về giao hàng (nếu có)" :disabled="isProcessing"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -332,14 +311,11 @@
                                         <!-- Input quét serial cho sản phẩm này -->
                                         <div v-if="!product.hoanThanh" class="serial-input-group mt-2">
                                             <div class="serial-status-indicator mb-2">
-                                                <span
-                                                    class="badge"
-                                                    :class="{
-                                                        'bg-success': product.soLuongDaQuet > 0 && product.soLuongDaQuet < product.soLuongCanQuet,
-                                                        'bg-warning': product.soLuongDaQuet === 0,
-                                                        'bg-info': currentProduct?.id === product.id
-                                                    }"
-                                                >
+                                                <span class="badge" :class="{
+                                                    'bg-success': product.soLuongDaQuet > 0 && product.soLuongDaQuet < product.soLuongCanQuet,
+                                                    'bg-warning': product.soLuongDaQuet === 0,
+                                                    'bg-info': currentProduct?.id === product.id
+                                                }">
                                                     <i class="bi" :class="{
                                                         'bi-check-circle': product.soLuongDaQuet > 0,
                                                         'bi-hourglass-split': product.soLuongDaQuet === 0,
@@ -349,20 +325,15 @@
                                                 </span>
                                             </div>
                                             <div class="input-group">
-                                                <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    v-model="currentSerialInput"
+                                                <input type="text" class="form-control" v-model="currentSerialInput"
                                                     @keyup.enter="scanSerial(product)"
                                                     @focus="handleSerialInputFocus(product)"
                                                     @blur="handleSerialInputBlur"
                                                     :placeholder="`Quét/nhập Serial ${product.soLuongDaQuet + 1}/${product.soLuongCanQuet}...`"
-                                                    :disabled="isLoading || isProcessing"
-                                                    :class="{
+                                                    :disabled="isLoading || isProcessing" :class="{
                                                         'is-valid': scanSuccess[product.id],
                                                         'is-invalid': scanError[product.id]
-                                                    }"
-                                                    ref="serialInputs" />
+                                                    }" ref="serialInputs" />
                                                 <button class="btn btn-outline-secondary"
                                                     @click="loadAvailableSerials(product)"
                                                     :disabled="isLoadingSerials || isProcessing"
@@ -380,11 +351,14 @@
                                                 </button>
                                             </div>
                                             <!-- Thông báo trạng thái -->
-                                            <div v-if="scanSuccess[product.id]" class="alert alert-success alert-sm mt-2 mb-0">
+                                            <div v-if="scanSuccess[product.id]"
+                                                class="alert alert-success alert-sm mt-2 mb-0">
                                                 <i class="bi bi-check-circle-fill"></i> Quét thành công!
                                             </div>
-                                            <div v-if="scanError[product.id]" class="alert alert-danger alert-sm mt-2 mb-0">
-                                                <i class="bi bi-exclamation-triangle-fill"></i> {{ scanError[product.id] }}
+                                            <div v-if="scanError[product.id]"
+                                                class="alert alert-danger alert-sm mt-2 mb-0">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> {{ scanError[product.id]
+                                                }}
                                             </div>
 
                                             <!-- Dropdown danh sách serial khả dụng -->
@@ -480,6 +454,10 @@
             <StreamQrcodeBarcodeReader @decode="onBarcodeDetected" />
         </div>
     </div>
+
+    <!-- QR Payment Modal -->
+    <QRPaymentModal :show="showQRModal" :qrData="qrCodeData" :loading="qrLoading" :error="qrError" :status="qrStatus"
+        :transactionId="qrTransactionId" @close="closeQRModal" @retry="generateQR" @expired="handleQRExpired" />
 </template>
 
 <script setup>
@@ -488,10 +466,13 @@ import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
+import { useQRPaymentPOS } from '@/composables/useQRPaymentPOS'
+import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
 import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung, kiemTraTruocThanhToan } from '@/service/banhang/banHangService'
 import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
 import DiaChiService from '@/service/taikhoan/diaChiService'
 import DiaChiForm from '@/components/taikhoan/khachhang/DiaChiForm.vue'
+import QRPaymentModal from '@/components/banhang/QRPaymentModal.vue'
 
 const props = defineProps({
     hoaDon: {
@@ -560,6 +541,29 @@ const customerInfoForAddress = computed(() => {
     }
 })
 
+// ==================== QR PAYMENT ====================
+const hoaDonForQR = computed(() => props.hoaDon)
+
+const {
+    qrCodeData,
+    loading: qrLoading,
+    error: qrError,
+    status: qrStatus,
+    showQRModal,
+    transactionId: qrTransactionId,
+    generateQR,
+    closeQRModal,
+    handleExpired: handleQRExpired
+} = useQRPaymentPOS({
+    hoaDon: hoaDonForQR,
+    onPaymentConfirmed: (paymentData) => {
+        console.log('✅ [ModalThanhToan] QR Payment confirmed:', paymentData)
+        // Auto-fill mã giao dịch
+        formData.value.maGiaoDich = paymentData.transactionId
+        showSuccess(`Đã nhận thanh toán QR! Mã GD: ${paymentData.transactionId}`)
+    }
+})
+
 // ==================== SERIAL VALIDATION ====================
 // Normalize hoaDon trước khi truyền vào useSerialValidation
 const hoaDonRef = computed(() => {
@@ -614,10 +618,15 @@ const selectedMethodName = computed(() => {
 const isTienMat = computed(() => {
     const methodName = selectedMethodName.value.toLowerCase()
     // Kiểm tra nhiều cách viết: "tiền mặt", "tien mat", "cash", v.v.
-    return methodName.includes('tiền mặt') ||
-           methodName.includes('tien mat') ||
-           methodName.includes('cash') ||
-           methodName.includes('ti?n m?t') // Trường hợp có dấu bị lỗi encoding
+    return methodName.includes('tien') && methodName.includes('mat') ||
+        methodName.includes('tiền') && methodName.includes('mặt') ||
+        methodName.toLowerCase() === 'cash'
+})
+
+// Helper: Kiểm tra có phải thanh toán QR không
+const isQRPayment = computed(() => {
+    const methodName = selectedMethodName.value.toLowerCase()
+    return methodName.includes('qr') || methodName.includes('chuyển khoản qr') || methodName.includes('chuyen khoan qr')
 })
 
 const tienThua = computed(() => {
@@ -690,6 +699,16 @@ const selectedWardName = computed(() => {
         return formData.value.xaCode
     }
     return ''
+})
+
+// Computed: Lọc chỉ hiển thị 2 phương thức thanh toán (Offline và Online)
+const filteredPaymentMethods = computed(() => {
+    return paymentMethods.value.filter(method => {
+        const name = method.tenPhuongThuc.toLowerCase()
+        // Chỉ cho phép "Tiền mặt" (offline) và "Chuyển khoản QR" (online)
+        return (name.includes('tiền mặt') || name.includes('tien mat')) ||
+            (name.includes('qr') || name.includes('chuyển khoản qr') || name.includes('chuyen khoan qr'))
+    })
 })
 
 
@@ -1009,17 +1028,17 @@ const handlePayment = async () => {
         // 1. Kiểm tra toàn bộ (giá, voucher, điểm) trước khi xác nhận thanh toán
         console.log('🔍 [ModalThanhToan] Kiểm tra trước khi xác nhận thanh toán...')
         const kiemTraResponse = await kiemTraTruocThanhToan(props.hoaDon.id)
-        
+
         // Response có cấu trúc: { success, data: KiemTraTruocThanhToanResponse, message }
         const kiemTraData = kiemTraResponse?.data || kiemTraResponse
-        
+
         if (kiemTraData) {
-            
+
             if (kiemTraData.coThayDoi) {
                 // Có thay đổi, hiển thị thông báo chi tiết và KHÔNG cho phép thanh toán
                 let thongBaoChiTiet = ''
                 let thongBaoHTML = ''
-                
+
                 // Thông tin thay đổi về giá
                 if (kiemTraData.thayDoiGia && kiemTraData.thayDoiGia.coThayDoi) {
                     thongBaoChiTiet += `📦 Giá sản phẩm:\n`
@@ -1031,7 +1050,7 @@ const handlePayment = async () => {
                     thongBaoHTML += `</ul></div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Thông tin thay đổi về voucher
                 if (kiemTraData.thayDoiVoucher && kiemTraData.thayDoiVoucher.coThayDoi) {
                     thongBaoChiTiet += `🎫 Phiếu giảm giá: `
@@ -1053,7 +1072,7 @@ const handlePayment = async () => {
                     thongBaoHTML += `</div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Thông tin thay đổi về điểm
                 if (kiemTraData.thayDoiDiem && kiemTraData.thayDoiDiem.coThayDoi) {
                     thongBaoChiTiet += `⭐ Điểm tích lũy: `
@@ -1070,19 +1089,19 @@ const handlePayment = async () => {
                     thongBaoHTML += `</div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Lưu thông báo để hiển thị trong alert box
                 thongBaoThayDoi.value = thongBaoHTML
-                
+
                 // Cũng hiển thị toast notification
                 showWarning(thongBaoChiTiet + '\nĐã tự động cập nhật hóa đơn. Vui lòng kiểm tra lại và xác nhận thanh toán lần nữa.', { duration: 10000 })
-                
+
                 // Cập nhật lại hóa đơn trong component (nếu có hoaDonMoi)
                 if (kiemTraData.hoaDonMoi) {
                     // Emit event để parent component cập nhật hóa đơn
                     emit('hoa-don-updated', kiemTraData.hoaDonMoi)
                 }
-                
+
                 // KHÔNG cho phép thanh toán, yêu cầu người dùng bấm lại nút
                 isProcessing.value = false
                 return
@@ -1094,7 +1113,7 @@ const handlePayment = async () => {
             // Không có dữ liệu, xóa thông báo cũ (nếu có)
             thongBaoThayDoi.value = null
         }
-        
+
         // 2. Không có thay đổi, tiếp tục thanh toán như bình thường
         const payloadData = {
             ...formData.value,
@@ -2067,6 +2086,7 @@ onMounted(() => {
         padding: 0.2rem 0.4rem;
     }
 }
+
 /* Address Dropdown Styles */
 .position-relative {
     position: relative;
