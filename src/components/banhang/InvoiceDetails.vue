@@ -322,6 +322,7 @@ import PriceOverrideModal from './PriceOverrideModal.vue'
 import { capNhatSoLuongSanPham } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
 import { validateQuantity } from '@/utils/validation'
+import { xoaVoucher } from '@/service/banhang/voucherService'
 
 const props = defineProps({
     hoaDon: {
@@ -332,7 +333,7 @@ const props = defineProps({
 
 const emit = defineEmits(['delete-item', 'apply-voucher', 'use-points', 'complete-payment', 'save-draft', 'cancel-bill', 'open-voucher-modal', 'remove-voucher', 'update-item'])
 
-const { success: showSuccess, error: showError } = useToast()
+const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 
 // State
 const usePoints = ref(false)
@@ -528,6 +529,10 @@ const confirmUpdateQuantity = async () => {
         if (response && response.data) {
             // Emit event để parent component cập nhật hóa đơn
             emit('update-item', response.data)
+            
+            // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện sau khi cập nhật số lượng
+            await checkAndRemoveInvalidVoucher(response.data)
+            
             showSuccess(`Đã cập nhật số lượng thành ${editQuantity.value}!`)
             closeEditQuantityModal()
         }
@@ -687,11 +692,52 @@ const handleKeyboardShortcut = (event) => {
     }
 }
 
-// Watch hoaDon để reset state khi chuyển hóa đơn
-watch(() => props.hoaDon, () => {
+// Watch hoaDon để reset state khi chuyển hóa đơn và kiểm tra voucher
+watch(() => props.hoaDon, async (newHoaDon) => {
     usePoints.value = false
     closeEditQuantityModal()
-})
+    
+    // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+    if (newHoaDon) {
+        await checkAndRemoveInvalidVoucher(newHoaDon)
+    }
+}, { immediate: false })
+
+/**
+ * Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+ */
+const checkAndRemoveInvalidVoucher = async (hoaDon) => {
+    if (!hoaDon || !hoaDon.idPhieuGiamGia || !hoaDon.phieuGiamGia) {
+        return // Không có voucher, không cần check
+    }
+
+    const voucher = hoaDon.phieuGiamGia
+    const tongTien = hoaDon.tongTien || 0
+    const hoaDonToiThieu = voucher.hoaDonToiThieu || 0
+
+    // Kiểm tra điều kiện hóa đơn tối thiểu
+    if (hoaDonToiThieu > 0 && tongTien < hoaDonToiThieu) {
+        console.log('⚠️ [InvoiceDetails] Voucher không đủ điều kiện, tự động xóa:', {
+            voucher: voucher.tenPhieuGiamGia || voucher.ma,
+            tongTien,
+            hoaDonToiThieu,
+        })
+
+        try {
+            const response = await xoaVoucher(hoaDon.id)
+            if (response && response.data) {
+                // Emit event để parent component cập nhật hóa đơn
+                emit('update-item', response.data)
+                showWarning(
+                    `Voucher "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
+                )
+            }
+        } catch (error) {
+            console.error('Lỗi khi xóa voucher:', error)
+            // Không hiển thị lỗi để không làm gián đoạn flow
+        }
+    }
+}
 
 // Lifecycle
 onMounted(() => {

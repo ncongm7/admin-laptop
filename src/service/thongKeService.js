@@ -62,3 +62,37 @@ export const fetchSanPhamBanChay = async (startDate, endDate, limit = 5) => {
     }
 }
 
+/**
+ * Lấy giao dịch gần đây
+ * @param {Number} limit - Số lượng giao dịch (mặc định: 10)
+ * @returns {Promise}
+ */
+export const fetchGiaoDichGanDay = async (limit = 10) => {
+    try {
+        const response = await axiosInstance.get(`${API_BASE}/giao-dich-gan-day`, {
+            params: { limit }
+        })
+        return response.data
+    } catch (error) {
+        console.error('❌ [ThongKeService] Lỗi khi lấy giao dịch gần đây:', error)
+        throw error
+    }
+}
+
+/**
+ * Lấy hoạt động khách hàng gần đây
+ * @param {Number} limit - Số lượng hoạt động (mặc định: 10)
+ * @returns {Promise}
+ */
+export const fetchHoatDongKhachHang = async (limit = 10) => {
+    try {
+        const response = await axiosInstance.get(`${API_BASE}/hoat-dong-khach-hang`, {
+            params: { limit }
+        })
+        return response.data
+    } catch (error) {
+        console.error('❌ [ThongKeService] Lỗi khi lấy hoạt động khách hàng:', error)
+        throw error
+    }
+}
+

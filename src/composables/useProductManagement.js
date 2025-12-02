@@ -6,6 +6,7 @@ import {
   xoaSanPhamKhoiHoaDon,
   timSanPhamTheoIMEI,
 } from '@/service/banhang/banHangService'
+import { xoaVoucher } from '@/service/banhang/voucherService'
 
 /**
  * Composable quản lý sản phẩm trong hóa đơn
@@ -205,6 +206,49 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
   }
 
   /**
+   * Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+   */
+  const checkAndRemoveInvalidVoucher = async (hoaDon) => {
+    if (!hoaDon || !hoaDon.idPhieuGiamGia || !hoaDon.phieuGiamGia) {
+      return // Không có voucher, không cần check
+    }
+
+    const voucher = hoaDon.phieuGiamGia
+    const tongTien = hoaDon.tongTien || 0
+    const hoaDonToiThieu = voucher.hoaDonToiThieu || 0
+
+    // Kiểm tra điều kiện hóa đơn tối thiểu
+    if (hoaDonToiThieu > 0 && tongTien < hoaDonToiThieu) {
+      console.log('⚠️ [useProductManagement] Voucher không đủ điều kiện, tự động xóa:', {
+        voucher: voucher.tenPhieuGiamGia || voucher.ma,
+        tongTien,
+        hoaDonToiThieu,
+      })
+
+      try {
+        const response = await xoaVoucher(hoaDon.id)
+        if (response && response.data) {
+          capNhatHoaDon(response.data)
+          showWarning(
+            `Voucher "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
+          )
+        }
+      } catch (error) {
+        console.error('Lỗi khi xóa voucher:', error)
+        // Không hiển thị lỗi để không làm gián đoạn flow
+      }
+    }
+  }
+
+  /**
+   * Format currency helper
+   */
+  const formatCurrency = (value) => {
+    if (!value) return '0'
+    return new Intl.NumberFormat('vi-VN').format(value)
+  }
+
+  /**
    * Xóa sản phẩm khỏi hóa đơn
    */
   const handleDeleteItem = async (idHoaDonChiTiet, productName = 'sản phẩm này') => {
@@ -226,6 +270,9 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
       if (response && response.data) {
         // Cập nhật hóa đơn
         capNhatHoaDon(response.data)
+
+        // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+        await checkAndRemoveInvalidVoucher(response.data)
 
         console.log('Xóa sản phẩm thành công')
         showSuccess(`Đã xóa "${productName}" khỏi hóa đơn!`)
