@@ -40,6 +40,8 @@ export {
 export {
     layDanhSachPhuongThucThanhToan,
     thanhToanHoaDon,
+    kiemTraVaCapNhatGia,
+    kiemTraTruocThanhToan,
     layDanhSachNhanVien,
 } from './thanhToanService'
 

@@ -122,7 +122,7 @@
 
     <!-- Modal thanh toán -->
     <ModalThanhToan v-if="showPaymentModal" :hoaDon="hoaDonHienTai" @close="closePaymentModal"
-      @payment-confirmed="handlePaymentConfirmed" />
+      @payment-confirmed="handlePaymentConfirmed" @hoa-don-updated="handleHoaDonUpdated" />
 
     <!-- Modal gợi ý voucher -->
 <<<<<<< HEAD
@@ -195,7 +195,7 @@ import { useConfirm } from '@/composables/useConfirm'
 const authStore = useAuthStore()
 
 // ==================== TOAST & CONFIRM ====================
-const { error: showError, success: showSuccess } = useToast()
+const { error: showError, success: showSuccess, warning: showWarning } = useToast()
 const { showConfirm } = useConfirm()
 
 // ==================== QUẢN LÝ HÓA ĐƠN ====================
@@ -306,7 +306,7 @@ const {
   openPaymentModal,
   handlePaymentConfirmed,
   closePaymentModal,
-} = usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan)
+} = usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan, capNhatHoaDon)
 
 // ==================== QUẢN LÝ VOUCHER & ĐIỂM TÍCH LŨY ====================
 const {
@@ -346,6 +346,16 @@ const handleVoucherSelected = async (voucher) => {
   }
 }
 
+/**
+ * Xử lý khi hóa đơn được cập nhật từ modal thanh toán (do thay đổi giá/voucher/điểm)
+ */
+const handleHoaDonUpdated = (hoaDonMoi) => {
+  console.log('🔄 [SalesView] Hóa đơn đã được cập nhật:', hoaDonMoi)
+  if (hoaDonMoi) {
+    capNhatHoaDon(hoaDonMoi)
+  }
+}
+
 const handleRemoveVoucher = async () => {
   if (!hoaDonHienTai.value) return
 
@@ -375,9 +385,48 @@ const handleRemoveVoucher = async () => {
 }
 
 // Xử lý cập nhật sản phẩm (sửa số lượng)
-const handleUpdateItem = (updatedHoaDon) => {
+const handleUpdateItem = async (updatedHoaDon) => {
   if (updatedHoaDon) {
     capNhatHoaDon(updatedHoaDon)
+    
+    // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+    await checkAndRemoveInvalidVoucher(updatedHoaDon)
+  }
+}
+
+/**
+ * Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
+ */
+const checkAndRemoveInvalidVoucher = async (hoaDon) => {
+  if (!hoaDon || !hoaDon.idPhieuGiamGia || !hoaDon.phieuGiamGia) {
+    return // Không có voucher, không cần check
+  }
+
+  const voucher = hoaDon.phieuGiamGia
+  const tongTien = hoaDon.tongTien || 0
+  const hoaDonToiThieu = voucher.hoaDonToiThieu || 0
+
+  // Kiểm tra điều kiện hóa đơn tối thiểu
+  if (hoaDonToiThieu > 0 && tongTien < hoaDonToiThieu) {
+    console.log('⚠️ [SalesView] Voucher không đủ điều kiện, tự động xóa:', {
+      voucher: voucher.tenPhieuGiamGia || voucher.ma,
+      tongTien,
+      hoaDonToiThieu,
+    })
+
+    try {
+      const { xoaVoucher } = await import('@/service/banhang/banHangService')
+      const response = await xoaVoucher(hoaDon.id)
+      if (response && response.data) {
+        capNhatHoaDon(response.data)
+        showWarning(
+          `Voucher "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
+        )
+      }
+    } catch (error) {
+      console.error('Lỗi khi xóa voucher:', error)
+      // Không hiển thị lỗi để không làm gián đoạn flow
+    }
   }
 }
 

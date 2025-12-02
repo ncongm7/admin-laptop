@@ -15,6 +15,21 @@
                 </div>
 
                 <div class="modal-body">
+                    <!-- Alert thông báo thay đổi giá/voucher/điểm -->
+                    <div v-if="thongBaoThayDoi" class="alert alert-warning alert-dismissible fade show mb-3 shadow-sm" role="alert" style="border-left: 4px solid #ffc107;">
+                        <h6 class="alert-heading mb-3 d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> 
+                            <span>Đã phát hiện thay đổi trong hóa đơn</span>
+                        </h6>
+                        <div v-html="thongBaoThayDoi" class="mb-3"></div>
+                        <hr>
+                        <p class="mb-0 d-flex align-items-center">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span><strong>Đã tự động cập nhật hóa đơn.</strong> Vui lòng kiểm tra lại và xác nhận thanh toán lần nữa.</span>
+                        </p>
+                        <button type="button" class="btn-close" @click="thongBaoThayDoi = null" aria-label="Close"></button>
+                    </div>
+
                     <!-- Preview hóa đơn -->
                     <div class="invoice-preview-section mb-4 p-3 bg-light rounded border">
                         <h6 class="mb-3">
@@ -473,7 +488,7 @@ import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
-import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
+import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung, kiemTraTruocThanhToan } from '@/service/banhang/banHangService'
 import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
 import DiaChiService from '@/service/taikhoan/diaChiService'
 import DiaChiForm from '@/components/taikhoan/khachhang/DiaChiForm.vue'
@@ -485,7 +500,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['close', 'payment-confirmed'])
+const emit = defineEmits(['close', 'payment-confirmed', 'hoa-don-updated'])
 
 const paymentMethods = ref([])
 const formData = ref({
@@ -512,6 +527,7 @@ const showCameraScanner = ref(false)
 const availableSerials = ref({})
 const showSerialDropdown = ref({})
 const isLoadingSerials = ref(false)
+const thongBaoThayDoi = ref(null) // Thông báo thay đổi giá/voucher/điểm
 
 // State - Scan feedback
 const scanSuccess = ref({})
@@ -990,6 +1006,96 @@ const handlePayment = async () => {
     isProcessing.value = true
 
     try {
+        // 1. Kiểm tra toàn bộ (giá, voucher, điểm) trước khi xác nhận thanh toán
+        console.log('🔍 [ModalThanhToan] Kiểm tra trước khi xác nhận thanh toán...')
+        const kiemTraResponse = await kiemTraTruocThanhToan(props.hoaDon.id)
+        
+        // Response có cấu trúc: { success, data: KiemTraTruocThanhToanResponse, message }
+        const kiemTraData = kiemTraResponse?.data || kiemTraResponse
+        
+        if (kiemTraData) {
+            
+            if (kiemTraData.coThayDoi) {
+                // Có thay đổi, hiển thị thông báo chi tiết và KHÔNG cho phép thanh toán
+                let thongBaoChiTiet = ''
+                let thongBaoHTML = ''
+                
+                // Thông tin thay đổi về giá
+                if (kiemTraData.thayDoiGia && kiemTraData.thayDoiGia.coThayDoi) {
+                    thongBaoChiTiet += `📦 Giá sản phẩm:\n`
+                    thongBaoHTML += `<div class="mb-2"><strong>📦 Giá sản phẩm:</strong><ul class="mb-0 mt-1">`
+                    kiemTraData.thayDoiGia.danhSachThayDoi.forEach(item => {
+                        thongBaoChiTiet += `  • ${item.tenSanPham}: ${formatCurrency(item.giaCu)} → ${formatCurrency(item.giaMoi)}\n`
+                        thongBaoHTML += `<li>${item.tenSanPham}: <span class="text-decoration-line-through text-muted">${formatCurrency(item.giaCu)}</span> → <strong class="text-danger">${formatCurrency(item.giaMoi)}</strong></li>`
+                    })
+                    thongBaoHTML += `</ul></div>`
+                    thongBaoChiTiet += '\n'
+                }
+                
+                // Thông tin thay đổi về voucher
+                if (kiemTraData.thayDoiVoucher && kiemTraData.thayDoiVoucher.coThayDoi) {
+                    thongBaoChiTiet += `🎫 Phiếu giảm giá: `
+                    thongBaoHTML += `<div class="mb-2"><strong>🎫 Phiếu giảm giá:</strong> `
+                    if (kiemTraData.thayDoiVoucher.biXoa) {
+                        thongBaoChiTiet += `Không thể áp dụng - ${kiemTraData.thayDoiVoucher.lyDo}\n`
+                        thongBaoChiTiet += `  Đã tự động xóa voucher khỏi hóa đơn và cập nhật giá.\n`
+                        thongBaoHTML += `<span class="text-danger fw-bold">Không thể áp dụng</span> - ${kiemTraData.thayDoiVoucher.lyDo}<br>`
+                        thongBaoHTML += `<small class="text-muted">Đã tự động xóa voucher khỏi hóa đơn và cập nhật giá.</small>`
+                        if (kiemTraData.thayDoiVoucher.tienGiamCu && kiemTraData.thayDoiVoucher.tienGiamCu > 0) {
+                            thongBaoHTML += `<br><small>Tiền giảm đã bị hủy: <span class="text-decoration-line-through text-danger">${formatCurrency(kiemTraData.thayDoiVoucher.tienGiamCu)}</span></small>`
+                        }
+                    } else {
+                        thongBaoChiTiet += `Đã cập nhật - ${kiemTraData.thayDoiVoucher.lyDo}\n`
+                        thongBaoChiTiet += `  Tiền giảm: ${formatCurrency(kiemTraData.thayDoiVoucher.tienGiamCu)} → ${formatCurrency(kiemTraData.thayDoiVoucher.tienGiamMoi)}\n`
+                        thongBaoHTML += `Đã cập nhật - ${kiemTraData.thayDoiVoucher.lyDo}<br>`
+                        thongBaoHTML += `<small>Tiền giảm: <span class="text-decoration-line-through text-muted">${formatCurrency(kiemTraData.thayDoiVoucher.tienGiamCu)}</span> → <strong class="text-danger">${formatCurrency(kiemTraData.thayDoiVoucher.tienGiamMoi)}</strong></small>`
+                    }
+                    thongBaoHTML += `</div>`
+                    thongBaoChiTiet += '\n'
+                }
+                
+                // Thông tin thay đổi về điểm
+                if (kiemTraData.thayDoiDiem && kiemTraData.thayDoiDiem.coThayDoi) {
+                    thongBaoChiTiet += `⭐ Điểm tích lũy: `
+                    thongBaoHTML += `<div class="mb-2"><strong>⭐ Điểm tích lũy:</strong> `
+                    if (kiemTraData.thayDoiDiem.biXoa) {
+                        thongBaoChiTiet += `Đã bị xóa - ${kiemTraData.thayDoiDiem.lyDo}\n`
+                        thongBaoHTML += `<span class="text-danger">Đã bị xóa</span> - ${kiemTraData.thayDoiDiem.lyDo}`
+                    } else {
+                        thongBaoChiTiet += `Đã cập nhật - ${kiemTraData.thayDoiDiem.lyDo}\n`
+                        thongBaoChiTiet += `  Tiền quy đổi: ${formatCurrency(kiemTraData.thayDoiDiem.soTienQuyDoiCu)} → ${formatCurrency(kiemTraData.thayDoiDiem.soTienQuyDoiMoi)}\n`
+                        thongBaoHTML += `Đã cập nhật - ${kiemTraData.thayDoiDiem.lyDo}<br>`
+                        thongBaoHTML += `<small>Tiền quy đổi: <span class="text-decoration-line-through text-muted">${formatCurrency(kiemTraData.thayDoiDiem.soTienQuyDoiCu)}</span> → <strong class="text-danger">${formatCurrency(kiemTraData.thayDoiDiem.soTienQuyDoiMoi)}</strong></small>`
+                    }
+                    thongBaoHTML += `</div>`
+                    thongBaoChiTiet += '\n'
+                }
+                
+                // Lưu thông báo để hiển thị trong alert box
+                thongBaoThayDoi.value = thongBaoHTML
+                
+                // Cũng hiển thị toast notification
+                showWarning(thongBaoChiTiet + '\nĐã tự động cập nhật hóa đơn. Vui lòng kiểm tra lại và xác nhận thanh toán lần nữa.', { duration: 10000 })
+                
+                // Cập nhật lại hóa đơn trong component (nếu có hoaDonMoi)
+                if (kiemTraData.hoaDonMoi) {
+                    // Emit event để parent component cập nhật hóa đơn
+                    emit('hoa-don-updated', kiemTraData.hoaDonMoi)
+                }
+                
+                // KHÔNG cho phép thanh toán, yêu cầu người dùng bấm lại nút
+                isProcessing.value = false
+                return
+            } else {
+                // Không có thay đổi, xóa thông báo cũ (nếu có)
+                thongBaoThayDoi.value = null
+            }
+        } else {
+            // Không có dữ liệu, xóa thông báo cũ (nếu có)
+            thongBaoThayDoi.value = null
+        }
+        
+        // 2. Không có thay đổi, tiếp tục thanh toán như bình thường
         const payloadData = {
             ...formData.value,
             soTienThanhToan: tongTien.value,
@@ -1079,6 +1185,7 @@ const close = async () => {
             if (!confirmed) return
         }
         resetSerials()
+        thongBaoThayDoi.value = null // Xóa thông báo khi đóng modal
         emit('close')
     }
 }

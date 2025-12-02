@@ -77,9 +77,15 @@
             <span v-else >Tắt</span>
           </td>
           <td class="d-flex gap-2">
-            <button class="btn btn-info" @click="viewProducts(it.id)">Chi tiết</button>
-            <button class="btn btn-warning" @click="edit(it.id)">Sửa</button>
-            <button class="btn btn-danger" @click="remove(it.id)">Xóa</button>
+            <button class="btn btn-info btn-sm" @click="viewProducts(it.id)">Chi tiết</button>
+            <button class="btn btn-warning btn-sm" @click="edit(it.id)">Sửa</button>
+            <button 
+              :class="it.trangThai === 1 ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'" 
+              @click="toggleStatus(it.id)"
+              :title="it.trangThai === 1 ? 'Tắt' : 'Bật'"
+            >
+              {{ it.trangThai === 1 ? 'Tắt' : 'Bật' }}
+            </button>
           </td>
         </tr>
         <tr v-if="paged.length === 0">
@@ -107,9 +113,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDotGiamGias, deleteDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaService'
+import { getDotGiamGias, toggleDotGiamGiaStatus } from '@/service/dotgiamgia/DotGiamGiaService'
 import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
 
 // === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
 const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {
@@ -126,7 +131,6 @@ let serverOffsetMs = 0 // nếu không dùng giờ server, cứ để 0
 
 const router = useRouter()
 const { success: showSuccess, error: showError } = useToast()
-const { showConfirm } = useConfirm()
 const list = ref([])
 const q = ref('')
 
@@ -194,27 +198,15 @@ const goToAdd = () => router.push('/dot-giam-gia/add')
 const viewProducts = (id) => router.push(`/chi-tiet-giam-gia/${id}`)
 const edit = (id) => router.push(`/dot-giam-gia/edit/${id}`)
 
-// Xóa
-const remove = async (id) => {
-  const confirmed = await showConfirm({
-    title: 'Xác nhận xóa đợt giảm giá',
-    message: 'Bạn có chắc chắn muốn xóa đợt giảm giá này?',
-    confirmText: 'Xóa',
-    cancelText: 'Hủy',
-    type: 'warning'
-  })
-
-  if (!confirmed) return
-
+// Chuyển trạng thái
+const toggleStatus = async (id) => {
   try {
-    const resp = await deleteDotGiamGia(id)
-    showSuccess(resp?.message || 'Xóa thành công!')
+    const resp = await toggleDotGiamGiaStatus(id)
+    showSuccess(resp?.message || 'Chuyển trạng thái thành công!')
     await fetchList()
-    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
-    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
-    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa đợt giảm giá'
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi chuyển trạng thái'
     showError(errorMessage)
   }
 }

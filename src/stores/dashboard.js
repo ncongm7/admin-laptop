@@ -3,6 +3,8 @@ import {
   fetchThongKeTongQuan,
   fetchBieuDoData,
   fetchSanPhamBanChay,
+  fetchGiaoDichGanDay,
+  fetchHoatDongKhachHang,
 } from '@/service/thongKeService'
 
 /**
@@ -54,16 +56,20 @@ export const useDashboardStore = defineStore('dashboard', {
         console.log('📅 [DashboardStore] Khoảng thời gian:', { startDate, endDate })
 
         // Fetch tất cả dữ liệu song song
-        const [tongQuanData, bieuDoData, sanPhamData] = await Promise.all([
+        const [tongQuanData, bieuDoData, sanPhamData, giaoDichData, hoatDongData] = await Promise.all([
           fetchThongKeTongQuan(startDate, endDate),
           fetchBieuDoData(startDate, endDate, 'day'),
           fetchSanPhamBanChay(startDate, endDate, 5),
+          fetchGiaoDichGanDay(10),
+          fetchHoatDongKhachHang(10),
         ])
 
         console.log('✅ [DashboardStore] Dữ liệu nhận được:', {
           tongQuan: tongQuanData,
           bieuDo: bieuDoData,
           sanPham: sanPhamData,
+          giaoDich: giaoDichData,
+          hoatDong: hoatDongData,
         })
 
         // Update stats
@@ -107,10 +113,35 @@ export const useDashboardStore = defineStore('dashboard', {
           console.warn('⚠️ [DashboardStore] Không có dữ liệu sản phẩm bán chạy')
         }
 
-        // TODO: Thêm API cho giao dịch gần đây và hoạt động khách hàng
-        // Tạm thời dùng mock data
-        this.recentTransactions = this.generateMockTransactions()
-        this.customerActivities = this.generateMockActivities()
+        // Update recent transactions
+        if (giaoDichData?.data && Array.isArray(giaoDichData.data) && giaoDichData.data.length > 0) {
+          this.recentTransactions = giaoDichData.data.map((item) => ({
+            id: item.id,
+            customer: item.tenKhachHang || 'Khách lẻ',
+            date: this.formatRelativeTime(item.ngayTao),
+            amount: parseFloat(item.tongTien) || 0,
+            type: item.loai || 'sale',
+          }))
+          console.log('💳 [DashboardStore] Recent transactions updated:', this.recentTransactions)
+        } else {
+          console.warn('⚠️ [DashboardStore] Không có dữ liệu giao dịch gần đây')
+          this.recentTransactions = []
+        }
+
+        // Update customer activities
+        if (hoatDongData?.data && Array.isArray(hoatDongData.data) && hoatDongData.data.length > 0) {
+          this.customerActivities = hoatDongData.data.map((item) => ({
+            id: item.id,
+            customer: item.tenKhachHang || 'Khách lẻ',
+            description: item.moTa || 'Hoạt động',
+            time: this.formatRelativeTime(item.thoiGian),
+            type: item.loai || 'purchase',
+          }))
+          console.log('👥 [DashboardStore] Customer activities updated:', this.customerActivities)
+        } else {
+          console.warn('⚠️ [DashboardStore] Không có dữ liệu hoạt động khách hàng')
+          this.customerActivities = []
+        }
 
         console.log('✅ [DashboardStore] Đã cập nhật state thành công')
       } catch (err) {
@@ -125,89 +156,29 @@ export const useDashboardStore = defineStore('dashboard', {
     },
 
     /**
-     * Tạo mock data cho giao dịch gần đây (tạm thời)
+     * Format thời gian tương đối (ví dụ: "2 phút trước", "1 giờ trước")
      */
-    generateMockTransactions() {
-      return [
-        {
-          id: 1,
-          customer: 'Nguyễn Văn A',
-          date: '2 phút trước',
-          amount: 15000000,
-          type: 'sale',
-        },
-        {
-          id: 2,
-          customer: 'Trần Thị B',
-          date: '15 phút trước',
-          amount: 8500000,
-          type: 'sale',
-        },
-        {
-          id: 3,
-          customer: 'Lê Văn C',
-          date: '1 giờ trước',
-          amount: 12000000,
-          type: 'sale',
-        },
-        {
-          id: 4,
-          customer: 'Phạm Thị D',
-          date: '2 giờ trước',
-          amount: -3000000,
-          type: 'refund',
-        },
-        {
-          id: 5,
-          customer: 'Hoàng Văn E',
-          date: '3 giờ trước',
-          amount: 20000000,
-          type: 'sale',
-        },
-      ]
-    },
-
-    /**
-     * Tạo mock data cho hoạt động khách hàng (tạm thời)
-     */
-    generateMockActivities() {
-      return [
-        {
-          id: 1,
-          customer: 'Nguyễn Văn A',
-          description: 'Đã mua 1 sản phẩm',
-          time: '5 phút trước',
-          type: 'purchase',
-        },
-        {
-          id: 2,
-          customer: 'Trần Thị B',
-          description: 'Đăng nhập vào hệ thống',
-          time: '20 phút trước',
-          type: 'login',
-        },
-        {
-          id: 3,
-          customer: 'Lê Văn C',
-          description: 'Đánh giá sản phẩm 5 sao',
-          time: '1 giờ trước',
-          type: 'review',
-        },
-        {
-          id: 4,
-          customer: 'Phạm Thị D',
-          description: 'Đăng ký tài khoản mới',
-          time: '2 giờ trước',
-          type: 'register',
-        },
-        {
-          id: 5,
-          customer: 'Hoàng Văn E',
-          description: 'Đã mua 2 sản phẩm',
-          time: '3 giờ trước',
-          type: 'purchase',
-        },
-      ]
+    formatRelativeTime(timestamp) {
+      if (!timestamp) return 'Vừa xong'
+      
+      const now = new Date()
+      const time = new Date(timestamp)
+      const diffMs = now - time
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+      
+      if (diffMins < 1) return 'Vừa xong'
+      if (diffMins < 60) return `${diffMins} phút trước`
+      if (diffHours < 24) return `${diffHours} giờ trước`
+      if (diffDays < 7) return `${diffDays} ngày trước`
+      
+      // Format ngày tháng nếu quá lâu
+      return time.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
     },
 
     /**

@@ -75,7 +75,13 @@
           <td class="d-flex gap-2">
             <button class="btn btn-info btn-sm" @click="viewDetail(it.id)">Chi tiết</button>
             <button class="btn btn-warning btn-sm" @click="edit(it.id)">Sửa</button>
-            <button class="btn btn-danger btn-sm" @click="remove(it.id)">Xóa</button>
+            <button 
+              :class="it.trangThai === 1 ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'" 
+              @click="toggleStatus(it.id)"
+              :title="it.trangThai === 1 ? 'Tắt' : 'Bật'"
+            >
+              {{ it.trangThai === 1 ? 'Tắt' : 'Bật' }}
+            </button>
             <button 
               v-if="it.riengTu" 
               class="btn btn-secondary btn-sm" 
@@ -111,7 +117,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getVouchers, deleteVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
+import { getVouchers, toggleVoucherStatus } from '@/service/phieugiamgia/PhieuGiamGiaService'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 
@@ -210,27 +216,15 @@ const viewDetail = (id) => router.push(`/phieu-giam-gia2/detail/${id}`)
 const edit = (id) => router.push(`/phieu-giam-gia2/edit/${id}`)
 const goToKhachHang = (id) => router.push(`/quan-li-phieu-giam-gia/${id}/khach-hang`)
 
-// Xóa
-const remove = async (id) => {
-  const confirmed = await showConfirm({
-    title: 'Xác nhận xóa phiếu giảm giá',
-    message: 'Bạn có chắc chắn muốn xóa phiếu giảm giá này?',
-    confirmText: 'Xóa',
-    cancelText: 'Hủy',
-    type: 'warning'
-  })
-  
-  if (!confirmed) return
-  
+// Chuyển trạng thái
+const toggleStatus = async (id) => {
   try {
-    const resp = await deleteVoucher(id)
-    showSuccess(resp?.message || 'Xóa thành công!')
+    const resp = await toggleVoucherStatus(id)
+    showSuccess(resp?.message || 'Chuyển trạng thái thành công!')
     await fetchList()
-    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
-    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
-    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa phiếu giảm giá'
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi chuyển trạng thái'
     showError(errorMessage)
   }
 }
