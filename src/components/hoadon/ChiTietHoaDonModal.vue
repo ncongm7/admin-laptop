@@ -1,7 +1,7 @@
 <template>
     <!-- Backdrop -->
     <div class="modal-backdrop fade show"></div>
-    
+
     <!-- Modal -->
     <div class="modal fade show d-block" tabindex="-1" style="z-index: 9999;">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -36,19 +36,19 @@
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <td class="text-muted" style="width: 40%">Họ tên:</td>
-                                        <td class="fw-semibold">{{ hoaDon.khachHang?.hoTen || 'Khách lẻ' }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.khachHang?.hoTen || hoaDon.tenKhachHang || 'Khách lẻ' }}</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted">Số điện thoại:</td>
-                                        <td class="fw-semibold">{{ hoaDon.khachHang?.soDienThoai || 'N/A' }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.khachHang?.soDienThoai || hoaDon.sdt || 'N/A' }}</td>
                                     </tr>
-                                    <tr v-if="hoaDon.khachHang?.email">
+                                    <tr v-if="hoaDon.khachHang?.email || hoaDon.email">
                                         <td class="text-muted">Email:</td>
-                                        <td class="fw-semibold">{{ hoaDon.khachHang.email }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.khachHang?.email || hoaDon.email || 'N/A' }}</td>
                                     </tr>
-                                    <tr v-if="hoaDon.khachHang?.diaChi">
+                                    <tr v-if="hoaDon.khachHang?.diaChi || hoaDon.diaChi">
                                         <td class="text-muted">Địa chỉ:</td>
-                                        <td class="fw-semibold">{{ hoaDon.khachHang.diaChi }}</td>
+                                        <td class="fw-semibold">{{ hoaDon.khachHang?.diaChi || hoaDon.diaChi || 'N/A' }}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -118,12 +118,22 @@
                                             <tr>
                                                 <td class="text-muted">Trạng thái:</td>
                                                 <td>
-                                                    <div class="d-flex align-items-center gap-2">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                                         <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
                                                             {{ getTrangThaiLabel(hoaDon.trangThai) }}
                                                         </span>
-                                                        <button 
-                                                            v-if="canChangeStatus"
+                                                        <!-- Badge cho đơn online đã thanh toán nhưng chờ xác nhận -->
+                                                        <span
+                                                            v-if="isOnlineOrder &&
+                                                                  (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                                                                  hoaDon.trangThaiThanhToan === 1"
+                                                            class="badge bg-info text-white"
+                                                            title="Đơn hàng đã thanh toán, đang chờ admin xác nhận"
+                                                        >
+                                                            <i class="bi bi-clock-history me-1"></i>CHỜ XÁC NHẬN
+                                                        </span>
+                                                        <button
+                                                            v-if="canChangeStatus && !isOnlineOrder"
                                                             class="btn btn-sm btn-outline-primary"
                                                             @click="openStatusModal"
                                                             title="Chuyển trạng thái"
@@ -201,7 +211,7 @@
                                                 </div>
                                             </div>
                                             <span v-else class="text-muted small">-</span>
-                                            
+
                                             <!-- Serial numbers (nếu có) -->
                                             <div v-if="getSerialsForItem(item)" class="mt-1">
                                                 <small class="text-info">
@@ -324,9 +334,9 @@
                                 <button type="button" class="btn btn-secondary" @click="showStatusModal = false">
                                     Hủy
                                 </button>
-                                <button 
-                                    type="button" 
-                                    class="btn btn-primary" 
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
                                     @click="handleChangeStatus"
                                     :disabled="changingStatus || newStatus === hoaDon.trangThai"
                                 >
@@ -340,6 +350,70 @@
 
                 <!-- Footer -->
                 <div class="modal-footer">
+                    <!-- Action buttons for online orders -->
+                    <div v-if="isOnlineOrder && canConfirmOrder" class="me-auto">
+                        <button
+                            type="button"
+                            class="btn btn-success me-2"
+                            @click="handleConfirmOrder"
+                            :disabled="confirmingOrder"
+                        >
+                            <span v-if="confirmingOrder" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-check-circle me-1"></i>
+                            {{ confirmingOrder ? 'Đang xác nhận...' : 'Xác nhận đơn hàng' }}
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-danger me-2"
+                            @click="handleCancelOrder"
+                            :disabled="cancelingOrder"
+                        >
+                            <span v-if="cancelingOrder" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-x-circle me-1"></i>
+                            {{ cancelingOrder ? 'Đang hủy...' : 'Hủy đơn hàng' }}
+                        </button>
+                    </div>
+
+                    <!-- Action buttons for offline orders (xác nhận thủ công) -->
+                    <div v-if="!isOnlineOrder && canConfirmOrder" class="me-auto">
+                        <button
+                            type="button"
+                            class="btn btn-success me-2"
+                            @click="handleConfirmOrderManual"
+                            :disabled="confirmingOrder"
+                            title="Xác nhận đơn hàng tại quầy (chuyển sang trạng thái Đã thanh toán)"
+                        >
+                            <span v-if="confirmingOrder" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-check-circle me-1"></i>
+                            {{ confirmingOrder ? 'Đang xác nhận...' : 'Xác nhận thanh toán' }}
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-danger me-2"
+                            @click="handleCancelOrder"
+                            :disabled="cancelingOrder"
+                        >
+                            <span v-if="cancelingOrder" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-x-circle me-1"></i>
+                            {{ cancelingOrder ? 'Đang hủy...' : 'Hủy đơn hàng' }}
+                        </button>
+                    </div>
+
+                    <!-- Nút chuyển trạng thái tiếp theo (cho cả online và offline) -->
+                    <div v-if="canMoveToNextStatus && hoaDon" class="me-auto">
+                        <button
+                            type="button"
+                            class="btn btn-primary me-2"
+                            @click="handleMoveToNextStatus"
+                            :disabled="changingStatus"
+                            :title="`Chuyển từ ${getTrangThaiLabel(hoaDon.trangThai)} sang ${getTrangThaiLabel(nextStatus)}`"
+                        >
+                            <span v-if="changingStatus" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-arrow-right-circle me-1"></i>
+                            {{ changingStatus ? 'Đang chuyển...' : `Chuyển sang ${getTrangThaiLabel(nextStatus)}` }}
+                        </button>
+                    </div>
+
                     <button type="button" class="btn btn-secondary" @click="close">
                         <i class="bi bi-x-circle"></i> Đóng
                     </button>
@@ -357,7 +431,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { getHoaDonDetail, capNhatTrangThai } from '@/service/hoaDonService'
+import { getHoaDonDetail, capNhatTrangThai, xacNhanDonHang, huyDonHang } from '@/service/hoaDonService'
 import { inHoaDon } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -421,11 +495,93 @@ const handleEmailSent = () => {
 const { success: showSuccess, error: showError } = useToast()
 const { confirm } = useConfirm()
 
+// States for order actions
+const confirmingOrder = ref(false)
+const cancelingOrder = ref(false)
+
+// Computed properties
+const isOnlineOrder = computed(() => {
+    return hoaDon.value?.loaiHoaDon === 1
+})
+
+const canConfirmOrder = computed(() => {
+    if (!hoaDon.value) return false
+
+    const trangThai = hoaDon.value.trangThai
+    const loaiHoaDon = hoaDon.value.loaiHoaDon
+
+    // Đơn online: chỉ xác nhận khi CHO_THANH_TOAN (0) và chưa hủy
+    if (loaiHoaDon === 1) {
+        return (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) &&
+               trangThai !== 'DA_HUY' &&
+               trangThai !== 2
+    }
+
+    // Đơn tại quầy: có thể xác nhận thủ công khi CHO_THANH_TOAN (0) và chưa hủy
+    if (loaiHoaDon === 0) {
+        return (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) &&
+               trangThai !== 'DA_HUY' &&
+               trangThai !== 2
+    }
+
+    return false
+})
+
+const canCancelOrder = computed(() => {
+    if (!hoaDon.value) return false
+
+    const trangThai = hoaDon.value.trangThai
+
+    // Chỉ có thể hủy khi CHO_THANH_TOAN (0) và chưa hủy
+    return (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) &&
+           trangThai !== 'DA_HUY' &&
+           trangThai !== 2
+})
+
 // Kiểm tra xem có thể chuyển trạng thái không
 const canChangeStatus = computed(() => {
     if (!hoaDon.value) return false
-    // Chỉ cho phép chuyển trạng thái nếu chưa hủy và chưa hoàn thành (hoặc có thể chuyển từ hoàn thành)
-    return hoaDon.value.trangThai !== 4 // Không cho chuyển nếu đã hủy
+    // Chỉ cho phép chuyển trạng thái nếu chưa hủy và chưa hoàn thành
+    return hoaDon.value.trangThai !== 4 && hoaDon.value.trangThai !== 2 // Không cho chuyển nếu đã hủy hoặc hoàn thành
+})
+
+// Xác định trạng thái tiếp theo có thể chuyển
+const nextStatus = computed(() => {
+    if (!hoaDon.value) return null
+
+    const trangThai = hoaDon.value.trangThai
+    const loaiHoaDon = hoaDon.value.loaiHoaDon
+
+    // Chuyển số sang number nếu là string
+    let currentStatus = typeof trangThai === 'number' ? trangThai :
+                       (trangThai === 'CHO_THANH_TOAN' ? 0 :
+                        trangThai === 'DA_THANH_TOAN' ? 1 :
+                        trangThai === 'DA_HUY' ? 2 :
+                        trangThai === 'DANG_GIAO' ? 3 :
+                        trangThai === 'HOAN_THANH' ? 4 : null)
+
+    if (currentStatus === null) return null
+
+    // Logic chuyển trạng thái:
+    // - DANG_GIAO (3) → HOAN_THANH (4)
+    // - DA_THANH_TOAN (1) → HOAN_THANH (4) (nếu là đơn tại quầy)
+    if (currentStatus === 3) { // DANG_GIAO
+        return 4 // HOAN_THANH
+    }
+
+    if (currentStatus === 1 && loaiHoaDon === 0) { // DA_THANH_TOAN và đơn tại quầy
+        return 4 // HOAN_THANH
+    }
+
+    return null
+})
+
+// Kiểm tra có thể chuyển trạng thái tiếp theo không
+const canMoveToNextStatus = computed(() => {
+    return nextStatus.value !== null &&
+           hoaDon.value?.trangThai !== nextStatus.value &&
+           hoaDon.value?.trangThai !== 2 && // Không phải DA_HUY
+           hoaDon.value?.trangThai !== 4    // Không phải HOAN_THANH
 })
 
 // Load data
@@ -436,7 +592,7 @@ onMounted(async () => {
 const loadHoaDonDetail = async () => {
     loading.value = true
     error.value = null
-    
+
     try {
         const response = await getHoaDonDetail(props.idHoaDon)
         hoaDon.value = response.data
@@ -453,18 +609,142 @@ const close = () => {
     emit('close')
 }
 
+// Xác nhận đơn hàng online (trừ kho và chuyển sang DANG_GIAO)
+const handleConfirmOrder = async () => {
+    if (!hoaDon.value?.id) {
+        showError('Không có thông tin hóa đơn!')
+        return
+    }
+
+    const confirmed = await confirm({
+        title: 'Xác nhận đơn hàng online',
+        message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.value.ma}?\n\n` +
+                 `📦 Sản phẩm: ${hoaDon.value.chiTietList?.length || 0} sản phẩm\n` +
+                 `💰 Tổng tiền: ${formatCurrency(hoaDon.value.tongTienSauGiam)}\n\n` +
+                 `⚠️ Lưu ý: Hệ thống sẽ trừ kho và chuyển sang trạng thái "Đang giao hàng" khi xác nhận.`,
+        confirmText: 'Xác nhận',
+        cancelText: 'Hủy',
+        type: 'warning'
+    })
+
+    if (!confirmed) {
+        return
+    }
+
+    confirmingOrder.value = true
+    try {
+        const response = await xacNhanDonHang(hoaDon.value.id)
+        showSuccess('✅ Xác nhận đơn hàng thành công!\nHệ thống đã trừ kho, cập nhật serial và chuyển sang trạng thái "Đang giao hàng".')
+
+        // Đợi một chút để đảm bảo backend đã commit transaction
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Reload chi tiết hóa đơn để lấy serial và trạng thái mới
+        await loadHoaDonDetail()
+
+        // Emit event để parent component refresh danh sách
+        emit('order-confirmed', hoaDon.value.id)
+    } catch (err) {
+        console.error('❌ Lỗi khi xác nhận đơn hàng:', err)
+        showError(err.response?.data?.message || 'Không thể xác nhận đơn hàng. Vui lòng thử lại!')
+    } finally {
+        confirmingOrder.value = false
+    }
+}
+
+// Xác nhận đơn hàng tại quầy thủ công (chuyển sang DA_THANH_TOAN)
+const handleConfirmOrderManual = async () => {
+    if (!hoaDon.value?.id) {
+        showError('Không có thông tin hóa đơn!')
+        return
+    }
+
+    const confirmed = await confirm({
+        title: 'Xác nhận thanh toán đơn tại quầy',
+        message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.value.ma}?\n\n` +
+                 `📦 Sản phẩm: ${hoaDon.value.chiTietList?.length || 0} sản phẩm\n` +
+                 `💰 Tổng tiền: ${formatCurrency(hoaDon.value.tongTienSauGiam)}\n\n` +
+                 `ℹ️ Lưu ý: Đơn hàng sẽ chuyển sang trạng thái "Đã thanh toán".`,
+        confirmText: 'Xác nhận',
+        cancelText: 'Hủy',
+        type: 'info'
+    })
+
+    if (!confirmed) {
+        return
+    }
+
+    confirmingOrder.value = true
+    try {
+        // Chuyển trạng thái sang DA_THANH_TOAN (1) cho đơn tại quầy
+        await capNhatTrangThai(hoaDon.value.id, 1) // 1 = DA_THANH_TOAN
+        showSuccess('✅ Xác nhận thanh toán thành công!\nĐơn hàng đã chuyển sang trạng thái "Đã thanh toán".')
+
+        // Đợi một chút để đảm bảo backend đã commit transaction
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        // Reload chi tiết hóa đơn để lấy trạng thái mới
+        await loadHoaDonDetail()
+
+        // Emit event để parent component refresh danh sách
+        emit('order-confirmed', hoaDon.value.id)
+    } catch (err) {
+        console.error('❌ Lỗi khi xác nhận đơn hàng:', err)
+        showError(err.response?.data?.message || 'Không thể xác nhận đơn hàng. Vui lòng thử lại!')
+    } finally {
+        confirmingOrder.value = false
+    }
+}
+
+// Hủy đơn hàng online
+const handleCancelOrder = async () => {
+    if (!hoaDon.value?.id) {
+        showError('Không có thông tin hóa đơn!')
+        return
+    }
+
+    const confirmed = await confirm({
+        title: 'Hủy đơn hàng',
+        message: `Bạn có chắc chắn muốn hủy đơn hàng ${hoaDon.value.ma}?\n\nHành động này không thể hoàn tác.`,
+        confirmText: 'Hủy đơn',
+        cancelText: 'Không',
+        type: 'danger'
+    })
+
+    if (!confirmed) {
+        return
+    }
+
+    cancelingOrder.value = true
+    try {
+        await huyDonHang(hoaDon.value.id)
+        showSuccess('Hủy đơn hàng thành công!')
+
+        // Reload chi tiết hóa đơn
+        await loadHoaDonDetail()
+
+        // Emit event để parent component refresh danh sách
+        emit('order-cancelled', hoaDon.value.id)
+    } catch (err) {
+        console.error('❌ Lỗi khi hủy đơn hàng:', err)
+        showError(err.response?.data?.message || 'Không thể hủy đơn hàng. Vui lòng thử lại!')
+    } finally {
+        cancelingOrder.value = false
+    }
+}
+
 const printInvoice = async () => {
     if (!hoaDon.value?.id) {
         showError('Không có thông tin hóa đơn để in!')
         return
     }
-    
+
     try {
         const blob = await inHoaDon(hoaDon.value.id)
-        
+
         const url = URL.createObjectURL(blob)
         const printWindow = window.open(url, '_blank')
-        
+
         if (printWindow) {
             printWindow.onload = () => {
                 printWindow.print()
@@ -509,87 +789,155 @@ const formatDate = (dateStr) => {
 }
 
 const getTrangThaiLabel = (trangThai) => {
-    // Hỗ trợ cả string và number
+    // Mapping theo enum TrangThaiHoaDon:
+    // 0: CHO_THANH_TOAN, 1: DA_THANH_TOAN, 2: DA_HUY, 3: DANG_GIAO, 4: HOAN_THANH
+
+    // Xử lý number (từ backend)
     if (typeof trangThai === 'number') {
         const labels = {
-            0: 'Chờ xác nhận',
-            1: 'Đã xác nhận',
-            2: 'Đang giao',
-            3: 'Hoàn thành',
-            4: 'Đã hủy'
+            0: 'Chờ thanh toán',      // CHO_THANH_TOAN
+            1: 'Đã thanh toán',       // DA_THANH_TOAN
+            2: 'Đã hủy',              // DA_HUY
+            3: 'Đang giao hàng',      // DANG_GIAO
+            4: 'Hoàn thành'           // HOAN_THANH
         }
         return labels[trangThai] || `Trạng thái ${trangThai}`
     }
-    
-    const labels = {
-        'CHO_THANH_TOAN': 'Chờ thanh toán',
-        'CHO_XAC_NHAN': 'Chờ xác nhận',
-        'DA_XAC_NHAN': 'Đã xác nhận',
-        'DANG_GIAO': 'Đang giao hàng',
-        'HOAN_THANH': 'Hoàn thành',
-        'DA_HUY': 'Đã hủy'
+
+    // Xử lý string (tương thích với format cũ)
+    if (typeof trangThai === 'string') {
+        const labels = {
+            'CHO_THANH_TOAN': 'Chờ thanh toán',
+            'DA_THANH_TOAN': 'Đã thanh toán',
+            'DANG_GIAO': 'Đang giao hàng',
+            'HOAN_THANH': 'Hoàn thành',
+            'DA_HUY': 'Đã hủy',
+            // Tương thích với format cũ (nếu có)
+            'CHO_XAC_NHAN': 'Chờ xác nhận',
+            'DA_XAC_NHAN': 'Đã xác nhận'
+        }
+        return labels[trangThai] || trangThai
     }
-    return labels[trangThai] || trangThai
+
+    return 'Không xác định'
 }
 
 const getStatusBadgeClass = (trangThai) => {
-    // Hỗ trợ cả string và number
+    // Mapping theo enum TrangThaiHoaDon:
+    // 0: CHO_THANH_TOAN, 1: DA_THANH_TOAN, 2: DA_HUY, 3: DANG_GIAO, 4: HOAN_THANH
+
+    // Xử lý number (từ backend)
     if (typeof trangThai === 'number') {
         const classes = {
-            0: 'bg-warning',
-            1: 'bg-info',
-            2: 'bg-primary',
-            3: 'bg-success',
-            4: 'bg-danger'
+            0: 'bg-warning text-dark', // CHO_THANH_TOAN - Chờ thanh toán (vàng)
+            1: 'bg-info text-white',   // DA_THANH_TOAN - Đã thanh toán (xanh dương)
+            2: 'bg-danger text-white', // DA_HUY - Đã hủy (đỏ)
+            3: 'bg-primary text-white', // DANG_GIAO - Đang giao hàng (xanh)
+            4: 'bg-success text-white'  // HOAN_THANH - Hoàn thành (xanh lá)
         }
         return classes[trangThai] || 'bg-secondary'
     }
-    
-    const classes = {
-        'CHO_THANH_TOAN': 'bg-secondary',
-        'CHO_XAC_NHAN': 'bg-warning',
-        'DA_XAC_NHAN': 'bg-info',
-        'DANG_GIAO': 'bg-primary',
-        'HOAN_THANH': 'bg-success',
-        'DA_HUY': 'bg-danger'
+
+    // Xử lý string (tương thích với format cũ)
+    if (typeof trangThai === 'string') {
+        const classes = {
+            'CHO_THANH_TOAN': 'bg-warning text-dark',
+            'DA_THANH_TOAN': 'bg-info text-white',
+            'DANG_GIAO': 'bg-primary text-white',
+            'HOAN_THANH': 'bg-success text-white',
+            'DA_HUY': 'bg-danger text-white',
+            // Tương thích với format cũ
+            'CHO_XAC_NHAN': 'bg-warning text-dark',
+            'DA_XAC_NHAN': 'bg-info text-white'
+        }
+        return classes[trangThai] || 'bg-secondary'
     }
-    return classes[trangThai] || 'bg-secondary'
+
+    return 'bg-secondary'
 }
 
-// Xử lý chuyển trạng thái
+// Chuyển sang trạng thái tiếp theo
+const handleMoveToNextStatus = async () => {
+    if (!hoaDon.value || !nextStatus.value) {
+        showError('Không thể xác định trạng thái tiếp theo!')
+        return
+    }
+
+    const currentStatusLabel = getTrangThaiLabel(hoaDon.value.trangThai)
+    const nextStatusLabel = getTrangThaiLabel(nextStatus.value)
+
+    const confirmed = await confirm({
+        title: 'Chuyển trạng thái đơn hàng',
+        message: `Bạn có chắc chắn muốn chuyển đơn hàng ${hoaDon.value.ma}?\n\n` +
+                 `📋 Từ: ${currentStatusLabel}\n` +
+                 `➡️  Sang: ${nextStatusLabel}\n\n` +
+                 `Hành động này sẽ cập nhật trạng thái đơn hàng.`,
+        confirmText: 'Xác nhận',
+        cancelText: 'Hủy',
+        type: 'info'
+    })
+
+    if (!confirmed) return
+
+    changingStatus.value = true
+
+    try {
+        await capNhatTrangThai(hoaDon.value.id, nextStatus.value)
+        showSuccess(`✅ Chuyển trạng thái thành công!\nĐơn hàng đã chuyển từ "${currentStatusLabel}" sang "${nextStatusLabel}".`)
+
+        // Đợi một chút để đảm bảo backend đã commit transaction
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        // Reload chi tiết hóa đơn
+        await loadHoaDonDetail()
+
+        // Emit event để parent component có thể refresh danh sách
+        emit('status-changed', hoaDon.value.id)
+    } catch (err) {
+        console.error('❌ Lỗi khi chuyển trạng thái:', err)
+        showError(err.response?.data?.message || 'Không thể chuyển trạng thái. Vui lòng thử lại!')
+    } finally {
+        changingStatus.value = false
+    }
+}
+
+// Xử lý chuyển trạng thái (cho modal chọn trạng thái)
 const handleChangeStatus = async () => {
     if (!hoaDon.value || newStatus.value === null) {
         showError('Vui lòng chọn trạng thái mới!')
         return
     }
-    
+
     if (newStatus.value === hoaDon.value.trangThai) {
         showError('Trạng thái mới phải khác trạng thái hiện tại!')
         return
     }
-    
-    const confirmed = await confirm(
-        'Xác nhận chuyển trạng thái',
-        `Bạn có chắc chắn muốn chuyển hóa đơn từ "${getTrangThaiLabel(hoaDon.value.trangThai)}" sang "${getTrangThaiLabel(newStatus.value)}"?`
-    )
-    
+
+    const confirmed = await confirm({
+        title: 'Xác nhận chuyển trạng thái',
+        message: `Bạn có chắc chắn muốn chuyển hóa đơn từ "${getTrangThaiLabel(hoaDon.value.trangThai)}" sang "${getTrangThaiLabel(newStatus.value)}"?`,
+        confirmText: 'Xác nhận',
+        cancelText: 'Hủy',
+        type: 'info'
+    })
+
     if (!confirmed) return
-    
+
     changingStatus.value = true
-    
+
     try {
         await capNhatTrangThai(hoaDon.value.id, newStatus.value)
         showSuccess('Chuyển trạng thái thành công!')
-        
+
         // Reload chi tiết hóa đơn
         await loadHoaDonDetail()
-        
+
         // Đóng modal
         showStatusModal.value = false
         newStatus.value = null
-        
+
         // Emit event để parent component có thể refresh danh sách
-        emit('status-changed')
+        emit('status-changed', hoaDon.value.id)
     } catch (err) {
         console.error('❌ Lỗi khi chuyển trạng thái:', err)
         showError(err.response?.data?.message || 'Không thể chuyển trạng thái. Vui lòng thử lại!')
@@ -610,11 +958,11 @@ const openStatusModal = () => {
  * Lấy mã CTSP từ item
  */
 const getCTSPCode = (item) => {
-    return item.maCtsp || 
-           item.maCTSP || 
-           item.maChiTietSanPham || 
-           item.chiTietSanPham?.maCTSP || 
-           item.chiTietSanPham?.maCtsp || 
+    return item.maCtsp ||
+           item.maCTSP ||
+           item.maChiTietSanPham ||
+           item.chiTietSanPham?.maCTSP ||
+           item.chiTietSanPham?.maCtsp ||
            'N/A'
 }
 
@@ -623,26 +971,26 @@ const getCTSPCode = (item) => {
  */
 const getCTSPSpecs = (item) => {
     if (!item) return null
-    
+
     const ctsp = item.chiTietSanPham || item.ctsp || item
     const specs = {}
-    
+
     if (ctsp.tenCpu || item.tenCpu) {
         specs.cpu = ctsp.tenCpu || item.tenCpu
     }
-    
+
     if (ctsp.tenRam || item.tenRam) {
         specs.ram = ctsp.tenRam || item.tenRam
     }
-    
+
     if (ctsp.dungLuongOCung || item.dungLuongOCung) {
         specs.storage = ctsp.dungLuongOCung || item.dungLuongOCung
     }
-    
+
     if (ctsp.tenMauSac || item.tenMauSac) {
         specs.color = ctsp.tenMauSac || item.tenMauSac
     }
-    
+
     return Object.keys(specs).length > 0 ? specs : null
 }
 
@@ -652,19 +1000,38 @@ const getCTSPSpecs = (item) => {
  * @returns {Array|null} - Danh sách serial numbers hoặc null
  */
 const getSerialsForItem = (item) => {
-    // Kiểm tra từ backend response
+    if (!item) return null
+
+    // Kiểm tra từ backend response - serialNumbers (từ HoaDonDetailResponse)
     if (item.serialNumbers && Array.isArray(item.serialNumbers) && item.serialNumbers.length > 0) {
-        return item.serialNumbers.map(s => {
+        const serials = item.serialNumbers.map(s => {
             // Hỗ trợ nhiều format: { serialNumber, serialNo, serial_no } hoặc string
             return typeof s === 'string' ? s : (s.serialNumber || s.serialNo || s.serial_no || s)
-        })
+        }).filter(s => s) // Filter out null/undefined
+
+        if (serials.length > 0) {
+            console.log('✅ [getSerialsForItem] Found serials from serialNumbers:', serials)
+            return serials
+        }
     }
-    
+
     // Kiểm tra từ chiTietSanPham
     if (item.chiTietSanPham?.serials && Array.isArray(item.chiTietSanPham.serials)) {
-        return item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s)
+        const serials = item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s).filter(s => s)
+        if (serials.length > 0) {
+            console.log('✅ [getSerialsForItem] Found serials from chiTietSanPham:', serials)
+            return serials
+        }
     }
-    
+
+    // Debug: Log để kiểm tra
+    console.log('⚠️ [getSerialsForItem] No serials found for item:', {
+        id: item.id,
+        tenSp: item.tenSanPham,
+        serialNumbers: item.serialNumbers,
+        chiTietSanPham: item.chiTietSanPham
+    })
+
     return null
 }
 </script>

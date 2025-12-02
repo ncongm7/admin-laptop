@@ -282,6 +282,17 @@ const selectConversation = async (conversation) => {
   selectedConversationId.value = conversation.conversationId
   replyingTo.value = null
 
+  // Đảm bảo WebSocket đã kết nối trước khi subscribe
+  if (!stompClient || !stompClient.connected) {
+    connectWebSocket()
+    // Đợi kết nối (tối đa 5 giây)
+    let waitCount = 0
+    while ((!stompClient || !stompClient.connected) && waitCount < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      waitCount++
+    }
+  }
+
   // Load messages
   await loadMessages(conversation.conversationId)
 
@@ -292,7 +303,9 @@ const selectConversation = async (conversation) => {
   }
 
   // Subscribe to WebSocket
-  subscribeToConversation(conversation.conversationId)
+  if (stompClient && stompClient.connected) {
+    subscribeToConversation(conversation.conversationId)
+  }
 }
 
 const loadMessages = async (conversationId) => {
@@ -334,35 +347,57 @@ const sendMessage = async () => {
       replyToId: replyingTo.value?.id || null
     }
 
+    // Validate nhanVienId
+    if (!messageData.nhanVienId) {
+      showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.')
+      isSending.value = false
+      return
+    }
+
     // CHỈ gửi qua WebSocket nếu đã kết nối, KHÔNG gửi cả 2
     if (stompClient && stompClient.connected) {
+      // Thêm optimistic message để hiển thị ngay (sẽ bị thay thế bởi message thật từ WebSocket)
+      const tempId = 'temp-' + Date.now()
+      const optimisticMessage = {
+        id: tempId,
+        noiDung: messageText,
+        isFromCustomer: false,
+        ngayPhanHoi: new Date().toISOString(),
+        conversationId: selectedConversation.value.conversationId,
+        messageType: 'text',
+        replyToId: replyingTo.value?.id || null,
+        replyTo: replyingTo.value || null
+      }
+      messages.value.push(optimisticMessage)
+      await nextTick()
+      scrollToBottom()
+
       // Gửi qua WebSocket (sẽ được xử lý bởi ChatWebSocketController)
       // Message sẽ được thêm từ WebSocket subscription, không cần thêm ở đây
       stompClient.publish({
         destination: '/app/chat.send',
         body: JSON.stringify(messageData)
       })
-      
+
       // Clear input ngay
       newMessage.value = ''
       replyingTo.value = null
-      
-      // Message sẽ được thêm từ WebSocket subscription
-      // Không cần scrollToBottom ở đây vì sẽ được gọi trong subscription
+
+      // Message thật sẽ được thêm từ WebSocket subscription và thay thế optimistic message
     } else {
       // Fallback: Gửi qua REST API nếu WebSocket chưa kết nối
       const response = await chatService.sendMessage(messageData)
-      
+
       // Kiểm tra duplicate trước khi thêm
       if (response.data) {
-        const existingIndex = messages.value.findIndex(m => 
-          m.id === response.data.id || 
-          (m.noiDung === response.data.noiDung && 
+        const existingIndex = messages.value.findIndex(m =>
+          m.id === response.data.id ||
+          (m.noiDung === response.data.noiDung &&
            m.isFromCustomer === response.data.isFromCustomer &&
            m.ngayPhanHoi && response.data.ngayPhanHoi &&
            Math.abs(new Date(m.ngayPhanHoi) - new Date(response.data.ngayPhanHoi)) < 1000)
         )
-        
+
         if (existingIndex === -1) {
           messages.value.push(response.data)
           await nextTick()
@@ -372,7 +407,7 @@ const sendMessage = async () => {
         // Reload messages nếu không có data
         await loadMessages(selectedConversation.value.conversationId)
       }
-      
+
       newMessage.value = ''
       replyingTo.value = null
     }
@@ -530,31 +565,46 @@ const subscribeToConversation = (conversationId) => {
   const subscription = stompClient.subscribe(`/topic/conversation/${conversationId}`, (message) => {
     try {
       const newMsg = JSON.parse(message.body)
-      
+
+      // Xóa optimistic message (temp message) nếu có - ưu tiên xóa temp message trước
+      const tempIndex = messages.value.findIndex(m =>
+        (m.id && m.id.toString().startsWith('temp-')) ||
+        (m.noiDung === newMsg.noiDung &&
+         m.isFromCustomer === newMsg.isFromCustomer &&
+         !m.id &&
+         m.ngayPhanHoi && newMsg.ngayPhanHoi &&
+         Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi)) < 3000)
+      )
+      if (tempIndex > -1) {
+        console.log('🗑️ Xóa optimistic message:', tempIndex, messages.value[tempIndex])
+        messages.value.splice(tempIndex, 1)
+      }
+
       // KIỂM TRA DUPLICATE CHẶT CHẼ: cả ID và nội dung + thời gian
       const existingIndex = messages.value.findIndex(m => {
-        // Kiểm tra theo ID (chính xác nhất)
-        if (m.id && newMsg.id && m.id === newMsg.id) {
+        // Kiểm tra theo ID (chính xác nhất) - bỏ qua temp messages
+        if (m.id && newMsg.id && !m.id.toString().startsWith('temp-') && m.id === newMsg.id) {
           return true
         }
-        // Kiểm tra theo nội dung + người gửi + thời gian (trong vòng 2 giây)
-        if (m.noiDung === newMsg.noiDung && 
+        // Kiểm tra theo nội dung + người gửi + thời gian (trong vòng 3 giây)
+        if (m.noiDung === newMsg.noiDung &&
             m.isFromCustomer === newMsg.isFromCustomer &&
-            m.ngayPhanHoi && newMsg.ngayPhanHoi) {
+            m.ngayPhanHoi && newMsg.ngayPhanHoi &&
+            !m.id?.toString().startsWith('temp-')) {
           const timeDiff = Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi))
-          if (timeDiff < 2000) { // Cùng thời gian (2 giây)
+          if (timeDiff < 3000) { // Cùng thời gian (3 giây)
             return true
           }
         }
         return false
       })
-      
+
       if (existingIndex === -1) {
         // Chưa có, thêm mới
         messages.value.push(newMsg)
         nextTick(() => scrollToBottom())
-        console.log('✅ Thêm message mới:', newMsg.id)
-        
+        console.log('✅ Thêm message mới từ WebSocket:', newMsg.id, newMsg.noiDung)
+
         // Mark as read if from customer
         if (newMsg.isFromCustomer) {
           markAsRead(conversationId, false)
@@ -573,7 +623,7 @@ const subscribeToConversation = (conversationId) => {
       console.error('❌ Lỗi khi parse message từ WebSocket:', error)
     }
   })
-  
+
   console.log('✅ Subscribed to conversation:', conversationId, 'Subscription ID:', subscription.id)
 
   // Subscribe to typing indicator
@@ -659,8 +709,24 @@ const shouldShowDateSeparator = (message, index) => {
 }
 
 const getCurrentStaffId = () => {
-  // Lấy từ authStore
-  return authStore.getUserId || authStore.user?.userId || authStore.user?.user_id || localStorage.getItem('currentNhanVienId') || null
+  // Lấy từ authStore (computed property)
+  const staffId = authStore.getUserId ||
+                  authStore.user?.userId ||
+                  authStore.user?.user_id ||
+                  authStore.user?.id ||
+                  localStorage.getItem('currentNhanVienId') ||
+                  null
+
+  if (!staffId) {
+    console.error('❌ [ChatManagement] Không tìm thấy ID nhân viên:', {
+      getUserId: authStore.getUserId,
+      user: authStore.user,
+      localStorage: localStorage.getItem('currentNhanVienId')
+    })
+    showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.')
+  }
+
+  return staffId
 }
 
 const openImageModal = (imageUrl) => {

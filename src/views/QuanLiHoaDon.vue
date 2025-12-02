@@ -192,13 +192,24 @@
             <td class="staffcode-col">{{ hoaDon.maNhanVien || 'N/A' }}</td>
             <td class="createdat-col">{{ formatDate(hoaDon.ngayTao) }}</td>
             <td>
-              <span :class="['badge', getStatusBadgeClass(hoaDon.trangThai)]">
-                {{ getTrangThaiLabel(hoaDon.trangThai) }}
+              <span :class="['badge', getStatusBadgeClass(hoaDon)]">
+                {{ getTrangThaiLabel(hoaDon) }}
               </span>
-              <!-- Badge đặc biệt cho đơn online chờ xác nhận -->
-              <span v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'"
-                class="badge bg-warning text-dark ms-1">
-                CHỜ XÁC NHẬN
+              <!-- Badge đặc biệt cho đơn online đã thanh toán nhưng chờ xác nhận -->
+              <span v-if="hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThaiThanhToan === 1" class="badge bg-info text-white ms-1"
+                title="Đơn hàng đã thanh toán, đang chờ admin xác nhận">
+                <i class="bi bi-clock-history me-1"></i>CHỜ XÁC NHẬN
+              </span>
+              <!-- Badge thanh toán QR -->
+              <span v-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 1"
+                class="badge bg-success text-white ms-1" title="Đã thanh toán bằng QR Code">
+                <i class="bi bi-qr-code me-1"></i>QR
+              </span>
+              <span v-else-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 0"
+                class="badge bg-warning text-dark ms-1" title="Chờ khách thanh toán QR">
+                <i class="bi bi-clock me-1"></i>Chờ QR
               </span>
             </td>
             <td class="fw-semibold">{{ formatCurrency(hoaDon.tongTienSauGiam) }}</td>
@@ -207,14 +218,19 @@
                 title="Xem chi tiết">
                 <i class="bi bi-eye"></i>
               </button>
-              <!-- Nút xác nhận đơn hàng online (chỉ hiện khi là đơn online và chờ thanh toán) -->
-              <button v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'"
+              <!-- Nút xác nhận đơn hàng online
+                   Hiện khi: đơn online và (chờ thanh toán HOẶC đã thanh toán nhưng chờ xác nhận) -->
+              <button v-if="hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                (hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === 1)"
                 class="btn btn-outline-primary btn-sm rounded-circle me-1" @click="xacNhanDonHang(hoaDon)"
-                title="Xác nhận đơn hàng">
+                title="Xác nhận đơn hàng và chuyển sang trạng thái đang giao hàng">
                 <i class="bi bi-check-circle"></i>
               </button>
-              <!-- Nút hủy đơn hàng online (chỉ hiện khi là đơn online và chờ thanh toán) -->
-              <button v-if="hoaDon.loaiHoaDon === 1 && hoaDon.trangThai === 'CHO_THANH_TOAN'"
+              <!-- Nút hủy đơn hàng online (chỉ hiện khi chưa xác nhận) -->
+              <button v-if="hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThai !== 'DA_HUY' && hoaDon.trangThai !== 2"
                 class="btn btn-outline-danger btn-sm rounded-circle me-1" @click="huyDonHang(hoaDon)"
                 title="Hủy đơn hàng">
                 <i class="bi bi-x-circle"></i>
@@ -258,7 +274,8 @@
     </div>
 
     <!-- Modal chi tiết -->
-    <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal" />
+    <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal"
+      @order-confirmed="handleOrderConfirmed" @order-cancelled="handleOrderCancelled" />
 
     <!-- QR Scanner Modal -->
     <QRScannerModal v-if="showQRScanner" @close="closeQRScanner" @invoice-found="handleInvoiceFound" />
@@ -302,6 +319,7 @@ const totalElements = ref(0)
 // Status counts
 const statusCountsData = ref(null)
 const isLoadingCounts = ref(false)
+const isLoadStatusCountsInProgress = ref(false) // Prevent infinite loop
 
 // Bulk actions
 const selectedIds = ref([])
@@ -362,6 +380,16 @@ watch(currentPage, () => {
   }
 })
 
+// Reload khi thay đổi status tab (chỉ khi không đang fetch)
+watch(activeStatusTab, () => {
+  if (!isFetching.value) {
+    currentPage.value = 0 // Reset về trang đầu
+    fetchHoaDons()
+    // KHÔNG gọi loadStatusCounts() ở đây để tránh vòng lặp
+    // Status counts sẽ được cập nhật khi cần thiết (sau khi xác nhận/hủy đơn)
+  }
+}, { immediate: false }) // Không chạy ngay khi mount
+
 /**
  * Gọi API lấy danh sách hóa đơn
  */
@@ -413,11 +441,19 @@ const fetchHoaDons = async () => {
 /**
  * Map status tab sang số (theo DB)
  * TrangThaiHoaDon enum: 0=CHO_THANH_TOAN, 1=DA_THANH_TOAN, 2=DA_HUY, 3=DANG_GIAO, 4=HOAN_THANH
+ *
+ * Lưu ý: Đối với đơn online, trạng thái CHO_THANH_TOAN (0) có thể có 2 trường hợp:
+ * - Chờ thanh toán (chưa thanh toán)
+ * - Đã thanh toán nhưng chờ xác nhận từ admin
+ *
+ * Backend nên có thêm field trangThaiThanhToan để phân biệt:
+ * - trangThai = 0 && trangThaiThanhToan = 0: Chờ thanh toán
+ * - trangThai = 0 && trangThaiThanhToan = 1: Đã thanh toán, chờ xác nhận
  */
 const mapStatusToNumber = (status) => {
   const map = {
     '': undefined, // Tất cả
-    'processing': 0, // CHO_THANH_TOAN - Chờ thanh toán (bao gồm chờ xác nhận)
+    'processing': 0, // CHO_THANH_TOAN - Chờ thanh toán/chờ xác nhận
     'confirmed': 1, // DA_THANH_TOAN - Đã thanh toán/Đã xác nhận
     'delivering': 3, // DANG_GIAO - Đang giao hàng
     'shipping': 3, // DANG_GIAO - Đang vận chuyển
@@ -432,13 +468,26 @@ const mapStatusToNumber = (status) => {
  * Load status counts từ API
  */
 const loadStatusCounts = async () => {
+  // Prevent infinite loop - nếu đang load thì không load lại
+  if (isLoadStatusCountsInProgress.value) {
+    console.warn('⚠️ [loadStatusCounts] Đang load, bỏ qua request mới')
+    return
+  }
+
+  console.log('🔵 [loadStatusCounts] Bắt đầu load status counts')
+  console.trace('🔵 [loadStatusCounts] Stack trace:') // Debug: xem ai gọi function này
+
+  isLoadStatusCountsInProgress.value = true
   isLoadingCounts.value = true
+
   try {
     const response = await getHoaDonStatusCounts()
     if (response && response.data) {
+      console.log('✅ [loadStatusCounts] Nhận được data:', response.data)
       statusCountsData.value = response.data
     } else {
       // Fallback về client-side nếu API chưa có
+      console.log('⚠️ [loadStatusCounts] Không có data, set null')
       statusCountsData.value = null
     }
   } catch (error) {
@@ -446,6 +495,8 @@ const loadStatusCounts = async () => {
     statusCountsData.value = null
   } finally {
     isLoadingCounts.value = false
+    isLoadStatusCountsInProgress.value = false
+    console.log('🔵 [loadStatusCounts] Hoàn thành load status counts')
   }
 }
 
@@ -456,6 +507,7 @@ const loadStatusCounts = async () => {
 const statusCounts = computed(() => {
   // Nếu có data từ API, dùng data đó
   if (statusCountsData.value) {
+    // Không log ở đây vì computed được gọi nhiều lần khi render
     return statusCountsData.value
   }
 
@@ -473,7 +525,17 @@ const statusCounts = computed(() => {
 
   hoaDons.value.forEach(hd => {
     const status = hd.trangThai
-    if (status === 'CHO_THANH_TOAN' || status === 0) counts.processing++
+    const loaiHoaDon = hd.loaiHoaDon
+    const trangThaiThanhToan = hd.trangThaiThanhToan
+
+    // Đếm đơn chờ xác nhận (bao gồm cả chờ thanh toán và đã thanh toán chờ xác nhận)
+    if (status === 'CHO_THANH_TOAN' || status === 0) {
+      counts.processing++
+      // Đơn online đã thanh toán nhưng chờ xác nhận cũng được đếm vào processing
+      if (loaiHoaDon === 1 && trangThaiThanhToan === 1) {
+        // Đã được đếm vào processing rồi
+      }
+    }
     else if (status === 'DA_THANH_TOAN' || status === 1) counts.confirmed++
     else if (status === 'DANG_GIAO' || status === 3) {
       counts.delivering++
@@ -532,7 +594,49 @@ const formatDate = (dateStr) => {
   })
 }
 
-const getTrangThaiLabel = (trangThai) => {
+/**
+ * Lấy label trạng thái hóa đơn
+ * Xử lý đặc biệt cho đơn online chờ xác nhận thanh toán
+ */
+const getTrangThaiLabel = (hoaDon) => {
+  // Mapping theo enum TrangThaiHoaDon:
+  // 0: CHO_THANH_TOAN, 1: DA_THANH_TOAN, 2: DA_HUY, 3: DANG_GIAO, 4: HOAN_THANH
+
+  // Nếu hoaDon là string (trạng thái cũ), xử lý tương thích
+  if (typeof hoaDon === 'string') {
+    const labels = {
+      'CHO_THANH_TOAN': 'Chờ thanh toán',
+      'DA_THANH_TOAN': 'Đã thanh toán',
+      'DA_HUY': 'Đã hủy',
+      'DANG_GIAO': 'Đang giao hàng',
+      'HOAN_THANH': 'Hoàn thành'
+    }
+    return labels[hoaDon] || hoaDon
+  }
+
+  // Nếu hoaDon là object (format mới)
+  const trangThai = hoaDon.trangThai
+  const loaiHoaDon = hoaDon.loaiHoaDon
+  const trangThaiThanhToan = hoaDon.trangThaiThanhToan
+
+  // Xử lý đặc biệt cho đơn online đã thanh toán nhưng chờ xác nhận
+  if (loaiHoaDon === 1 && (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) && trangThaiThanhToan === 1) {
+    return 'Chờ xác nhận thanh toán'
+  }
+
+  // Mapping theo enum (ưu tiên number)
+  if (typeof trangThai === 'number') {
+    const labels = {
+      0: 'Chờ thanh toán',      // CHO_THANH_TOAN
+      1: 'Đã thanh toán',       // DA_THANH_TOAN
+      2: 'Đã hủy',              // DA_HUY
+      3: 'Đang giao hàng',       // DANG_GIAO
+      4: 'Hoàn thành'           // HOAN_THANH
+    }
+    return labels[trangThai] || `Trạng thái ${trangThai}`
+  }
+
+  // Mapping theo string (tương thích)
   const labels = {
     'CHO_THANH_TOAN': 'Chờ thanh toán',
     'DA_THANH_TOAN': 'Đã thanh toán',
@@ -540,17 +644,69 @@ const getTrangThaiLabel = (trangThai) => {
     'DANG_GIAO': 'Đang giao hàng',
     'HOAN_THANH': 'Hoàn thành'
   }
-  return labels[trangThai] || trangThai
+
+  return labels[trangThai] || trangThai || 'Không xác định'
 }
 
-const getStatusBadgeClass = (trangThai) => {
-  const classes = {
-    'CHO_THANH_TOAN': 'bg-warning text-dark', // Chờ thanh toán - màu vàng
-    'DA_THANH_TOAN': 'bg-info', // Đã thanh toán - màu xanh dương
-    'DA_HUY': 'bg-danger', // Đã hủy - màu đỏ
-    'DANG_GIAO': 'bg-primary', // Đang giao hàng - màu xanh
-    'HOAN_THANH': 'bg-success' // Hoàn thành - màu xanh lá
+/**
+ * Kiểm tra có phải thanh toán QR không
+ */
+const isQRPayment = (hoaDon) => {
+  const methodName = (hoaDon.phuongThucThanhToan || hoaDon.tenPhuongThucThanhToan || '').toLowerCase()
+  return methodName.includes('qr') || methodName.includes('chuyển khoản qr') || methodName.includes('chuyen khoan qr')
+}
+
+/**
+ * Lấy class badge cho trạng thái
+ * Xử lý đặc biệt cho đơn online chờ xác nhận
+ */
+const getStatusBadgeClass = (hoaDon) => {
+  // Mapping theo enum TrangThaiHoaDon:
+  // 0: CHO_THANH_TOAN, 1: DA_THANH_TOAN, 2: DA_HUY, 3: DANG_GIAO, 4: HOAN_THANH
+
+  // Tương thích với format cũ (string)
+  if (typeof hoaDon === 'string') {
+    const classes = {
+      'CHO_THANH_TOAN': 'bg-warning text-dark',
+      'DA_THANH_TOAN': 'bg-info text-white',
+      'DA_HUY': 'bg-danger text-white',
+      'DANG_GIAO': 'bg-primary text-white',
+      'HOAN_THANH': 'bg-success text-white'
+    }
+    return classes[hoaDon] || 'bg-secondary'
   }
+
+  // Format mới (object)
+  const trangThai = hoaDon.trangThai
+  const loaiHoaDon = hoaDon.loaiHoaDon
+  const trangThaiThanhToan = hoaDon.trangThaiThanhToan
+
+  // Đơn online đã thanh toán nhưng chờ xác nhận - màu xanh dương nhạt
+  if (loaiHoaDon === 1 && (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) && trangThaiThanhToan === 1) {
+    return 'bg-info text-white'
+  }
+
+  // Mapping theo number (ưu tiên)
+  if (typeof trangThai === 'number') {
+    const classes = {
+      0: 'bg-warning text-dark',    // CHO_THANH_TOAN - Chờ thanh toán (vàng)
+      1: 'bg-info text-white',      // DA_THANH_TOAN - Đã thanh toán (xanh dương)
+      2: 'bg-danger text-white',    // DA_HUY - Đã hủy (đỏ)
+      3: 'bg-primary text-white',   // DANG_GIAO - Đang giao hàng (xanh)
+      4: 'bg-success text-white'    // HOAN_THANH - Hoàn thành (xanh lá)
+    }
+    return classes[trangThai] || 'bg-secondary'
+  }
+
+  // Mapping theo string (tương thích)
+  const classes = {
+    'CHO_THANH_TOAN': 'bg-warning text-dark',
+    'DA_THANH_TOAN': 'bg-info text-white',
+    'DA_HUY': 'bg-danger text-white',
+    'DANG_GIAO': 'bg-primary text-white',
+    'HOAN_THANH': 'bg-success text-white'
+  }
+
   return classes[trangThai] || 'bg-secondary'
 }
 
@@ -562,6 +718,28 @@ const openDetail = (hoaDon) => {
 const closeDetailModal = () => {
   showDetailModal.value = false
   selectedHoaDonId.value = null
+}
+
+// Handle order confirmed from modal
+const handleOrderConfirmed = (orderId) => {
+  fetchHoaDons() // Refresh list
+  // Chỉ reload status counts sau khi fetch xong, không gọi ngay để tránh vòng lặp
+  setTimeout(() => {
+    if (!isLoadStatusCountsInProgress.value) {
+      loadStatusCounts()
+    }
+  }, 500)
+}
+
+// Handle order cancelled from modal
+const handleOrderCancelled = (orderId) => {
+  fetchHoaDons() // Refresh list
+  // Chỉ reload status counts sau khi fetch xong, không gọi ngay để tránh vòng lặp
+  setTimeout(() => {
+    if (!isLoadStatusCountsInProgress.value) {
+      loadStatusCounts()
+    }
+  }, 500)
 }
 
 /**
@@ -724,7 +902,7 @@ const exportExcel = async () => {
       'Nhân viên': hd.nhanVien?.hoTen || '',
       'Mã NV': hd.nhanVien?.maNhanVien || '',
       'Ngày tạo': hd.ngayTao ? new Date(hd.ngayTao).toLocaleString('vi-VN') : '',
-      'Trạng thái': getTrangThaiLabel(hd.trangThai),
+      'Trạng thái': getTrangThaiLabel(hd),
       'Tổng tiền': hd.tongTien || 0,
       'Đã thanh toán': hd.trangThaiThanhToan === 1 ? 'Có' : 'Chưa'
     }))
@@ -774,16 +952,25 @@ const resetFilters = () => {
   activeStatusTab.value = ''
   currentPage.value = 0
   fetchHoaDons()
-  loadStatusCounts() // Reload counts khi reset
+  // Chỉ reload status counts sau khi fetch xong, không gọi ngay để tránh vòng lặp
+  setTimeout(() => {
+    if (!isLoadStatusCountsInProgress.value) {
+      loadStatusCounts()
+    }
+  }, 500)
 }
 
 /**
  * Xác nhận đơn hàng online
+ * Tối ưu: Hiển thị thông báo rõ ràng hơn và tự động refresh
  */
 const xacNhanDonHang = async (hoaDon) => {
   const confirmed = await showConfirm({
     title: 'Xác nhận đơn hàng',
-    message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\nLưu ý: Hệ thống sẽ trừ kho khi xác nhận.`,
+    message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\n` +
+      `📦 Sản phẩm: ${hoaDon.chiTietList?.length || 0} sản phẩm\n` +
+      `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n\n` +
+      `⚠️ Lưu ý: Hệ thống sẽ trừ kho khi xác nhận. Hành động này không thể hoàn tác.`,
     confirmText: 'Xác nhận',
     cancelText: 'Hủy',
     type: 'warning'
@@ -795,10 +982,11 @@ const xacNhanDonHang = async (hoaDon) => {
 
   try {
     await xacNhanDonHangAPI(hoaDon.id)
-    showSuccess('Xác nhận đơn hàng thành công!')
+    showSuccess(`✅ Xác nhận đơn hàng ${hoaDon.ma} thành công!\nHệ thống đã trừ kho và cập nhật serial.`)
     fetchHoaDons() // Reload danh sách
     if (showDetailModal.value && selectedHoaDonId.value === hoaDon.id) {
-      closeDetailModal()
+      // Không đóng modal, để user có thể xem kết quả
+      // closeDetailModal()
     }
   } catch (error) {
     await handleErrorWithRetry(
@@ -883,7 +1071,12 @@ const handleBulkConfirm = async () => {
 
     selectedIds.value = []
     fetchHoaDons()
-    loadStatusCounts()
+    // Chỉ reload status counts sau khi fetch xong, không gọi ngay để tránh vòng lặp
+    setTimeout(() => {
+      if (!isLoadStatusCountsInProgress.value) {
+        loadStatusCounts()
+      }
+    }, 500)
   } catch (error) {
     showError('Có lỗi xảy ra khi xác nhận hàng loạt!')
   } finally {
@@ -928,7 +1121,12 @@ const handleBulkCancel = async () => {
 
     selectedIds.value = []
     fetchHoaDons()
-    loadStatusCounts()
+    // Chỉ reload status counts sau khi fetch xong, không gọi ngay để tránh vòng lặp
+    setTimeout(() => {
+      if (!isLoadStatusCountsInProgress.value) {
+        loadStatusCounts()
+      }
+    }, 500)
   } catch (error) {
     showError('Có lỗi xảy ra khi hủy hàng loạt!')
   } finally {
