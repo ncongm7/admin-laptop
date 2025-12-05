@@ -104,12 +104,12 @@ const menuItems = ref([
     label: 'Quản lý bảo hành',
     to: '/quan-li-bao-hanh'
   },
-  { 
-    id: 'returns',
-    icon: 'bi-arrow-counterclockwise',
-    label: 'Quản lý trả hàng',
-    to: '/quan-li-tra-hang'
-  },
+  // { 
+  //   id: 'returns',
+  //   icon: 'bi-arrow-counterclockwise',
+  //   label: 'Quản lý trả hàng',
+  //   to: '/quan-li-tra-hang'
+  // },
   { 
     id: 'chat',
     icon: 'bi-chat-dots',

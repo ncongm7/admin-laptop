@@ -18,7 +18,7 @@
                     <!-- Alert thông báo thay đổi giá/voucher/điểm -->
                     <div v-if="thongBaoThayDoi" class="alert alert-warning alert-dismissible fade show mb-3 shadow-sm" role="alert" style="border-left: 4px solid #ffc107;">
                         <h6 class="alert-heading mb-3 d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> 
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
                             <span>Đã phát hiện thay đổi trong hóa đơn</span>
                         </h6>
                         <div v-html="thongBaoThayDoi" class="mb-3"></div>
@@ -466,6 +466,11 @@ import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
+<<<<<<< HEAD
+=======
+import { useQRPaymentPOS } from '@/composables/useQRPaymentPOS'
+import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
+>>>>>>> 059466d451bf1981df9e89593ee762e3ff7c75e4
 import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung, kiemTraTruocThanhToan } from '@/service/banhang/banHangService'
 import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
 import DiaChiService from '@/service/taikhoan/diaChiService'
@@ -1026,17 +1031,17 @@ const handlePayment = async () => {
         // 1. Kiểm tra toàn bộ (giá, voucher, điểm) trước khi xác nhận thanh toán
         console.log('🔍 [ModalThanhToan] Kiểm tra trước khi xác nhận thanh toán...')
         const kiemTraResponse = await kiemTraTruocThanhToan(props.hoaDon.id)
-        
+
         // Response có cấu trúc: { success, data: KiemTraTruocThanhToanResponse, message }
         const kiemTraData = kiemTraResponse?.data || kiemTraResponse
-        
+
         if (kiemTraData) {
-            
+
             if (kiemTraData.coThayDoi) {
                 // Có thay đổi, hiển thị thông báo chi tiết và KHÔNG cho phép thanh toán
                 let thongBaoChiTiet = ''
                 let thongBaoHTML = ''
-                
+
                 // Thông tin thay đổi về giá
                 if (kiemTraData.thayDoiGia && kiemTraData.thayDoiGia.coThayDoi) {
                     thongBaoChiTiet += `📦 Giá sản phẩm:\n`
@@ -1048,7 +1053,7 @@ const handlePayment = async () => {
                     thongBaoHTML += `</ul></div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Thông tin thay đổi về voucher
                 if (kiemTraData.thayDoiVoucher && kiemTraData.thayDoiVoucher.coThayDoi) {
                     thongBaoChiTiet += `🎫 Phiếu giảm giá: `
@@ -1070,7 +1075,7 @@ const handlePayment = async () => {
                     thongBaoHTML += `</div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Thông tin thay đổi về điểm
                 if (kiemTraData.thayDoiDiem && kiemTraData.thayDoiDiem.coThayDoi) {
                     thongBaoChiTiet += `⭐ Điểm tích lũy: `
@@ -1087,19 +1092,19 @@ const handlePayment = async () => {
                     thongBaoHTML += `</div>`
                     thongBaoChiTiet += '\n'
                 }
-                
+
                 // Lưu thông báo để hiển thị trong alert box
                 thongBaoThayDoi.value = thongBaoHTML
-                
+
                 // Cũng hiển thị toast notification
                 showWarning(thongBaoChiTiet + '\nĐã tự động cập nhật hóa đơn. Vui lòng kiểm tra lại và xác nhận thanh toán lần nữa.', { duration: 10000 })
-                
+
                 // Cập nhật lại hóa đơn trong component (nếu có hoaDonMoi)
                 if (kiemTraData.hoaDonMoi) {
                     // Emit event để parent component cập nhật hóa đơn
                     emit('hoa-don-updated', kiemTraData.hoaDonMoi)
                 }
-                
+
                 // KHÔNG cho phép thanh toán, yêu cầu người dùng bấm lại nút
                 isProcessing.value = false
                 return
@@ -1111,7 +1116,7 @@ const handlePayment = async () => {
             // Không có dữ liệu, xóa thông báo cũ (nếu có)
             thongBaoThayDoi.value = null
         }
-        
+
         // 2. Không có thay đổi, tiếp tục thanh toán như bình thường
         const payloadData = {
             ...formData.value,
