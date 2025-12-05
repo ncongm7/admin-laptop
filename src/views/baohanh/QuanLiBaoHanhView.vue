@@ -10,11 +10,14 @@
           </h1>
           <p class="text-muted mb-0">Quản lý và theo dõi các phiếu bảo hành sản phẩm</p>
         </div>
-        <div class="stats-summary">
+        <div class="stats-summary d-flex gap-3 align-items-center">
           <div class="stat-item bg-primary text-white">
             <div class="stat-value">{{ filtered.length }}</div>
             <div class="stat-label">Tổng phiếu</div>
           </div>
+          <button class="btn btn-success btn-lg" @click="openAddWarrantyModal">
+            <i class="bi bi-plus-circle me-2"></i>Thêm bảo hành
+          </button>
         </div>
       </div>
     </div>
@@ -101,10 +104,27 @@
                   </small>
                 </td>
                 <td>
-                  <div class="fw-semibold">{{ it.tenSP || 'N/A' }}</div>
+                  <div class="fw-semibold">
+                    {{
+                      it.tenSP ||
+                      it.tenSanPham ||
+                      it.chiTietSanPham?.tenSanPham ||
+                      it.sanPham?.tenSanPham ||
+                      'Sản phẩm không xác định'
+                    }}
+                  </div>
                 </td>
                 <td>
-                  <code class="serial-code">{{ it.soSerial || 'N/A' }}</code>
+                  <code class="serial-code">
+                    {{
+                      it.soSerial ||
+                      it.serialNo ||
+                      it.imei ||
+                      it.chiTietSanPham?.serialNo ||
+                      it.serial?.serialNo ||
+                      'N/A'
+                    }}
+                  </code>
                 </td>
                 <td>{{ showDate(it.ngayBatDau) }}</td>
                 <td>{{ showDate(it.ngayKetThuc) }}</td>
@@ -144,6 +164,13 @@
         }}
       </p>
     </div>
+
+    <!-- Modal thêm bảo hành -->
+    <AddWarrantyModal
+      v-if="showAddWarrantyModal"
+      @close="closeAddWarrantyModal"
+      @created="handleWarrantyCreated"
+    />
 
     <!-- Pagination -->
     <div v-if="!loading && filtered.length > 0" class="pagination-wrapper mt-4">
@@ -185,6 +212,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getPhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
 import { useRouter } from 'vue-router'
+import AddWarrantyModal from '@/components/baohanh/AddWarrantyModal.vue'
 
 const router = useRouter()
 
@@ -233,9 +261,9 @@ const filtered = computed(() => {
     const textOk =
       !s ||
       (x.soDienThoai || '').toLowerCase().includes(s) ||
-      (x.soSerial || '').toLowerCase().includes(s) ||
+      (x.soSerial || x.serialNo || x.imei || '').toLowerCase().includes(s) ||
       (x.hoTenKhachHang || '').toLowerCase().includes(s) ||
-      (x.tenSP || '').toLowerCase().includes(s)
+      (x.tenSP || x.tenSanPham || '').toLowerCase().includes(s)
 
     // status
     const cur = Number(x.trangThai)
@@ -268,6 +296,22 @@ watch([q, status], () => {
 // Xem chi tiết
 const viewDetail = (id) => {
   router.push(`/quan-li-bao-hanh/chi-tiet/${id}`)
+}
+
+// Add warranty modal
+const showAddWarrantyModal = ref(false)
+
+const openAddWarrantyModal = () => {
+  showAddWarrantyModal.value = true
+}
+
+const closeAddWarrantyModal = () => {
+  showAddWarrantyModal.value = false
+}
+
+const handleWarrantyCreated = () => {
+  closeAddWarrantyModal()
+  fetchList() // Reload danh sách
 }
 
 // Helpers hiển thị
