@@ -197,10 +197,19 @@
               </span>
               <!-- Badge đặc biệt cho đơn online đã thanh toán nhưng chờ xác nhận -->
               <span v-if="hoaDon.loaiHoaDon === 1 &&
-                          (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                          hoaDon.trangThaiThanhToan === 1"
-                class="badge bg-info text-white ms-1" title="Đơn hàng đã thanh toán, đang chờ admin xác nhận">
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThaiThanhToan === 1" class="badge bg-info text-white ms-1"
+                title="Đơn hàng đã thanh toán, đang chờ admin xác nhận">
                 <i class="bi bi-clock-history me-1"></i>CHỜ XÁC NHẬN
+              </span>
+              <!-- Badge thanh toán QR -->
+              <span v-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 1"
+                class="badge bg-success text-white ms-1" title="Đã thanh toán bằng QR Code">
+                <i class="bi bi-qr-code me-1"></i>QR
+              </span>
+              <span v-else-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 0"
+                class="badge bg-warning text-dark ms-1" title="Chờ khách thanh toán QR">
+                <i class="bi bi-clock me-1"></i>Chờ QR
               </span>
             </td>
             <td class="fw-semibold">{{ formatCurrency(hoaDon.tongTienSauGiam) }}</td>
@@ -212,16 +221,16 @@
               <!-- Nút xác nhận đơn hàng online
                    Hiện khi: đơn online và (chờ thanh toán HOẶC đã thanh toán nhưng chờ xác nhận) -->
               <button v-if="hoaDon.loaiHoaDon === 1 &&
-                           (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                           (hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === 1)"
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                (hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === 1)"
                 class="btn btn-outline-primary btn-sm rounded-circle me-1" @click="xacNhanDonHang(hoaDon)"
                 title="Xác nhận đơn hàng và chuyển sang trạng thái đang giao hàng">
                 <i class="bi bi-check-circle"></i>
               </button>
               <!-- Nút hủy đơn hàng online (chỉ hiện khi chưa xác nhận) -->
               <button v-if="hoaDon.loaiHoaDon === 1 &&
-                           (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                           hoaDon.trangThai !== 'DA_HUY' && hoaDon.trangThai !== 2"
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThai !== 'DA_HUY' && hoaDon.trangThai !== 2"
                 class="btn btn-outline-danger btn-sm rounded-circle me-1" @click="huyDonHang(hoaDon)"
                 title="Hủy đơn hàng">
                 <i class="bi bi-x-circle"></i>
@@ -265,13 +274,8 @@
     </div>
 
     <!-- Modal chi tiết -->
-    <ChiTietHoaDonModal
-        v-if="showDetailModal"
-        :idHoaDon="selectedHoaDonId"
-        @close="closeDetailModal"
-        @order-confirmed="handleOrderConfirmed"
-        @order-cancelled="handleOrderCancelled"
-    />
+    <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal"
+      @order-confirmed="handleOrderConfirmed" @order-cancelled="handleOrderCancelled" />
 
     <!-- QR Scanner Modal -->
     <QRScannerModal v-if="showQRScanner" @close="closeQRScanner" @invoice-found="handleInvoiceFound" />
@@ -645,6 +649,14 @@ const getTrangThaiLabel = (hoaDon) => {
 }
 
 /**
+ * Kiểm tra có phải thanh toán QR không
+ */
+const isQRPayment = (hoaDon) => {
+  const methodName = (hoaDon.phuongThucThanhToan || hoaDon.tenPhuongThucThanhToan || '').toLowerCase()
+  return methodName.includes('qr') || methodName.includes('chuyển khoản qr') || methodName.includes('chuyen khoan qr')
+}
+
+/**
  * Lấy class badge cho trạng thái
  * Xử lý đặc biệt cho đơn online chờ xác nhận
  */
@@ -956,9 +968,9 @@ const xacNhanDonHang = async (hoaDon) => {
   const confirmed = await showConfirm({
     title: 'Xác nhận đơn hàng',
     message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\n` +
-             `📦 Sản phẩm: ${hoaDon.chiTietList?.length || 0} sản phẩm\n` +
-             `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n\n` +
-             `⚠️ Lưu ý: Hệ thống sẽ trừ kho khi xác nhận. Hành động này không thể hoàn tác.`,
+      `📦 Sản phẩm: ${hoaDon.chiTietList?.length || 0} sản phẩm\n` +
+      `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n\n` +
+      `⚠️ Lưu ý: Hệ thống sẽ trừ kho khi xác nhận. Hành động này không thể hoàn tác.`,
     confirmText: 'Xác nhận',
     cancelText: 'Hủy',
     type: 'warning'

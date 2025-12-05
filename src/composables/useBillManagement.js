@@ -3,7 +3,13 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
-import { taoHoaDonChoMoi, layDanhSachHoaDonCho, huyHoaDon, themSanPhamVaoHoaDon, capNhatKhachHang } from '@/service/banhang/banHangService'
+import {
+  taoHoaDonChoMoi,
+  layDanhSachHoaDonCho,
+  huyHoaDon,
+  themSanPhamVaoHoaDon,
+  capNhatKhachHang,
+} from '@/service/banhang/banHangService'
 import { layThongTinHoaDon } from '@/service/banhang/hoaDonService'
 
 /**
@@ -38,7 +44,7 @@ export function useBillManagement() {
   const danhSachHoaDonCho = ref([])
   const hoaDonHienTai = ref(null)
   const isLoading = ref(false)
-  
+
   // Auto-save draft
   let autoSaveInterval = null
   const AUTO_SAVE_INTERVAL = 30000 // 30 giây
@@ -57,9 +63,11 @@ export function useBillManagement() {
   })
 
   /**
-   * Tạo hóa đơn mới
+   * Tạo hóa đơn mới (LOCAL - không lưu DB)
+   * Chỉ tạo object trong frontend, lưu localStorage
+   * Chỉ insert DB khi thanh toán thành công
    */
-  const taoHoaDonMoi = async () => {
+  const taoHoaDonMoi = () => {
     // Kiểm tra giới hạn
     if (daDatGioiHan.value) {
       showWarning(
@@ -76,43 +84,50 @@ export function useBillManagement() {
       return
     }
 
-    isLoading.value = true
     try {
-      const payload = {
+      // Tạo ID tạm thời cho hóa đơn local (prefix "TEMP_")
+      const tempId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // Sinh mã hóa đơn tạm (sẽ được backend generate khi insert thật)
+      const tempMa = `HD${Date.now().toString().slice(-8)}`
+
+      const newBill = {
+        id: tempId, // ID tạm
+        ma: tempMa, // Mã tạm
         nhanVienId: nhanVienId,
-        khachHangId: null, // Khách vãng lai
+        nhanVien: {
+          id: nhanVienId,
+          hoTen: authStore.getUserName || 'Nhân viên',
+        },
+        khachHang: null, // Khách vãng lai
+        hoaDonChiTiet: [], // Danh sách sản phẩm
+        tongTien: 0,
+        tongTienSauGiam: 0,
+        tienDuocGiam: 0,
+        idPhieuGiamGia: null,
+        phieuGiamGia: null,
+        diemSuDung: 0,
+        tienGiamDiem: 0,
+        trangThai: 'CHO', // Trạng thái chờ
+        loaiHoaDon: 'TAI_QUAY', // Loại hóa đơn
+        createdAt: new Date().toISOString(),
+        isLocal: true, // Flag đánh dấu hóa đơn local (chưa lưu DB)
       }
 
-      console.log('Payload tạo hóa đơn:', payload)
-      console.log('Nhân viên:', authStore.getUserName)
+      // Thêm vào danh sách hóa đơn chờ
+      danhSachHoaDonCho.value.push(newBill)
 
-      const response = await taoHoaDonChoMoi(payload)
+      // Tự động chọn hóa đơn mới tạo
+      hoaDonHienTai.value = newBill
 
-      console.log('Response từ API:', response)
+      // Lưu vào localStorage
+      saveDraftToLocalStorage()
 
-      if (response && response.data) {
-        const newBill = normalizeHoaDon(response.data)
-
-        // Thêm vào danh sách hóa đơn chờ
-        danhSachHoaDonCho.value.push(newBill)
-
-        // Tự động chọn hóa đơn mới tạo
-        hoaDonHienTai.value = newBill
-
-        console.log('Tạo hóa đơn thành công:', newBill)
-        showSuccess('Tạo hóa đơn mới thành công!')
-      }
+      console.log('✅ [LOCAL] Tạo hóa đơn local thành công:', newBill)
+      showSuccess('Tạo hóa đơn mới thành công!')
     } catch (error) {
-      console.error('Lỗi khi tạo hóa đơn:', error)
-      console.error('Error response:', error.response?.data)
-
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Không thể tạo hóa đơn. Vui lòng thử lại!'
-      showError(errorMessage)
-    } finally {
-      isLoading.value = false
+      console.error('❌ Lỗi khi tạo hóa đơn local:', error)
+      showError('Không thể tạo hóa đơn. Vui lòng thử lại!')
     }
   }
 
@@ -124,7 +139,8 @@ export function useBillManagement() {
   }
 
   /**
-   * Xóa hóa đơn chờ (gọi API backend)
+   * Xóa hóa đơn chờ (LOCAL - chỉ xóa khỏi localStorage)
+   * Nếu là hóa đơn đã lưu DB thì gọi API hủy
    */
   const xoaHoaDonCho = async (billId) => {
     const confirmed = await showConfirm({
@@ -137,10 +153,14 @@ export function useBillManagement() {
 
     if (!confirmed) return
 
-    isLoading.value = true
     try {
-      // Gọi API backend để xóa
-      await huyHoaDon(billId)
+      const bill = danhSachHoaDonCho.value.find((b) => b.id === billId)
+
+      // Nếu là hóa đơn đã lưu DB (không có flag isLocal), gọi API hủy
+      if (bill && !bill.isLocal) {
+        isLoading.value = true
+        await huyHoaDon(billId)
+      }
 
       // Xóa khỏi danh sách local
       const index = danhSachHoaDonCho.value.findIndex((b) => b.id === billId)
@@ -153,7 +173,10 @@ export function useBillManagement() {
         }
       }
 
-      console.log('✅ Xóa hóa đơn chờ thành công')
+      // Lưu lại localStorage
+      saveDraftToLocalStorage()
+
+      console.log('✅ Xóa hóa đơn thành công')
       showSuccess('Đã xóa hóa đơn thành công!')
     } catch (error) {
       console.error('❌ Lỗi khi xóa hóa đơn:', error)
@@ -201,21 +224,31 @@ export function useBillManagement() {
 
   /**
    * Lưu tạm hóa đơn vào localStorage
+   * Bao gồm cả hóa đơn local (chưa insert DB) và hóa đơn đã lưu DB
    */
   const saveDraftToLocalStorage = () => {
     try {
       const drafts = danhSachHoaDonCho.value.map((bill) => ({
         id: bill.id,
         ma: bill.ma,
+        nhanVienId: bill.nhanVienId,
+        nhanVien: bill.nhanVien,
         khachHang: bill.khachHang,
         hoaDonChiTiet: bill.hoaDonChiTiet || [],
         tongTien: bill.tongTien || 0,
         tongTienSauGiam: bill.tongTienSauGiam || bill.tongTien || 0,
         idPhieuGiamGia: bill.idPhieuGiamGia || null,
+        phieuGiamGia: bill.phieuGiamGia || null,
         tienDuocGiam: bill.tienDuocGiam || 0,
+        diemSuDung: bill.diemSuDung || 0,
+        tienGiamDiem: bill.tienGiamDiem || 0,
+        trangThai: bill.trangThai || 'CHO',
+        loaiHoaDon: bill.loaiHoaDon || 'TAI_QUAY',
+        isLocal: bill.isLocal || false, // Flag đánh dấu hóa đơn local
+        createdAt: bill.createdAt,
         savedAt: new Date().toISOString(),
       }))
-      
+
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts))
       console.log('💾 [Draft] Đã lưu', drafts.length, 'hóa đơn tạm vào localStorage')
     } catch (error) {
@@ -225,8 +258,10 @@ export function useBillManagement() {
 
   /**
    * Khôi phục hóa đơn tạm từ localStorage
+   * Chỉ load hóa đơn local (chưa insert DB)
+   * Bỏ qua việc gọi API loadDanhSachHoaDonCho vì giờ hóa đơn chỉ tồn tại local
    */
-  const restoreDraftsFromLocalStorage = async () => {
+  const restoreDraftsFromLocalStorage = () => {
     try {
       const saved = localStorage.getItem(DRAFT_STORAGE_KEY)
       if (!saved) {
@@ -240,20 +275,21 @@ export function useBillManagement() {
         return
       }
 
-      console.log('💾 [Draft] Đang khôi phục', drafts.length, 'hóa đơn tạm...')
+      console.log('💾 [Draft] Đang khôi phục', drafts.length, 'hóa đơn local...')
 
-      // Load danh sách hóa đơn chờ từ backend trước
-      await loadDanhSachHoaDonCho()
+      // Khôi phục tất cả hóa đơn local
+      danhSachHoaDonCho.value = drafts
 
-      // Kiểm tra xem các draft có còn tồn tại trên backend không
-      // Nếu có, không cần khôi phục từ localStorage
-      // Nếu không, có thể hiển thị thông báo hoặc bỏ qua
-      
-      // Xóa draft cũ sau khi đã load từ backend
-      localStorage.removeItem(DRAFT_STORAGE_KEY)
-      console.log('💾 [Draft] Đã xóa draft cũ sau khi load từ backend')
+      // Chọn hóa đơn đầu tiên nếu có
+      if (drafts.length > 0) {
+        hoaDonHienTai.value = drafts[0]
+      }
+
+      console.log('✅ [Draft] Đã khôi phục', drafts.length, 'hóa đơn local')
     } catch (error) {
       console.error('❌ [Draft] Lỗi khi khôi phục draft:', error)
+      // Xóa draft lỗi
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
     }
   }
 
@@ -299,159 +335,55 @@ export function useBillManagement() {
   }
 
   /**
-   * Load danh sách hóa đơn chờ (có khôi phục draft nếu cần)
+   * Load danh sách hóa đơn chờ
+   * KHÔNG CẦN GỌI API NỮA - chỉ khôi phục từ localStorage
+   * Hóa đơn chỉ tồn tại local cho đến khi thanh toán
    */
-  const loadDanhSachHoaDonCho = async () => {
-    const nhanVienId = authStore.getUserId
-
-    if (!nhanVienId) {
-      console.warn('Không tìm thấy ID nhân viên')
-      return
-    }
-
-    console.log('🔄 Đang load danh sách hóa đơn chờ cho nhân viên:', nhanVienId)
+  const loadDanhSachHoaDonCho = () => {
+    console.log('🔄 [LOCAL] Khôi phục danh sách hóa đơn từ localStorage...')
 
     try {
-      const response = await layDanhSachHoaDonCho(nhanVienId)
-
-      console.log('📦 Response từ API layDanhSachHoaDonCho:', response)
-      console.log('📦 Response type:', typeof response)
-      console.log('📦 Response.data:', response?.data)
-
-      // Backend trả về: { data: [...] } hoặc ResponseObject { isSuccess, data: [], message }
-      // axiosInstance.get() trả về response.data (đã unwrap axios response)
-      let danhSach = []
-
-      if (response) {
-        // Trường hợp 1: response.data là array (backend trả: { data: [] })
-        if (response.data && Array.isArray(response.data)) {
-          danhSach = response.data
-          console.log('✅ Parse type 1: response.data is array -', danhSach.length, 'items')
-        }
-        // Trường hợp 2: response là array trực tiếp
-        else if (Array.isArray(response)) {
-          danhSach = response
-          console.log('✅ Parse type 2: response is array -', danhSach.length, 'items')
-        }
-        // Trường hợp 3: response.data.data (nested)
-        else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          danhSach = response.data.data
-          console.log('✅ Parse type 3: response.data.data is array -', danhSach.length, 'items')
-        }
-        // Trường hợp 4: response.content (pagination)
-        else if (response.content && Array.isArray(response.content)) {
-          danhSach = response.content
-          console.log('✅ Parse type 4: response.content is array -', danhSach.length, 'items')
-        } else {
-          console.error('❌ Không parse được response!')
-          console.error('Response keys:', Object.keys(response))
-          console.error('Response.data type:', typeof response.data)
-          console.error('Is response.data array?', Array.isArray(response.data))
-        }
-      }
-
-      console.log('📋 Danh sách hóa đơn sau khi parse:', danhSach)
-      console.log('📋 Số lượng hóa đơn:', danhSach?.length || 0)
-
-      // Lọc chỉ lấy các hóa đơn chưa thanh toán
-      // Backend trả về trangThai = "CHO_THANH_TOAN" hoặc trangThaiThanhToan = 0
-      console.log('🔍 Bắt đầu filter hóa đơn chờ...')
-      const hoaDonCho = danhSach.filter((hd, index) => {
-        const trangThai = hd.trangThai ?? hd.trang_thai ?? hd.status
-        const trangThaiThanhToan = hd.trangThaiThanhToan ?? hd.trang_thai_thanh_toan
-
-        if (index === 0) {
-          console.log('🔍 Sample hóa đơn đầu tiên:')
-          console.log('   - trangThai:', trangThai, typeof trangThai)
-          console.log('   - trangThaiThanhToan:', trangThaiThanhToan, typeof trangThaiThanhToan)
-        }
-
-        // Kiểm tra nhiều điều kiện có thể:
-        // 1. trangThai là "CHO_THANH_TOAN" (string)
-        // 2. trangThaiThanhToan = 0 (chưa thanh toán)
-        // 3. trangThai = 0 hoặc '0' (format cũ nếu có)
-        const isMatch =
-          trangThai === 'CHO_THANH_TOAN' ||
-          trangThaiThanhToan === 0 ||
-          trangThaiThanhToan === '0' ||
-          trangThai === 0 ||
-          trangThai === '0'
-
-        if (index === 0) {
-          console.log('   - isMatch:', isMatch)
-        }
-
-        return isMatch
-      })
-      console.log('🔍 Sau khi filter:', hoaDonCho.length, 'hóa đơn')
-
-      // Chuẩn hóa dữ liệu và gán vào state
-      danhSachHoaDonCho.value = hoaDonCho.map(normalizeHoaDon)
-
-      // Tự động chọn hóa đơn đầu tiên nếu có
-      if (danhSachHoaDonCho.value.length > 0) {
-        hoaDonHienTai.value = danhSachHoaDonCho.value[0]
-        console.log('🎯 Hóa đơn được chọn:', {
-          id: hoaDonHienTai.value.id,
-          ma: hoaDonHienTai.value.ma,
-          soSanPham: hoaDonHienTai.value.hoaDonChiTiet?.length || 0,
-        })
-      }
-
-      console.log('✅ Đã load', danhSachHoaDonCho.value.length, 'hóa đơn chờ')
-      console.log('🎯 Hóa đơn hiện tại:', hoaDonHienTai.value)
-
-      // Đánh dấu các hóa đơn là draft (nếu chưa thanh toán)
-      danhSachHoaDonCho.value.forEach((bill) => {
-        if (bill.trangThaiThanhToan === 0 || bill.trangThai === 'CHO_THANH_TOAN') {
-          bill.isDraft = true
-        }
-      })
-
-      // Khôi phục draft từ localStorage nếu không có hóa đơn từ backend
-      if (danhSachHoaDonCho.value.length === 0) {
-        await restoreDraftsFromLocalStorage()
-      }
+      restoreDraftsFromLocalStorage()
+      console.log('✅ [LOCAL] Đã load', danhSachHoaDonCho.value.length, 'hóa đơn local')
     } catch (error) {
-      console.error('❌ Lỗi khi load danh sách hóa đơn chờ:', error)
-      console.error('Error response:', error.response?.data)
-      console.error('Error message:', error.message)
-      
-      // Nếu lỗi, thử khôi phục từ localStorage
-      await restoreDraftsFromLocalStorage()
+      console.error('❌ [LOCAL] Lỗi khi load hóa đơn local:', error)
     }
   }
 
   /**
-   * Cập nhật hóa đơn hiện tại và danh sách chờ
+   * Cập nhật hóa đơn hiện tại và danh sách chờ (LOCAL ONLY)
+   * Không gọi API - chỉ update reactive state và localStorage
    */
   const capNhatHoaDon = (updatedBill) => {
-    // Chuẩn hóa dữ liệu trước khi cập nhật
-    const normalizedBill = normalizeHoaDon(updatedBill)
-
-    // Đánh dấu là draft nếu chưa thanh toán
-    if (normalizedBill.trangThaiThanhToan === 0 || normalizedBill.trangThai === 'CHO_THANH_TOAN') {
-      normalizedBill.isDraft = true
-    }
+    console.log('📝 [LOCAL] Cập nhật hóa đơn local:', updatedBill)
 
     // Cập nhật hóa đơn hiện tại
-    hoaDonHienTai.value = normalizedBill
-
-    // Cập nhật trong danh sách chờ
-    const index = danhSachHoaDonCho.value.findIndex((b) => b.id === normalizedBill.id)
-    if (index > -1) {
-      danhSachHoaDonCho.value[index] = normalizedBill
+    hoaDonHienTai.value = {
+      ...hoaDonHienTai.value,
+      ...updatedBill,
+      isLocal: true, // Đảm bảo flag local
     }
 
-    // Tự động lưu draft sau khi cập nhật
+    // Cập nhật trong danh sách chờ
+    const index = danhSachHoaDonCho.value.findIndex((b) => b.id === updatedBill.id)
+    if (index > -1) {
+      danhSachHoaDonCho.value[index] = hoaDonHienTai.value
+    }
+
+    // Tự động lưu vào localStorage
     saveDraftToLocalStorage()
+
+    console.log('✅ [LOCAL] Đã cập nhật hóa đơn local vào state + localStorage')
   }
 
   /**
-   * Xóa hóa đơn sau khi thanh toán thành công
+   * Xóa hóa đơn sau khi thanh toán thành công (LOCAL)
+   * Xóa khỏi danh sách local và localStorage
    */
   const xoaHoaDonSauThanhToan = () => {
     if (!hoaDonHienTai.value) return
+
+    console.log('🗑️ [LOCAL] Xóa hóa đơn sau thanh toán:', hoaDonHienTai.value.id)
 
     const index = danhSachHoaDonCho.value.findIndex((b) => b.id === hoaDonHienTai.value.id)
     if (index > -1) {
@@ -460,6 +392,11 @@ export function useBillManagement() {
 
     // Chọn hóa đơn tiếp theo hoặc để trống
     hoaDonHienTai.value = danhSachHoaDonCho.value[0] || null
+
+    // Lưu lại localStorage
+    saveDraftToLocalStorage()
+
+    console.log('✅ [LOCAL] Đã xóa hóa đơn khỏi local state')
   }
 
   /**
@@ -507,35 +444,36 @@ export function useBillManagement() {
 
       // 2. Copy sản phẩm từ hóa đơn cũ
       const chiTietList = sourceBill.hoaDonChiTiet || sourceBill.chiTietList || []
-      
+
       // Khai báo biến đếm bên ngoài để có thể sử dụng sau này
       let successCount = 0
       let failCount = 0
-      
+
       if (chiTietList.length > 0) {
         console.log(`📦 [copyBill] Đang copy ${chiTietList.length} sản phẩm...`)
-        
+
         for (const item of chiTietList) {
           try {
             // Lấy idChiTietSanPham từ nhiều nguồn có thể
-            const idChiTietSanPham = item.idChiTietSanPham || 
-                                     item.chiTietSanPham?.id || 
-                                     item.idCtsp ||
-                                     item.chiTietSanPhamId
-            
+            const idChiTietSanPham =
+              item.idChiTietSanPham ||
+              item.chiTietSanPham?.id ||
+              item.idCtsp ||
+              item.chiTietSanPhamId
+
             if (!idChiTietSanPham) {
               console.warn(`⚠️ [copyBill] Sản phẩm ${item.id} không có idChiTietSanPham, bỏ qua`)
               failCount++
               continue
             }
-            
+
             const addProductPayload = {
               chiTietSanPhamId: idChiTietSanPham,
               soLuong: item.soLuong || 1,
             }
 
             const addResponse = await themSanPhamVaoHoaDon(newBill.id, addProductPayload)
-            
+
             if (addResponse && addResponse.data) {
               successCount++
               // Cập nhật newBill với dữ liệu mới nhất
@@ -549,9 +487,11 @@ export function useBillManagement() {
             // Tiếp tục copy các sản phẩm khác
           }
         }
-        
-        console.log(`📦 [copyBill] Đã copy ${successCount}/${chiTietList.length} sản phẩm thành công`)
-        
+
+        console.log(
+          `📦 [copyBill] Đã copy ${successCount}/${chiTietList.length} sản phẩm thành công`,
+        )
+
         if (failCount > 0) {
           showWarning(`Đã copy ${successCount} sản phẩm, ${failCount} sản phẩm không thể copy`)
         }
@@ -581,7 +521,7 @@ export function useBillManagement() {
             reloadedBill.trangThaiThanhToan = 0
             reloadedBill.trangThai = 'CHO_THANH_TOAN'
             reloadedBill.isDraft = true
-            
+
             // Cập nhật newBill với dữ liệu đầy đủ
             newBill = reloadedBill
             console.log('✅ [copyBill] Đã reload hóa đơn với đầy đủ thông tin')
@@ -608,7 +548,9 @@ export function useBillManagement() {
       saveDraftToLocalStorage()
 
       console.log('✅ [copyBill] Copy hóa đơn thành công!')
-      showSuccess(`Đã copy hóa đơn thành công! (${chiTietList.length} sản phẩm, ${newBill.khachHang ? 'có khách hàng' : 'không có khách hàng'})`)
+      showSuccess(
+        `Đã copy hóa đơn thành công! (${chiTietList.length} sản phẩm, ${newBill.khachHang ? 'có khách hàng' : 'không có khách hàng'})`,
+      )
     } catch (error) {
       console.error('❌ [copyBill] Lỗi khi copy hóa đơn:', error)
       showError(error.response?.data?.message || 'Không thể copy hóa đơn. Vui lòng thử lại!')
@@ -639,4 +581,3 @@ export function useBillManagement() {
     stopAutoSave,
   }
 }
-
