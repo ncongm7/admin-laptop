@@ -70,6 +70,11 @@ const props = defineProps({
   allowDraft: {
     type: Boolean,
     default: true
+  },
+  // Tự động mở dialog in sau khi mở preview (mặc định: true)
+  autoPrint: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -117,14 +122,17 @@ const handlePrintInvoice = async () => {
       previewUrl.value = url
       showPreviewModal.value = true
       
-      // Tự động mở dialog in sau 500ms (để modal load xong)
-      setTimeout(() => {
-        if (previewFrame.value && previewFrame.value.contentWindow) {
-          previewFrame.value.contentWindow.print()
-        }
-      }, 500)
-      
-      showSuccess('Đang mở hộp thoại in...')
+      // Tự động mở dialog in sau 500ms (để modal load xong) - chỉ khi autoPrint = true
+      if (props.autoPrint) {
+        setTimeout(() => {
+          if (previewFrame.value && previewFrame.value.contentWindow) {
+            previewFrame.value.contentWindow.print()
+          }
+        }, 500)
+        showSuccess('Đang mở hộp thoại in...')
+      } else {
+        showSuccess('Đã mở preview hóa đơn!')
+      }
     } else {
       // Fallback: tải file về
       downloadBlob(blob, `HoaDon_${props.hoaDon.ma || props.hoaDon.id}.html`)

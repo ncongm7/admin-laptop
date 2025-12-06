@@ -9,17 +9,10 @@
     <div class="filter-section mb-3 p-3 bg-light rounded">
       <div class="row g-2 align-items-center">
         <div class="col-12 position-relative">
-          <i
-            class="bi bi-search position-absolute"
-            style="top: 50%; left: 16px; transform: translateY(-50%); color: #888"
-          ></i>
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="form-control rounded-pill ps-5"
-            placeholder="Nhập mã hóa đơn hoặc tên, SĐT người nhận"
-            @keyup.enter="handleSearch"
-          />
+          <i class="bi bi-search position-absolute"
+            style="top: 50%; left: 16px; transform: translateY(-50%); color: #888"></i>
+          <input v-model="searchQuery" type="text" class="form-control rounded-pill ps-5"
+            placeholder="Nhập mã hóa đơn hoặc tên, SĐT người nhận" @keyup.enter="handleSearch" />
         </div>
         <div class="col-12">
           <div class="d-flex gap-2 align-items-center">
@@ -66,53 +59,30 @@
     </div>
 
     <!-- Bulk Actions Bar -->
-    <div
-      v-if="selectedIds.length > 0"
-      class="bulk-actions-bar mb-3 p-3 bg-primary text-white rounded"
-    >
+    <div v-if="selectedIds.length > 0" class="bulk-actions-bar mb-3 p-3 bg-primary text-white rounded">
       <div class="d-flex justify-content-between align-items-center">
         <span>
           <i class="bi bi-check-square"></i> Đã chọn <strong>{{ selectedIds.length }}</strong> hóa
           đơn
         </span>
         <div class="d-flex gap-2">
-          <button
-            class="btn btn-light btn-sm"
-            @click="handleBulkConfirm"
-            :disabled="isBulkProcessing"
-          >
+          <button class="btn btn-light btn-sm" @click="handleBulkConfirm" :disabled="isBulkProcessing">
             <span v-if="isBulkProcessing" class="spinner-border spinner-border-sm me-1"></span>
             <i v-else class="bi bi-check-circle"></i>
             Xác nhận hàng loạt
           </button>
-          <button
-            class="btn btn-light btn-sm"
-            @click="handleBulkCancel"
-            :disabled="isBulkProcessing"
-          >
+          <button class="btn btn-light btn-sm" @click="handleBulkCancel" :disabled="isBulkProcessing">
             <span v-if="isBulkProcessing" class="spinner-border spinner-border-sm me-1"></span>
             <i v-else class="bi bi-x-circle"></i>
             Hủy hàng loạt
           </button>
-          <button
-            class="btn btn-light btn-sm"
-            @click="exportExcel(true)"
-            :disabled="isBulkProcessing"
-          >
+          <button class="btn btn-light btn-sm" @click="exportExcel(true)" :disabled="isBulkProcessing">
             <i class="bi bi-file-earmark-excel"></i> Xuất Excel
           </button>
-          <button
-            class="btn btn-light btn-sm"
-            @click="printBulkInvoices"
-            :disabled="isBulkProcessing"
-          >
+          <button class="btn btn-light btn-sm" @click="printBulkInvoices" :disabled="isBulkProcessing">
             <i class="bi bi-printer"></i> In hàng loạt
           </button>
-          <button
-            class="btn btn-light btn-sm"
-            @click="selectedIds = []"
-            :disabled="isBulkProcessing"
-          >
+          <button class="btn btn-light btn-sm" @click="selectedIds = []" :disabled="isBulkProcessing">
             <i class="bi bi-x"></i> Bỏ chọn
           </button>
         </div>
@@ -121,66 +91,38 @@
 
     <!-- Status Tabs -->
     <div class="status-counts mb-3">
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === '' }"
-        @click="activeStatusTab = ''"
-        v-if="statusCounts.total"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === '' }" @click="activeStatusTab = ''"
+        v-if="statusCounts.total">
         TẤT CẢ
         <span class="badge-count">{{ statusCounts.total }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'processing' }"
-        @click="activeStatusTab = 'processing'"
-        v-if="statusCounts.processing"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'processing' }"
+        @click="activeStatusTab = 'processing'" v-if="statusCounts.processing">
         CHỜ XÁC NHẬN
         <span class="badge-count">{{ statusCounts.processing }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'confirmed' }"
-        @click="activeStatusTab = 'confirmed'"
-        v-if="statusCounts.confirmed"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'confirmed' }"
+        @click="activeStatusTab = 'confirmed'" v-if="statusCounts.confirmed">
         ĐÃ XÁC NHẬN
         <span class="badge-count">{{ statusCounts.confirmed }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'delivering' }"
-        @click="activeStatusTab = 'delivering'"
-        v-if="statusCounts.delivering"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'delivering' }"
+        @click="activeStatusTab = 'delivering'" v-if="statusCounts.delivering">
         CHỜ GIAO HÀNG
         <span class="badge-count">{{ statusCounts.delivering }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'shipping' }"
-        @click="activeStatusTab = 'shipping'"
-        v-if="statusCounts.shipping"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'shipping' }" @click="activeStatusTab = 'shipping'"
+        v-if="statusCounts.shipping">
         ĐANG VẬN CHUYỂN
         <span class="badge-count">{{ statusCounts.shipping }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'delivered' }"
-        @click="activeStatusTab = 'delivered'"
-        v-if="statusCounts.delivered"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'delivered' }"
+        @click="activeStatusTab = 'delivered'" v-if="statusCounts.delivered">
         HOÀN THÀNH
         <span class="badge-count">{{ statusCounts.delivered }}</span>
       </span>
-      <span
-        class="status-tab"
-        :class="{ active: activeStatusTab === 'done' }"
-        @click="activeStatusTab = 'done'"
-        v-if="statusCounts.done"
-      >
+      <span class="status-tab" :class="{ active: activeStatusTab === 'done' }" @click="activeStatusTab = 'done'"
+        v-if="statusCounts.done">
         HOÀN TẤT
         <span class="badge-count">{{ statusCounts.done }}</span>
       </span>
@@ -192,12 +134,9 @@
         <thead>
           <tr class="table-header">
             <th style="width: 50px">
-              <input
-                type="checkbox"
-                @change="toggleSelectAll"
+              <input type="checkbox" @change="toggleSelectAll"
                 :checked="selectedIds.length === hoaDons.length && hoaDons.length > 0"
-                :indeterminate="selectedIds.length > 0 && selectedIds.length < hoaDons.length"
-              />
+                :indeterminate="selectedIds.length > 0 && selectedIds.length < hoaDons.length" />
             </th>
             <th style="width: 50px">#</th>
             <th>Mã HĐ</th>
@@ -246,7 +185,7 @@
               </div>
             </td>
             <td>
-              <span class="badge bg-secondary">
+              <span class="badge" :class="hoaDon.loaiHoaDon === 0 ? 'bg-success' : 'bg-info text-dark'">
                 {{ hoaDon.loaiHoaDon === 0 ? 'Tại quầy' : 'Online' }}
               </span>
             </td>
@@ -257,85 +196,68 @@
               <span :class="['badge', getStatusBadgeClass(hoaDon)]">
                 {{ getTrangThaiLabel(hoaDon) }}
               </span>
-              <!-- Badge đặc biệt cho đơn online đã thanh toán nhưng chờ xác nhận -->
-              <span
-                v-if="
-                  hoaDon.loaiHoaDon === 1 &&
-                  (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                  hoaDon.trangThaiThanhToan === 1
-                "
-                class="badge bg-info text-white ms-1"
-                title="Đơn hàng đã thanh toán, đang chờ admin xác nhận"
-              >
+              <!-- Badge "CHỜ XÁC NHẬN" cho đơn online chưa được xác nhận -->
+              <span v-if="
+                hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0)
+              " class="badge bg-info text-white ms-1" title="Đơn hàng đang chờ admin xác nhận">
                 <i class="bi bi-clock-history me-1"></i>CHỜ XÁC NHẬN
               </span>
-              <!-- Badge thanh toán QR -->
-              <span
-                v-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 1"
-                class="badge bg-success text-white ms-1"
-                title="Đã thanh toán bằng QR Code"
-              >
+              <!-- Badge thanh toán QR (chỉ hiện khi đã thanh toán QR) -->
+              <span v-if="
+                hoaDon.loaiHoaDon === 1 &&
+                hoaDon.trangThaiThanhToan === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0)
+              " class="badge bg-success text-white ms-1" title="Đã thanh toán bằng QR Code">
                 <i class="bi bi-qr-code me-1"></i>QR
               </span>
-              <span
-                v-else-if="isQRPayment(hoaDon) && hoaDon.trangThaiThanhToan === 0"
-                class="badge bg-warning text-dark ms-1"
-                title="Chờ khách thanh toán QR"
-              >
-                <i class="bi bi-clock me-1"></i>Chờ QR
+              <!-- Badge COD (chỉ hiện khi chưa thanh toán) -->
+              <span v-else-if="
+                hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === null) &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0)
+              " class="badge bg-warning text-dark ms-1" title="Thanh toán khi nhận hàng (COD)">
+                <i class="bi bi-truck me-1"></i>COD
               </span>
             </td>
             <td class="fw-semibold">{{ formatCurrency(hoaDon.tongTienSauGiam) }}</td>
             <td class="action-col">
-              <button
-                class="btn btn-outline-success btn-sm rounded-circle me-1"
-                @click="openDetail(hoaDon)"
-                title="Xem chi tiết"
-              >
+              <button class="btn btn-outline-success btn-sm rounded-circle me-1" @click="openDetail(hoaDon)"
+                title="Xem chi tiết">
                 <i class="bi bi-eye"></i>
               </button>
               <!-- Nút xác nhận đơn hàng online
-                   Hiện khi: đơn online và (chờ thanh toán HOẶC đã thanh toán nhưng chờ xác nhận) -->
-              <button
-                v-if="
-                  hoaDon.loaiHoaDon === 1 &&
-                  (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                  (hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === 1)
-                "
-                class="btn btn-outline-primary btn-sm rounded-circle me-1"
-                @click="xacNhanDonHang(hoaDon)"
-                title="Xác nhận đơn hàng và chuyển sang trạng thái đang giao hàng"
-              >
+                   Hiện khi: đơn online, chưa được xác nhận (trangThai = 0)
+                   - COD: chưa thanh toán (trangThaiThanhToan = 0)
+                   - QR: đã thanh toán (trangThaiThanhToan = 1)
+              -->
+              <button v-if="
+                hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThai !== 'DA_HUY' &&
+                hoaDon.trangThai !== 2
+              " class="btn btn-outline-primary btn-sm rounded-circle me-1" @click="xacNhanDonHang(hoaDon)" :title="hoaDon.trangThaiThanhToan === 1
+                ? 'Xác nhận đơn hàng đã thanh toán QR và chuyển sang đang giao hàng'
+                : 'Xác nhận đơn hàng COD và chuyển sang đang giao hàng'">
                 <i class="bi bi-check-circle"></i>
               </button>
               <!-- Nút hủy đơn hàng online (chỉ hiện khi chưa xác nhận) -->
-              <button
-                v-if="
-                  hoaDon.loaiHoaDon === 1 &&
-                  (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                  hoaDon.trangThai !== 'DA_HUY' &&
-                  hoaDon.trangThai !== 2
-                "
-                class="btn btn-outline-danger btn-sm rounded-circle me-1"
-                @click="huyDonHang(hoaDon)"
-                title="Hủy đơn hàng"
-              >
+              <button v-if="
+                hoaDon.loaiHoaDon === 1 &&
+                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                hoaDon.trangThai !== 'DA_HUY' &&
+                hoaDon.trangThai !== 2
+              " class="btn btn-outline-danger btn-sm rounded-circle me-1" @click="huyDonHang(hoaDon)"
+                title="Hủy đơn hàng">
                 <i class="bi bi-x-circle"></i>
               </button>
               <!-- Nút chuyển trạng thái (chỉ hiện khi chưa hủy và chưa hoàn thành) -->
-              <button
-                v-if="canChangeStatus(hoaDon)"
-                class="btn btn-outline-info btn-sm rounded-circle me-1"
-                @click="openChangeStatusModal(hoaDon)"
-                title="Chuyển trạng thái"
-              >
+              <button v-if="canChangeStatus(hoaDon)" class="btn btn-outline-info btn-sm rounded-circle me-1"
+                @click="openChangeStatusModal(hoaDon)" title="Chuyển trạng thái">
                 <i class="bi bi-arrow-repeat"></i>
               </button>
-              <button
-                class="btn btn-outline-dark btn-sm rounded-circle"
-                @click="printInvoice(hoaDon)"
-                title="In hóa đơn"
-              >
+              <button class="btn btn-outline-dark btn-sm rounded-circle" @click="printInvoice(hoaDon)"
+                title="In hóa đơn">
                 <i class="bi bi-printer"></i>
               </button>
             </td>
@@ -355,12 +277,7 @@
             </a>
           </li>
 
-          <li
-            v-for="page in visiblePages"
-            :key="page"
-            class="page-item"
-            :class="{ active: page === currentPage }"
-          >
+          <li v-for="page in visiblePages" :key="page" class="page-item" :class="{ active: page === currentPage }">
             <a class="page-link" href="#" @click.prevent="goToPage(page)">
               {{ page + 1 }}
             </a>
@@ -376,35 +293,19 @@
     </div>
 
     <!-- Modal chi tiết -->
-    <ChiTietHoaDonModal
-      v-if="showDetailModal"
-      :idHoaDon="selectedHoaDonId"
-      @close="closeDetailModal"
-      @order-confirmed="handleOrderConfirmed"
-      @order-cancelled="handleOrderCancelled"
-    />
+    <ChiTietHoaDonModal v-if="showDetailModal" :idHoaDon="selectedHoaDonId" @close="closeDetailModal"
+      @order-confirmed="handleOrderConfirmed" @order-cancelled="handleOrderCancelled" />
 
     <!-- QR Scanner Modal -->
-    <QRScannerModal
-      v-if="showQRScanner"
-      @close="closeQRScanner"
-      @invoice-found="handleInvoiceFound"
-    />
+    <QRScannerModal v-if="showQRScanner" @close="closeQRScanner" @invoice-found="handleInvoiceFound" />
 
     <!-- Advanced Search Modal -->
-    <AdvancedSearchModal
-      v-if="showAdvancedSearch"
-      :model-value="advancedFilters"
-      @close="closeAdvancedSearch"
-      @search="handleAdvancedSearch"
-    />
+    <AdvancedSearchModal v-if="showAdvancedSearch" :model-value="advancedFilters" @close="closeAdvancedSearch"
+      @search="handleAdvancedSearch" />
 
     <!-- Modal chuyển trạng thái -->
-    <div
-      v-if="showChangeStatusModal"
-      class="modal fade show d-block"
-      style="z-index: 10000; background-color: rgba(0, 0, 0, 0.5)"
-    >
+    <div v-if="showChangeStatusModal" class="modal fade show d-block"
+      style="z-index: 10000; background-color: rgba(0, 0, 0, 0.5)">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
@@ -425,11 +326,9 @@
             <div class="mb-3">
               <label class="form-label">Chuyển sang trạng thái:</label>
               <select v-model="newStatus" class="form-select">
-                <option :value="0">Chờ thanh toán</option>
-                <option :value="1">Đã thanh toán</option>
-                <option :value="2">Đã hủy</option>
-                <option :value="3">Đang giao hàng</option>
-                <option :value="4">Hoàn thành</option>
+                <option v-for="option in availableStatusOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </div>
           </div>
@@ -437,16 +336,10 @@
             <button type="button" class="btn btn-secondary" @click="closeChangeStatusModal">
               Hủy
             </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="handleChangeStatus"
-              :disabled="
-                changingStatus ||
-                newStatus === null ||
-                newStatus === getCurrentStatus(selectedHoaDonForStatus)
-              "
-            >
+            <button type="button" class="btn btn-primary" @click="handleChangeStatus" :disabled="changingStatus ||
+              newStatus === null ||
+              newStatus === getCurrentStatus(selectedHoaDonForStatus)
+              ">
               <span v-if="changingStatus" class="spinner-border spinner-border-sm me-2"></span>
               Xác nhận
             </button>
@@ -458,7 +351,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   getHoaDons,
   xacNhanDonHang as xacNhanDonHangAPI,
@@ -471,6 +365,7 @@ import { inHoaDon } from '@/service/banhang/hoaDonService'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useAuthStore } from '@/stores/authStore'
 import ChiTietHoaDonModal from '@/components/hoadon/ChiTietHoaDonModal.vue'
 import QRScannerModal from '@/components/hoadon/QRScannerModal.vue'
 import AdvancedSearchModal from '@/components/hoadon/AdvancedSearchModal.vue'
@@ -487,6 +382,8 @@ const dateTo = ref('')
 const activeStatusTab = ref('')
 const showDetailModal = ref(false)
 const selectedHoaDonId = ref(null)
+const route = useRoute()
+const router = useRouter()
 
 // Pagination
 const currentPage = ref(0)
@@ -516,6 +413,7 @@ const isFetching = ref(false)
 const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 const { showConfirm } = useConfirm()
 const { handleError: handleErrorWithRetry } = useErrorHandler()
+const authStore = useAuthStore()
 
 // Keyboard shortcuts
 const handleKeyPress = (event) => {
@@ -549,13 +447,43 @@ onMounted(() => {
   fetchHoaDons()
   loadStatusCounts()
   window.addEventListener('keydown', handleKeyPress)
+  window.addEventListener('open-invoice-detail', handleExternalOpenDetail)
+  openInvoiceFromRoute()
 })
 
 // Cleanup
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyPress)
+  window.removeEventListener('open-invoice-detail', handleExternalOpenDetail)
 })
+
+function openInvoiceFromRoute() {
+  const invoiceId = route.query.openInvoiceId
+  const invoiceCode = route.query.openInvoiceCode
+
+  if (!invoiceId && !invoiceCode) {
+    return
+  }
+
+  if (invoiceId) {
+    selectedHoaDonId.value = invoiceId
+    showDetailModal.value = true
+  } else if (invoiceCode) {
+    const foundInvoice = hoaDons.value.find((item) => item.ma === invoiceCode)
+    if (foundInvoice) {
+      openDetail(foundInvoice)
+    } else {
+      showWarning(`Không tìm thấy hóa đơn với mã ${invoiceCode}.`)
+    }
+  }
+
+  const cleanedQuery = { ...route.query }
+  delete cleanedQuery.openInvoiceId
+  delete cleanedQuery.openInvoiceCode
+  delete cleanedQuery._invoiceTs
+
+  router.replace({ query: cleanedQuery }).catch(() => { })
+}
 
 // Reload khi thay đổi page (chỉ khi không đang fetch)
 watch(currentPage, () => {
@@ -577,6 +505,13 @@ watch(
   },
   { immediate: false },
 ) // Không chạy ngay khi mount
+
+watch(
+  () => route.query._invoiceTs,
+  () => {
+    openInvoiceFromRoute()
+  },
+)
 
 /**
  * Gọi API lấy danh sách hóa đơn
@@ -782,7 +717,9 @@ const formatDate = (dateStr) => {
 
 /**
  * Lấy label trạng thái hóa đơn
- * Xử lý đặc biệt cho đơn online chờ xác nhận thanh toán
+ * Logic rõ ràng cho đơn online:
+ * - COD (trangThaiThanhToan = 0): "Chờ thanh toán" + badge "Chờ xác nhận"
+ * - QR (trangThaiThanhToan = 1): "Đã thanh toán" + badge "Chờ xác nhận"
  */
 const getTrangThaiLabel = (hoaDon) => {
   // Mapping theo enum TrangThaiHoaDon:
@@ -805,13 +742,16 @@ const getTrangThaiLabel = (hoaDon) => {
   const loaiHoaDon = hoaDon.loaiHoaDon
   const trangThaiThanhToan = hoaDon.trangThaiThanhToan
 
-  // Xử lý đặc biệt cho đơn online đã thanh toán nhưng chờ xác nhận
-  if (
-    loaiHoaDon === 1 &&
-    (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) &&
-    trangThaiThanhToan === 1
-  ) {
-    return 'Chờ xác nhận thanh toán'
+  // Xử lý đặc biệt cho đơn ONLINE (loaiHoaDon = 1)
+  if (loaiHoaDon === 1 && (trangThai === 'CHO_THANH_TOAN' || trangThai === 0)) {
+    // Đơn online chưa được xác nhận (trangThai = 0)
+    if (trangThaiThanhToan === 1) {
+      // Đã thanh toán QR nhưng chờ xác nhận
+      return 'Đã thanh toán'
+    } else {
+      // Chưa thanh toán (COD) - chờ thanh toán khi nhận hàng
+      return 'Chờ thanh toán'
+    }
   }
 
   // Mapping theo enum (ưu tiên number)
@@ -856,7 +796,9 @@ const isQRPayment = (hoaDon) => {
 
 /**
  * Lấy class badge cho trạng thái
- * Xử lý đặc biệt cho đơn online chờ xác nhận
+ * Logic rõ ràng:
+ * - Đơn online COD (chưa thanh toán): vàng (bg-warning)
+ * - Đơn online QR (đã thanh toán): xanh dương (bg-info)
  */
 const getStatusBadgeClass = (hoaDon) => {
   // Mapping theo enum TrangThaiHoaDon:
@@ -879,13 +821,15 @@ const getStatusBadgeClass = (hoaDon) => {
   const loaiHoaDon = hoaDon.loaiHoaDon
   const trangThaiThanhToan = hoaDon.trangThaiThanhToan
 
-  // Đơn online đã thanh toán nhưng chờ xác nhận - màu xanh dương nhạt
-  if (
-    loaiHoaDon === 1 &&
-    (trangThai === 'CHO_THANH_TOAN' || trangThai === 0) &&
-    trangThaiThanhToan === 1
-  ) {
-    return 'bg-info text-white'
+  // Xử lý đặc biệt cho đơn ONLINE (loaiHoaDon = 1) chưa được xác nhận
+  if (loaiHoaDon === 1 && (trangThai === 'CHO_THANH_TOAN' || trangThai === 0)) {
+    if (trangThaiThanhToan === 1) {
+      // Đã thanh toán QR - màu xanh dương (bg-info)
+      return 'bg-info text-white'
+    } else {
+      // Chưa thanh toán COD - màu vàng (bg-warning)
+      return 'bg-warning text-dark'
+    }
   }
 
   // Mapping theo number (ưu tiên)
@@ -915,6 +859,28 @@ const getStatusBadgeClass = (hoaDon) => {
 const openDetail = (hoaDon) => {
   selectedHoaDonId.value = hoaDon.id
   showDetailModal.value = true
+}
+
+const handleExternalOpenDetail = (event) => {
+  const detail = event?.detail || {}
+  const orderId = detail.orderId || detail.idHoaDon || detail.id
+  const orderCode = detail.orderCode || detail.ma
+
+  if (orderId) {
+    selectedHoaDonId.value = orderId
+    showDetailModal.value = true
+    return
+  }
+
+  if (orderCode) {
+    const found = hoaDons.value.find((item) => item.ma === orderCode)
+    if (found) {
+      openDetail(found)
+      return
+    }
+
+    showWarning(`Không tìm thấy hóa đơn với mã ${orderCode}.`)
+  }
 }
 
 const closeDetailModal = () => {
@@ -1164,15 +1130,25 @@ const resetFilters = () => {
 
 /**
  * Xác nhận đơn hàng online
- * Tối ưu: Hiển thị thông báo rõ ràng hơn và tự động refresh
+ * Logic rõ ràng:
+ * - COD: Chưa thanh toán, sẽ thanh toán khi giao hàng
+ * - QR: Đã thanh toán, chỉ cần xác nhận và chuyển sang đang giao
  */
 const xacNhanDonHang = async (hoaDon) => {
+  const isQR = hoaDon.trangThaiThanhToan === 1
+  const isCOD = hoaDon.trangThaiThanhToan === 0 || hoaDon.trangThaiThanhToan === null
+
+  const paymentInfo = isQR
+    ? '✅ Đã thanh toán QR\n'
+    : '⏳ Thanh toán khi nhận hàng (COD)\n'
+
   const confirmed = await showConfirm({
     title: 'Xác nhận đơn hàng',
     message:
       `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\n` +
       `📦 Sản phẩm: ${hoaDon.chiTietList?.length || 0} sản phẩm\n` +
-      `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n\n` +
+      `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n` +
+      `${paymentInfo}\n` +
       `⚠️ Lưu ý: Hệ thống sẽ trừ kho khi xác nhận. Hành động này không thể hoàn tác.`,
     confirmText: 'Xác nhận',
     cancelText: 'Hủy',
@@ -1184,7 +1160,21 @@ const xacNhanDonHang = async (hoaDon) => {
   }
 
   try {
-    await xacNhanDonHangAPI(hoaDon.id)
+    // Lấy thông tin nhân viên hiện tại
+    const currentNhanVienId = authStore.getUserId ||
+      authStore.user?.userId ||
+      authStore.user?.user_id ||
+      localStorage.getItem('currentNhanVienId') ||
+      localStorage.getItem('userId')
+
+    if (!currentNhanVienId) {
+      showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại!')
+      return
+    }
+
+    console.log('👤 [QuanLiHoaDon] Xác nhận đơn hàng với nhân viên ID:', currentNhanVienId)
+
+    await xacNhanDonHangAPI(hoaDon.id, currentNhanVienId)
     showSuccess(
       `✅ Xác nhận đơn hàng ${hoaDon.ma} thành công!\nHệ thống đã trừ kho và cập nhật serial.`,
     )
@@ -1198,8 +1188,8 @@ const xacNhanDonHang = async (hoaDon) => {
       error,
       () => xacNhanDonHang(hoaDon), // Retry function
       error.response?.data?.message ||
-        error.message ||
-        'Không thể xác nhận đơn hàng. Vui lòng thử lại!',
+      error.message ||
+      'Không thể xác nhận đơn hàng. Vui lòng thử lại!',
       { showRetry: true, maxRetries: 2 },
     )
   }
@@ -1259,9 +1249,22 @@ const handleBulkConfirm = async () => {
     let successCount = 0
     let failCount = 0
 
+    // Lấy thông tin nhân viên hiện tại
+    const currentNhanVienId = authStore.getUserId ||
+      authStore.user?.userId ||
+      authStore.user?.user_id ||
+      localStorage.getItem('currentNhanVienId') ||
+      localStorage.getItem('userId')
+
+    if (!currentNhanVienId) {
+      showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại!')
+      isBulkProcessing.value = false
+      return
+    }
+
     for (const id of selectedIds.value) {
       try {
-        await xacNhanDonHangAPI(id)
+        await xacNhanDonHangAPI(id, currentNhanVienId)
         successCount++
       } catch (error) {
         failCount++
@@ -1435,6 +1438,65 @@ const closeChangeStatusModal = () => {
   selectedHoaDonForStatus.value = null
   newStatus.value = null
 }
+
+// Các tùy chọn trạng thái khả dụng dựa trên trạng thái hiện tại
+// Logic rõ ràng cho đơn online:
+// - COD (trangThai=0, trangThaiThanhToan=0): Chỉ có thể chuyển sang DANG_GIAO (3) hoặc DA_HUY (2)
+// - QR (trangThai=0, trangThaiThanhToan=1): Chỉ có thể chuyển sang DANG_GIAO (3) hoặc DA_HUY (2)
+// - Không cho phép chuyển từ 0 sang 1 (DA_THANH_TOAN) vì:
+//   + COD: thanh toán sẽ được xử lý khi giao hàng (thanhToanCOD)
+//   + QR: đã thanh toán rồi, chỉ cần xác nhận và chuyển sang DANG_GIAO
+const availableStatusOptions = computed(() => {
+  const hoaDon = selectedHoaDonForStatus.value
+  if (!hoaDon) return []
+
+  const current = getCurrentStatus(hoaDon)
+  const loaiHoaDon = hoaDon.loaiHoaDon
+  const trangThaiThanhToan = hoaDon.trangThaiThanhToan
+
+  const allOptions = [
+    { value: 0, label: 'Chờ thanh toán' },
+    { value: 1, label: 'Đã thanh toán' },
+    { value: 2, label: 'Đã hủy' },
+    { value: 3, label: 'Đang giao hàng' },
+    { value: 4, label: 'Hoàn thành' },
+  ]
+
+  if (current === null) return allOptions
+
+  return allOptions.filter(opt => {
+    // Luôn hiện trạng thái hiện tại
+    if (opt.value === current) return true
+
+    // Luôn cho phép hủy (trừ khi đã hoàn thành/hủy - đã chặn ở canChangeStatus)
+    if (opt.value === 2) return true
+
+    // Logic đặc biệt cho đơn ONLINE (loaiHoaDon = 1) chưa được xác nhận
+    if (loaiHoaDon === 1 && current === 0) {
+      // Đơn online chưa xác nhận (COD hoặc QR) chỉ có thể:
+      // - Chuyển sang DANG_GIAO (3) - xác nhận đơn hàng
+      // - Chuyển sang DA_HUY (2) - hủy đơn (đã được xử lý ở trên)
+      // KHÔNG cho phép chuyển sang DA_THANH_TOAN (1) vì:
+      //   + COD: thanh toán sẽ được xử lý khi giao hàng
+      //   + QR: đã thanh toán rồi (trangThaiThanhToan = 1)
+      return opt.value === 3
+    }
+
+    // Logic chặn quay lại (Forward only) cho các trạng thái khác
+    // 1 (Đã thanh toán) -> 3, 4 (Không quay lại 0)
+    if (current === 1) return [3, 4].includes(opt.value)
+
+    // 3 (Đang giao) -> 4 (Không quay lại 0, 1)
+    if (current === 3) return [4].includes(opt.value)
+
+    // 0 (Chờ thanh toán) - cho đơn tại quầy hoặc các trường hợp khác
+    if (current === 0 && loaiHoaDon !== 1) {
+      return [1, 3, 4].includes(opt.value)
+    }
+
+    return false
+  })
+})
 
 // Xử lý chuyển trạng thái
 const handleChangeStatus = async () => {

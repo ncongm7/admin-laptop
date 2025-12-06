@@ -85,13 +85,14 @@
 <script setup>
 import { ref, provide, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 import PendingOrderTicker from '@/components/common/PendingOrderTicker.vue'
 import socketService from '@/service/socketService'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 // Current tab state (để truyền vào breadcrumb)
@@ -184,11 +185,40 @@ const handleSocketOrderUpdate = (event) => {
     })
 }
 
+const handleOpenInvoiceDetail = (event) => {
+    const detail = event?.detail || {}
+    const orderId = detail.orderId || detail.idHoaDon || detail.id || null
+    const orderCode = detail.orderCode || detail.ma || null
+
+    if (route.name === 'QuanLiHoaDon') {
+        return
+    }
+
+    if (!orderId && !orderCode) {
+        return
+    }
+
+    const query = {
+        _invoiceTs: Date.now().toString()
+    }
+
+    if (orderId) {
+        query.openInvoiceId = orderId
+    }
+
+    if (orderCode) {
+        query.openInvoiceCode = orderCode
+    }
+
+    router.push({ name: 'QuanLiHoaDon', query }).catch(() => { })
+}
+
 // Subscribe to socket events
 onMounted(() => {
     // Lắng nghe custom events từ socket
     window.addEventListener('socket-notification', handleSocketNotification)
     window.addEventListener('socket-order-update', handleSocketOrderUpdate)
+    window.addEventListener('open-invoice-detail', handleOpenInvoiceDetail)
 
     // Click outside để đóng dropdown
     document.addEventListener('click', (e) => {
@@ -201,6 +231,7 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('socket-notification', handleSocketNotification)
     window.removeEventListener('socket-order-update', handleSocketOrderUpdate)
+    window.removeEventListener('open-invoice-detail', handleOpenInvoiceDetail)
 })
 
 // Computed properties để hiển thị thông tin user

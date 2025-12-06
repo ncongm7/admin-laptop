@@ -5,7 +5,9 @@ const API = '/api/phieu-bao-hanh-quan-ly'
 // Get All - Lấy danh sách phiếu bảo hành
 export const getPhieuBaoHanh = async () => {
   try {
-    const response = await axiosInstance.get(`${API}/danh-sach`)
+    const response = await axiosInstance.get(`${API}/danh-sach`, {
+      timeout: 30000 // Tăng timeout lên 30 giây cho request này
+    })
     // Backend trả về ResponseObject { data, message, success }
     // Nếu response.data có cấu trúc ResponseObject, lấy data từ đó
     if (response.data && response.data.data !== undefined) {

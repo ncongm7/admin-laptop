@@ -6,9 +6,12 @@ import { useToast } from '@/composables/useToast'
  * Composable quản lý voucher và điểm tích lũy
  * Xử lý: áp dụng voucher, sử dụng điểm tích lũy
  */
-export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon) {
+export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai) {
   const { success: showSuccess, error: showError, warning: showWarning } = useToast()
   const isLoading = ref(false)
+
+  const ensureHoaDonReady =
+    typeof ensureHoaDonTonTai === 'function' ? ensureHoaDonTonTai : async () => hoaDonHienTai.value
 
   /**
    * Áp dụng voucher/phiếu giảm giá
@@ -17,6 +20,16 @@ export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon) {
    */
   const handleApplyVoucher = async (idPhieuGiamGia, voucherCode = null) => {
     if (!hoaDonHienTai.value) return
+
+    try {
+      await ensureHoaDonReady()
+    } catch (error) {
+      console.error(
+        '❌ [useVoucherPoints] Không thể sync hóa đơn trước khi áp dụng voucher:',
+        error,
+      )
+      return
+    }
 
     isLoading.value = true
     try {
@@ -63,6 +76,13 @@ export function useVoucherPoints(hoaDonHienTai, capNhatHoaDon) {
     const khachHang = hoaDonHienTai.value.khachHang
     if (!khachHang || !khachHang.diemTichLuy || khachHang.diemTichLuy < points) {
       showWarning('Khách hàng không đủ điểm tích lũy!')
+      return
+    }
+
+    try {
+      await ensureHoaDonReady()
+    } catch (error) {
+      console.error('❌ [useVoucherPoints] Không thể sync hóa đơn trước khi sử dụng điểm:', error)
       return
     }
 

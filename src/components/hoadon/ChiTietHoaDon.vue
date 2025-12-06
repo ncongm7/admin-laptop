@@ -1,11 +1,26 @@
 <template>
-  <div class="invoice-detail p-4 bg-white rounded shadow-sm">
+  <div v-if="isLoading" class="invoice-loading-state p-4 text-center">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="mt-3 mb-0">Đang tải thông tin hóa đơn...</p>
+  </div>
+
+  <div v-else-if="loadError" class="alert alert-danger m-3">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ loadError }}
+  </div>
+
+  <div v-else-if="!invoice" class="alert alert-info m-3">
+    <i class="bi bi-info-circle-fill me-2"></i>Không tìm thấy thông tin hóa đơn.
+  </div>
+
+  <div v-else class="invoice-detail p-4 bg-white rounded shadow-sm">
     <!-- Breadcrumb -->
     <div class="d-flex align-items-center breadcrumb-title">
       <i class="bi bi-arrow-left me-2" style="cursor: pointer" @click="goBack"></i>
       <span class="main-title">Quản lý đơn hàng</span>
       <span class="divider">/</span>
-      <span class="sub-title">Chi tiết hóa đơn {{ code }}</span>
+      <span class="sub-title">Chi tiết hóa đơn {{ invoice.code || codeParam }}</span>
     </div>
 
     <!-- Status Steps & Actions -->
@@ -56,7 +71,8 @@
         </div>
         <div class="info-item">
           <span>Trạng thái:</span>
-          <span class="info-value"><span class="badge">{{ getStatusLabel(invoice.status) }}</span></span>
+          <span class="info-value"><span class="badge">{{ getStatusLabel(invoice.backendStatus || invoice.status)
+              }}</span></span>
         </div>
         <div class="info-item">
           <span>Ngày đặt:</span>
@@ -218,7 +234,7 @@
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
           <h5 class="modal-title">
-            <i class="bi bi-clock-history"></i> Lịch sử hóa đơn {{ invoice?.ma || code }}
+            <i class="bi bi-clock-history"></i> Lịch sử hóa đơn {{ invoice?.code || codeParam }}
           </h5>
           <button type="button" class="btn-close btn-close-white" @click="closeHistoryModal"></button>
         </div>
@@ -236,9 +252,10 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getHoaDonDetail, capNhatTrangThai } from '@/service/hoaDonService'
+import { getHoaDonDetail, getHoaDonDetailByCode, capNhatTrangThai } from '@/service/hoaDonService'
+import { useInvoiceStore } from '@/stores/invoiceStore'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -247,120 +264,171 @@ import InvoiceHistoryTimeline from './InvoiceHistoryTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
-const code = route.params.code
 const invoiceStore = useInvoiceStore()
 
+const invoice = ref(null)
+const isLoading = ref(true)
+const loadError = ref('')
+
+const codeParam = computed(() => route.params.code)
+const idParam = computed(() => route.query.id)
+
 const steps = [
-  { status: 'pending', label: 'Chờ thêm sản phẩm' },
-  { status: 'processing', label: 'Chờ xác nhận' },
-  { status: 'confirmed', label: 'Đã xác nhận' },
-  { status: 'delivering', label: 'Chờ giao hàng' },
-  { status: 'shipping', label: 'Đang vận chuyển' },
-  { status: 'delivered', label: 'Hoàn thành' },
-  { status: 'done', label: 'Hoàn tất' },
+  { status: 'CHO_THANH_TOAN', label: 'Chờ thanh toán', backendStatus: 'CHO_THANH_TOAN' },
+  { status: 'DA_THANH_TOAN', label: 'Đã thanh toán', backendStatus: 'DA_THANH_TOAN' },
+  { status: 'DANG_GIAO', label: 'Đang giao hàng', backendStatus: 'DANG_GIAO' },
+  { status: 'HOAN_THANH', label: 'Hoàn tất', backendStatus: 'HOAN_THANH' },
 ]
 
-const invoice = computed(
-  () => invoiceStore.getInvoiceByCode(code) || { customer: {}, details: [], payments: [] },
+const currentStep = computed(() => {
+  if (!invoice.value?.backendStatus) return 0
+  const idx = steps.findIndex((s) => s.backendStatus === invoice.value.backendStatus)
+  return idx >= 0 ? idx : 0
+})
+
+const statusLabelMap = {
+  CHO_THANH_TOAN: 'Chờ thanh toán',
+  DA_THANH_TOAN: 'Đã thanh toán',
+  DANG_GIAO: 'Đang giao hàng',
+  HOAN_THANH: 'Hoàn tất',
+  DA_HUY: 'Đã hủy',
+  pending: 'Chờ thanh toán',
+  confirmed: 'Đã thanh toán',
+  shipping: 'Đang giao hàng',
+  done: 'Hoàn tất',
+}
+
+const customerName = computed(() => invoice.value?.customer?.name || 'Khách lẻ')
+const customerPhone = computed(() => invoice.value?.customer?.phone || '')
+
+const subTotal = computed(() =>
+  (invoice.value?.details || []).reduce((sum, item) => sum + (item.total || 0), 0),
 )
-const currentStep = computed(() => steps.findIndex((s) => s.status === invoice.value?.status))
-
-const customerName = computed(() => {
-  const nameString = invoice.value.customer?.name || ''
-  if (nameString.includes(' - ')) {
-    return nameString.split(' - ')[0].trim()
-  }
-  return nameString
-})
-
-const customerPhone = computed(() => {
-  const nameString = invoice.value.customer?.name || ''
-  if (nameString.includes(' - ')) {
-    return nameString.split(' - ')[1].trim()
-  }
-  // Fallback to phone field if it exists and name doesn't contain phone
-  return invoice.value.customer?.phone || ''
-})
-
-const subTotal = computed(() => (invoice.value.details || []).reduce((sum, i) => sum + i.total, 0))
 const finalTotal = computed(
-  () => subTotal.value - (invoice.value.discount || 0) + (invoice.value.shippingFee || 0),
+  () => subTotal.value - (invoice.value?.discount || 0) + (invoice.value?.shippingFee || 0),
 )
 const paidAmount = computed(() =>
-  (invoice.value.payments || []).reduce((sum, p) => sum + p.amount, 0),
+  (invoice.value?.payments || []).reduce((sum, payment) => sum + (payment.amount || 0), 0),
 )
 const remainingAmount = computed(() => finalTotal.value - paidAmount.value)
 
-const getStatusLabel = (status) => {
-  const step = steps.find((s) => s.status === status)
-  return step ? step.label : 'Không xác định'
-}
+const getStatusLabel = (status) => statusLabelMap[status] || 'Không xác định'
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
-}
+const formatCurrency = (amount) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
 
 const goBack = () => {
   router.push('/quan-li-hoa-don')
 }
 
-const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+const { success: showSuccess, error: showError } = useToast()
 const { showConfirm } = useConfirm()
 const { handleError: handleErrorWithRetry } = useErrorHandler()
 
-const prevStep = async () => {
-  if (currentStep.value > 0 && invoice.value) {
-    const confirmed = await showConfirm({
-      title: 'Hoàn tác trạng thái',
-      message: 'Bạn có chắc muốn hoàn tác trạng thái hóa đơn này?',
-      confirmText: 'Hoàn tác',
-      cancelText: 'Hủy',
-      type: 'warning'
-    })
+const syncInvoiceFromResponse = (responsePayload) => {
+  if (!responsePayload) return invoice.value
+  const wrapper = responsePayload.data || responsePayload
+  const rawInvoice = wrapper?.data || wrapper
+  return invoiceStore.upsertInvoice(rawInvoice) || invoice.value
+}
 
-    if (confirmed) {
-      try {
-        const prevStepData = steps[currentStep.value - 1]
-        const response = await capNhatTrangThai(invoice.value.id, prevStepData.backendStatus)
-        invoice.value = response.data
-        showSuccess('Đã hoàn tác trạng thái thành công!')
-      } catch (error) {
-        await handleErrorWithRetry(
-          error,
-          () => prevStep(),
-          'Không thể hoàn tác trạng thái. Vui lòng thử lại!',
-          { showRetry: true, maxRetries: 2 }
-        )
-      }
+const fetchInvoice = async () => {
+  if (!codeParam.value && !idParam.value) {
+    loadError.value = 'Không tìm thấy mã hóa đơn.'
+    invoice.value = null
+    isLoading.value = false
+    return
+  }
+
+  isLoading.value = true
+  loadError.value = ''
+
+  try {
+    let cachedInvoice = null
+    if (codeParam.value) {
+      cachedInvoice = invoiceStore.getInvoiceByCode(codeParam.value)
+    } else if (idParam.value) {
+      cachedInvoice = invoiceStore.getInvoiceById(idParam.value)
     }
+
+    if (cachedInvoice) {
+      invoice.value = cachedInvoice
+    }
+
+    let response
+    if (codeParam.value) {
+      response = await getHoaDonDetailByCode(codeParam.value)
+    } else {
+      response = await getHoaDonDetail(idParam.value)
+    }
+
+    const normalized = syncInvoiceFromResponse(response)
+    if (normalized) {
+      invoice.value = normalized
+    } else if (!invoice.value) {
+      loadError.value = 'Không tìm thấy dữ liệu hóa đơn.'
+    }
+  } catch (error) {
+    console.error('❌ [ChiTietHoaDon] Lỗi khi tải hóa đơn:', error)
+    loadError.value = error.response?.data?.message || 'Không thể tải chi tiết hóa đơn.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const prevStep = async () => {
+  if (currentStep.value <= 0 || !invoice.value) return
+
+  const confirmed = await showConfirm({
+    title: 'Hoàn tác trạng thái',
+    message: 'Bạn có chắc muốn hoàn tác trạng thái hóa đơn này?',
+    confirmText: 'Hoàn tác',
+    cancelText: 'Hủy',
+    type: 'warning',
+  })
+
+  if (!confirmed) return
+
+  try {
+    const targetStatus = steps[currentStep.value - 1].backendStatus
+    const response = await capNhatTrangThai(invoice.value.id, targetStatus)
+    invoice.value = syncInvoiceFromResponse(response)
+    showSuccess('Đã hoàn tác trạng thái thành công!')
+  } catch (error) {
+    await handleErrorWithRetry(
+      error,
+      () => prevStep(),
+      'Không thể hoàn tác trạng thái. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 },
+    )
   }
 }
 
 const nextStep = async () => {
-  if (currentStep.value < steps.length - 1 && invoice.value) {
-    const confirmed = await showConfirm({
-      title: 'Xác nhận chuyển trạng thái',
-      message: 'Bạn có chắc muốn chuyển sang trạng thái tiếp theo?',
-      confirmText: 'Xác nhận',
-      cancelText: 'Hủy',
-      type: 'info'
-    })
+  if (currentStep.value >= steps.length - 1 || !invoice.value) return
 
-    if (confirmed) {
-      try {
-        const nextStepData = steps[currentStep.value + 1]
-        const response = await capNhatTrangThai(invoice.value.id, nextStepData.backendStatus)
-        invoice.value = response.data
-        showSuccess('Đã chuyển trạng thái thành công!')
-      } catch (error) {
-        await handleErrorWithRetry(
-          error,
-          () => nextStep(),
-          'Không thể chuyển trạng thái. Vui lòng thử lại!',
-          { showRetry: true, maxRetries: 2 }
-        )
-      }
-    }
+  const confirmed = await showConfirm({
+    title: 'Xác nhận chuyển trạng thái',
+    message: 'Bạn có chắc muốn chuyển sang trạng thái tiếp theo?',
+    confirmText: 'Xác nhận',
+    cancelText: 'Hủy',
+    type: 'info',
+  })
+
+  if (!confirmed) return
+
+  try {
+    const targetStatus = steps[currentStep.value + 1].backendStatus
+    const response = await capNhatTrangThai(invoice.value.id, targetStatus)
+    invoice.value = syncInvoiceFromResponse(response)
+    showSuccess('Đã chuyển trạng thái thành công!')
+  } catch (error) {
+    await handleErrorWithRetry(
+      error,
+      () => nextStep(),
+      'Không thể chuyển trạng thái. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 },
+    )
   }
 }
 
@@ -372,26 +440,25 @@ const cancelInvoice = async () => {
     message: 'Bạn có chắc muốn hủy hóa đơn này?',
     confirmText: 'Hủy đơn',
     cancelText: 'Không',
-    type: 'danger'
+    type: 'danger',
   })
 
-  if (confirmed) {
-    try {
-      const response = await capNhatTrangThai(invoice.value.id, 2) // 2 = DA_HUY
-      invoice.value = response.data
-      showSuccess('Đã hủy hóa đơn thành công!')
-    } catch (error) {
-      await handleErrorWithRetry(
-        error,
-        () => cancelInvoice(),
-        'Không thể hủy hóa đơn. Vui lòng thử lại!',
-        { showRetry: true, maxRetries: 2 }
-      )
-    }
+  if (!confirmed) return
+
+  try {
+    const response = await capNhatTrangThai(invoice.value.id, 'DA_HUY')
+    invoice.value = syncInvoiceFromResponse(response)
+    showSuccess('Đã hủy hóa đơn thành công!')
+  } catch (error) {
+    await handleErrorWithRetry(
+      error,
+      () => cancelInvoice(),
+      'Không thể hủy hóa đơn. Vui lòng thử lại!',
+      { showRetry: true, maxRetries: 2 },
+    )
   }
 }
 
-// Update invoice modal
 const showUpdateModal = ref(false)
 
 const updateInvoice = () => {
@@ -407,14 +474,14 @@ const closeUpdateModal = () => {
 }
 
 const handleInvoiceUpdated = (updatedInvoice) => {
-  invoice.value = updatedInvoice
+  invoice.value = invoiceStore.upsertInvoice(updatedInvoice)
   showUpdateModal.value = false
 }
 
 const printInvoice = async () => {
   try {
     const { inHoaDon } = await import('@/service/banhang/hoaDonService')
-    const invoiceId = invoice.value?.id || code
+    const invoiceId = invoice.value?.id || codeParam.value || idParam.value
 
     if (!invoiceId) {
       showError('Không có thông tin hóa đơn để in!')
@@ -441,7 +508,6 @@ const printInvoice = async () => {
   }
 }
 
-// Invoice history
 const showHistoryModal = ref(false)
 
 const viewHistory = () => {
@@ -467,6 +533,15 @@ const formatDateTime = (dateStr) => {
     year: 'numeric',
   })
 }
+
+onMounted(fetchInvoice)
+
+watch(
+  () => [codeParam.value, idParam.value],
+  () => {
+    fetchInvoice()
+  },
+)
 </script>
 
 <style scoped>

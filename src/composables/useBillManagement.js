@@ -355,25 +355,128 @@ export function useBillManagement() {
    * Không gọi API - chỉ update reactive state và localStorage
    */
   const capNhatHoaDon = (updatedBill) => {
-    console.log('📝 [LOCAL] Cập nhật hóa đơn local:', updatedBill)
+    if (!updatedBill) {
+      console.warn('⚠️ [BillManagement] Không có dữ liệu để cập nhật hóa đơn!')
+      return
+    }
 
-    // Cập nhật hóa đơn hiện tại
-    hoaDonHienTai.value = {
+    const rawHoaDon = updatedBill?.data || updatedBill
+    const normalizedHoaDon = normalizeHoaDon(rawHoaDon)
+
+    if (!normalizedHoaDon) {
+      console.warn('⚠️ [BillManagement] Dữ liệu hóa đơn không hợp lệ:', updatedBill)
+      return
+    }
+
+    const mergedBill = {
       ...hoaDonHienTai.value,
-      ...updatedBill,
-      isLocal: true, // Đảm bảo flag local
+      ...normalizedHoaDon,
     }
 
-    // Cập nhật trong danh sách chờ
-    const index = danhSachHoaDonCho.value.findIndex((b) => b.id === updatedBill.id)
+    // Giữ nguyên trạng thái local nếu backend không trả về flag
+    mergedBill.isLocal = normalizedHoaDon?.isLocal ?? hoaDonHienTai.value?.isLocal ?? false
+
+    // Cập nhật ref hiện tại
+    hoaDonHienTai.value = mergedBill
+
+    // Đồng bộ vào danh sách hóa đơn chờ
+    const index = danhSachHoaDonCho.value.findIndex((b) => b.id === mergedBill.id)
     if (index > -1) {
-      danhSachHoaDonCho.value[index] = hoaDonHienTai.value
+      danhSachHoaDonCho.value[index] = mergedBill
+    } else if (mergedBill.id) {
+      danhSachHoaDonCho.value.push(mergedBill)
     }
 
-    // Tự động lưu vào localStorage
     saveDraftToLocalStorage()
 
-    console.log('✅ [LOCAL] Đã cập nhật hóa đơn local vào state + localStorage')
+    console.log('✅ [BillManagement] Đã cập nhật hóa đơn vào state + localStorage:', mergedBill.id)
+  }
+
+  /**
+   * Đảm bảo hóa đơn local được tạo trên backend trước khi gọi các API yêu cầu UUID thật
+   */
+  const ensureHoaDonTonTai = async () => {
+    if (!hoaDonHienTai.value) {
+      const message = 'Không tìm thấy hóa đơn hiện tại. Vui lòng tạo hóa đơn mới!'
+      showError(message)
+      throw new Error(message)
+    }
+
+    if (!hoaDonHienTai.value.isLocal) {
+      return hoaDonHienTai.value
+    }
+
+    const nhanVienId = hoaDonHienTai.value.nhanVienId || authStore.getUserId
+    if (!nhanVienId) {
+      const message = 'Không xác định được nhân viên cho hóa đơn. Vui lòng đăng nhập lại!'
+      showError(message)
+      router.push('/login')
+      throw new Error(message)
+    }
+
+    const khachHang = hoaDonHienTai.value.khachHang || null
+    const payload = {
+      nhanVienId,
+      khachHangId: khachHang?.userId || khachHang?.id || hoaDonHienTai.value.khachHangId || null,
+    }
+
+    const previousLoading = isLoading.value
+    if (!previousLoading) {
+      isLoading.value = true
+    }
+
+    try {
+      console.log('🔄 [BillManagement] Đồng bộ hóa đơn local lên backend...', {
+        tempId: hoaDonHienTai.value.id,
+        payload,
+      })
+
+      const response = await taoHoaDonChoMoi(payload)
+      const backendHoaDon = normalizeHoaDon(response?.data || response)
+
+      if (!backendHoaDon || !backendHoaDon.id) {
+        throw new Error('Response tạo hóa đơn không hợp lệ')
+      }
+
+      const tempId = hoaDonHienTai.value.id
+      const syncedBill = {
+        ...hoaDonHienTai.value,
+        ...backendHoaDon,
+        id: backendHoaDon.id,
+        ma: backendHoaDon.ma || hoaDonHienTai.value.ma,
+        isLocal: false,
+      }
+
+      const index = danhSachHoaDonCho.value.findIndex((b) => b.id === tempId)
+      if (index > -1) {
+        danhSachHoaDonCho.value.splice(index, 1, syncedBill)
+      } else {
+        danhSachHoaDonCho.value.push(syncedBill)
+      }
+
+      hoaDonHienTai.value = syncedBill
+
+      saveDraftToLocalStorage()
+
+      console.log('✅ [BillManagement] Đã sync hóa đơn local -> backend:', {
+        tempId,
+        newId: syncedBill.id,
+      })
+
+      return syncedBill
+    } catch (error) {
+      console.error('❌ [BillManagement] Lỗi khi sync hóa đơn local:', error)
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Không thể tạo hóa đơn trên hệ thống. Vui lòng thử lại!'
+      showError(message)
+      throw error
+    } finally {
+      if (!previousLoading) {
+        isLoading.value = false
+      }
+    }
   }
 
   /**
@@ -574,6 +677,7 @@ export function useBillManagement() {
     handleSaveDraft,
     loadDanhSachHoaDonCho,
     capNhatHoaDon,
+    ensureHoaDonTonTai,
     xoaHoaDonSauThanhToan,
     copyBill,
     handleSaveDraft,

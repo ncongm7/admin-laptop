@@ -34,12 +34,8 @@
               <span class="input-group-text bg-light">
                 <i class="bi bi-search"></i>
               </span>
-              <input
-                v-model="q"
-                type="text"
-                class="form-control form-control-lg"
-                placeholder="Tìm theo số điện thoại hoặc Serial..."
-              />
+              <input v-model="q" type="text" class="form-control form-control-lg"
+                placeholder="Tìm theo số điện thoại hoặc Serial..." />
             </div>
           </div>
           <div class="col-md-4">
@@ -166,11 +162,11 @@
     </div>
 
     <!-- Modal thêm bảo hành -->
-    <AddWarrantyModal
-      v-if="showAddWarrantyModal"
-      @close="closeAddWarrantyModal"
-      @created="handleWarrantyCreated"
-    />
+    <AddWarrantyModal v-if="showAddWarrantyModal" @close="closeAddWarrantyModal" @created="handleWarrantyCreated" />
+
+    <!-- Modal chi tiết bảo hành -->
+    <WarrantyDetail v-if="selectedWarranty" :warranty="selectedWarranty" @close="closeWarrantyDetail"
+      @refresh="handleWarrantyRefresh" @warranty-updated="handleWarrantyUpdated" />
 
     <!-- Pagination -->
     <div v-if="!loading && filtered.length > 0" class="pagination-wrapper mt-4">
@@ -210,11 +206,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getPhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
-import { useRouter } from 'vue-router'
+import { getPhieuBaoHanh, getPhieuBaoHanhById } from '@/service/baohanh/PhieuBaoHanhService'
 import AddWarrantyModal from '@/components/baohanh/AddWarrantyModal.vue'
-
-const router = useRouter()
+import WarrantyDetail from '@/components/baohanh/WarrantyDetail.vue'
 
 const list = ref([])
 const q = ref('')
@@ -293,9 +287,32 @@ watch([q, status], () => {
   page.value = 1
 })
 
-// Xem chi tiết
-const viewDetail = (id) => {
-  router.push(`/quan-li-bao-hanh/chi-tiet/${id}`)
+// Xem chi tiết - sử dụng modal
+const selectedWarranty = ref(null)
+
+const viewDetail = async (id) => {
+  try {
+    // Fetch chi tiết bảo hành
+    const warranty = await getPhieuBaoHanhById(id)
+    selectedWarranty.value = warranty
+  } catch (error) {
+    console.error('Lỗi khi tải chi tiết bảo hành:', error)
+    alert('Không thể tải chi tiết bảo hành. Vui lòng thử lại.')
+  }
+}
+
+const closeWarrantyDetail = () => {
+  selectedWarranty.value = null
+}
+
+const handleWarrantyRefresh = () => {
+  // Refresh danh sách sau khi cập nhật
+  fetchList()
+}
+
+const handleWarrantyUpdated = (updatedWarranty) => {
+  // Cập nhật selectedWarranty với dữ liệu mới
+  selectedWarranty.value = updatedWarranty
 }
 
 // Add warranty modal
@@ -555,6 +572,7 @@ onMounted(fetchList)
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

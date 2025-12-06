@@ -1,6 +1,134 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+const STATUS_NUMBER_MAP = {
+  0: 'CHO_THANH_TOAN',
+  1: 'DA_THANH_TOAN',
+  2: 'DA_HUY',
+  3: 'DANG_GIAO',
+  4: 'HOAN_THANH',
+}
+
+const STEP_STATUS_MAP = {
+  CHO_THANH_TOAN: 'pending',
+  DA_THANH_TOAN: 'confirmed',
+  DANG_GIAO: 'shipping',
+  HOAN_THANH: 'done',
+  DA_HUY: 'canceled',
+}
+
+function deriveBackendStatus(status) {
+  if (typeof status === 'string' && status.length > 0) {
+    return status
+  }
+
+  if (typeof status === 'number' && STATUS_NUMBER_MAP[status]) {
+    return STATUS_NUMBER_MAP[status]
+  }
+
+  if (status && typeof status === 'object') {
+    if (status.name && typeof status.name === 'string') {
+      return status.name
+    }
+    if (status.code && typeof status.code === 'string') {
+      return status.code
+    }
+  }
+
+  return null
+}
+
+function buildPaymentHistory(rawInvoice, paymentMeta = {}) {
+  const entries = []
+  if (!rawInvoice && !paymentMeta) return entries
+
+  const baseAmount = Number(
+    paymentMeta.soTienThanhToan ?? rawInvoice?.tongTienSauGiam ?? rawInvoice?.tongTien ?? 0,
+  )
+  const staffName =
+    paymentMeta.tenNhanVien || rawInvoice?.tenNhanVien || rawInvoice?.nhanVien?.hoTen || 'N/A'
+
+  if (paymentMeta && paymentMeta.idPhuongThucThanhToan) {
+    entries.push({
+      method: paymentMeta.tenPhuongThucThanhToan || 'Thanh toán',
+      amount: baseAmount,
+      time: rawInvoice?.ngayThanhToan || new Date().toISOString(),
+      staff: staffName,
+    })
+  } else if (rawInvoice?.trangThaiThanhToan === 1) {
+    entries.push({
+      method: 'Đã thanh toán',
+      amount: baseAmount,
+      time: rawInvoice?.ngayThanhToan || rawInvoice?.ngayTao,
+      staff: staffName,
+    })
+  }
+
+  return entries
+}
+
+function normalizeInvoice(rawInvoice, options = {}) {
+  if (!rawInvoice) return null
+
+  // Đã ở định dạng chuẩn
+  if (rawInvoice.details && rawInvoice.customer && rawInvoice.code) {
+    const normalized = {
+      ...rawInvoice,
+      backendStatus: rawInvoice.backendStatus || rawInvoice.status || null,
+    }
+    if (!normalized.status && normalized.backendStatus) {
+      normalized.status = STEP_STATUS_MAP[normalized.backendStatus] || 'pending'
+    }
+    normalized._raw = rawInvoice._raw || rawInvoice
+    return normalized
+  }
+
+  const backendStatus = deriveBackendStatus(rawInvoice.trangThai)
+  const status = STEP_STATUS_MAP[backendStatus] || 'pending'
+  const customerNameParts = []
+  if (rawInvoice.tenKhachHang) {
+    customerNameParts.push(rawInvoice.tenKhachHang)
+  }
+  if (rawInvoice.sdt) {
+    customerNameParts.push(rawInvoice.sdt)
+  }
+
+  const detailsSource = rawInvoice.chiTietList || rawInvoice.details || []
+
+  return {
+    id: rawInvoice.id,
+    code: rawInvoice.ma || rawInvoice.code || '',
+    customer: {
+      name: customerNameParts.length > 0 ? customerNameParts.join(' - ') : 'Khách lẻ',
+      phone: rawInvoice.sdt || '',
+      address: rawInvoice.diaChi || '',
+    },
+    type: rawInvoice.loaiHoaDon === 0 ? 'Tại quầy' : 'Online',
+    createdBy: options.staffName || rawInvoice.tenNhanVien || rawInvoice.nhanVien?.hoTen || 'N/A',
+    createdAt: rawInvoice.ngayTao,
+    total: Number(rawInvoice.tongTienSauGiam ?? rawInvoice.tongTien ?? 0),
+    status,
+    backendStatus,
+    note: rawInvoice.ghiChu || '',
+    discount: Number(rawInvoice.tienDuocGiam ?? 0),
+    tax: Number(rawInvoice.thue ?? rawInvoice.tax ?? 0),
+    shippingFee: Number(rawInvoice.phiVanChuyen ?? rawInvoice.shippingFee ?? 0),
+    payments: buildPaymentHistory(rawInvoice, options.payment),
+    details: detailsSource.map((item) => ({
+      sku: item.maChiTietSanPham || item.sku || '',
+      name: item.tenSanPham || item.name || '',
+      quantity: item.soLuong ?? item.quantity ?? 0,
+      price: Number(item.donGia ?? item.price ?? 0),
+      total:
+        Number(item.thanhTien ?? item.total) ||
+        Number(item.donGia ?? 0) * Number(item.soLuong ?? 0),
+      image: item.anhSanPham || item.image || null,
+    })),
+    paymentsMeta: options.payment || null,
+    _raw: rawInvoice,
+  }
+}
+
 export const useInvoiceStore = defineStore('invoice', () => {
   const invoices = ref([
     {
@@ -166,10 +294,44 @@ export const useInvoiceStore = defineStore('invoice', () => {
     return invoices.value.find((inv) => inv.code === code)
   }
 
-  function updateInvoiceStatus(code, status) {
-    const invoice = invoices.value.find((inv) => inv.code === code)
-    if (invoice) invoice.status = status
+  function getInvoiceById(id) {
+    return invoices.value.find((inv) => inv.id === id)
   }
 
-  return { invoices, getInvoiceByCode, updateInvoiceStatus }
+  function upsertInvoice(rawInvoice, options = {}) {
+    const normalized = normalizeInvoice(rawInvoice, options)
+    if (!normalized) return null
+
+    const indexById = invoices.value.findIndex((inv) => inv.id === normalized.id)
+    const indexByCode = invoices.value.findIndex((inv) => inv.code === normalized.code)
+    const targetIndex = indexById !== -1 ? indexById : indexByCode
+
+    if (targetIndex !== -1) {
+      invoices.value[targetIndex] = {
+        ...invoices.value[targetIndex],
+        ...normalized,
+      }
+      return invoices.value[targetIndex]
+    }
+
+    invoices.value.unshift(normalized)
+    return normalized
+  }
+
+  function updateInvoiceStatus(code, status) {
+    const invoice = invoices.value.find((inv) => inv.code === code || inv.id === code)
+    if (!invoice) return
+
+    const backendStatus = deriveBackendStatus(status) || status || invoice.backendStatus
+    invoice.backendStatus = backendStatus
+    invoice.status = STEP_STATUS_MAP[backendStatus] || status || invoice.status
+  }
+
+  return {
+    invoices,
+    getInvoiceByCode,
+    getInvoiceById,
+    upsertInvoice,
+    updateInvoiceStatus,
+  }
 })

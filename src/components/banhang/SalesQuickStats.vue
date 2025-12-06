@@ -90,7 +90,8 @@
           <div class="chart-container" v-show="!isLoading">
             <canvas ref="revenueChartCanvas"></canvas>
           </div>
-          <div v-if="!isLoading && (labels.length === 0 || (data && data.length > 0 && data.every(v => v === 0)))" class="chart-empty-state">
+          <div v-if="!isLoading && (labels.length === 0 || (data && data.length > 0 && data.every(v => v === 0)))"
+            class="chart-empty-state">
             <i class="bi bi-inbox" style="font-size: 2rem; color: #dee2e6;"></i>
             <p class="text-muted mb-0 mt-2">Chưa có dữ liệu doanh thu hôm nay</p>
           </div>
@@ -106,11 +107,7 @@
             <p class="mb-0 mt-2">Chưa có dữ liệu</p>
           </div>
           <div v-else class="top-products-list">
-            <div
-              v-for="(product, index) in topProducts"
-              :key="product.id || index"
-              class="top-product-item"
-            >
+            <div v-for="(product, index) in topProducts" :key="product.id || index" class="top-product-item">
               <div class="product-rank">
                 <span class="rank-badge" :class="getRankClass(index)">
                   {{ index + 1 }}
@@ -119,7 +116,8 @@
               <div class="product-info">
                 <div class="product-name">{{ product.tenSanPham || product.name || 'N/A' }}</div>
                 <div class="product-meta">
-                  <span class="text-muted small">Đã bán: {{ (product.soLuongDaBan || product.sold || 0).toLocaleString() }}</span>
+                  <span class="text-muted small">Đã bán: {{ (product.soLuongDaBan || product.sold || 0).toLocaleString()
+                  }}</span>
                   <span class="text-success small ms-2">
                     Doanh thu: {{ formatCurrency(product.doanhThu || product.revenue || 0) }}
                   </span>
@@ -248,43 +246,106 @@ const loadStats = async () => {
 
     console.log('📊 [SalesQuickStats] Đang tải thống kê cho hôm nay:', today)
 
-    // Load tổng quan
-    const [todayStatsResponse, yesterdayStatsResponse, chartDataResponse, topProductsResponse] = await Promise.all([
-      fetchThongKeTongQuan(today, today),
-      fetchThongKeTongQuan(yesterday, yesterday),
-      fetchBieuDoData(today, today, 'day'), // Backend chỉ hỗ trợ 'day', 'month', 'year'
-      fetchSanPhamBanChay(today, today, 5)
-    ])
+    // Load tổng quan với error handling riêng
+    let todayStatsResponse, yesterdayStatsResponse, chartDataResponse, topProductsResponse
 
-    console.log('✅ [SalesQuickStats] Dữ liệu nhận được:', {
-      todayStats: todayStatsResponse,
-      yesterdayStats: yesterdayStatsResponse,
-      chartData: chartDataResponse,
-      topProducts: topProductsResponse
-    })
+    try {
+      todayStatsResponse = await fetchThongKeTongQuan(today, today)
+      console.log('✅ Today Stats:', todayStatsResponse)
+    } catch (err) {
+      console.warn('⚠️ Lỗi khi lấy stats hôm nay:', err)
+      todayStatsResponse = { data: null }
+    }
 
-    // Parse response structure từ backend
-    // Response có cấu trúc: { success: true, data: ThongKeTongQuanResponse, message: "..." }
-    const todayStats = todayStatsResponse?.data || todayStatsResponse
-    const yesterdayStats = yesterdayStatsResponse?.data || yesterdayStatsResponse
+    try {
+      yesterdayStatsResponse = await fetchThongKeTongQuan(yesterday, yesterday)
+      console.log('✅ Yesterday Stats:', yesterdayStatsResponse)
+    } catch (err) {
+      console.warn('⚠️ Lỗi khi lấy stats hôm qua:', err)
+      yesterdayStatsResponse = { data: null }
+    }
 
-    // Lấy doanh thu từ doanhThu.giaTri
-    const todayRevenue = todayStats?.doanhThu?.giaTri
-      ? parseFloat(todayStats.doanhThu.giaTri)
-      : 0
+    try {
+      chartDataResponse = await fetchBieuDoData(today, today, 'day')
+      console.log('✅ Chart Data:', chartDataResponse)
+    } catch (err) {
+      console.warn('⚠️ Lỗi khi lấy chart data:', err)
+      chartDataResponse = { data: [] }
+    }
 
-    // Lấy số đơn từ doanhSo.giaTri
-    const todayOrdersCount = todayStats?.doanhSo?.giaTri
-      ? parseInt(todayStats.doanhSo.giaTri)
-      : 0
+    try {
+      topProductsResponse = await fetchSanPhamBanChay(today, today, 5)
+      console.log('✅ Top Products:', topProductsResponse)
+    } catch (err) {
+      console.warn('⚠️ Lỗi khi lấy top products:', err)
+      topProductsResponse = { data: [] }
+    }
 
-    const yesterdayRevenue = yesterdayStats?.doanhThu?.giaTri
-      ? parseFloat(yesterdayStats.doanhThu.giaTri)
-      : 0
+    // Parse response - Backend trả về ResponseObject<T> với cấu trúc { success, data, message }
+    // Response từ axios: response.data = { success: true, data: {...}, message: "..." }
+    // Nên cần: response.data.data để lấy ThongKeTongQuanResponse
+    console.log('📊 [SalesQuickStats] Raw Today Response:', JSON.stringify(todayStatsResponse, null, 2))
+    console.log('📊 [SalesQuickStats] Raw Yesterday Response:', JSON.stringify(yesterdayStatsResponse, null, 2))
 
-    const yesterdayOrders = yesterdayStats?.doanhSo?.giaTri
-      ? parseInt(yesterdayStats.doanhSo.giaTri)
-      : 0
+    // Parse response structure: { success, data, message } -> data chứa ThongKeTongQuanResponse
+    const todayStats = todayStatsResponse?.data || {}
+    const yesterdayStats = yesterdayStatsResponse?.data || {}
+
+    console.log('📊 [SalesQuickStats] Parsed Today Stats:', JSON.stringify(todayStats, null, 2))
+    console.log('📊 [SalesQuickStats] Parsed Yesterday Stats:', JSON.stringify(yesterdayStats, null, 2))
+
+    // Lấy doanh thu từ doanhThu.giaTri (BigDecimal)
+    // Backend trả về: doanhThu: { giaTri: BigDecimal, soSanhKyTruoc: Double, loiNhuan: BigDecimal }
+    let todayRevenue = 0
+    if (todayStats?.doanhThu) {
+      if (todayStats.doanhThu.giaTri !== undefined && todayStats.doanhThu.giaTri !== null) {
+        todayRevenue = parseFloat(todayStats.doanhThu.giaTri) || 0
+      } else if (typeof todayStats.doanhThu === 'number') {
+        todayRevenue = todayStats.doanhThu
+      } else if (typeof todayStats.doanhThu === 'string') {
+        todayRevenue = parseFloat(todayStats.doanhThu) || 0
+      }
+    }
+
+    // Lấy số đơn từ doanhSo.giaTri (Long)
+    // Backend trả về: doanhSo: { giaTri: Long, soSanhKyTruoc: Double }
+    let todayOrdersCount = 0
+    if (todayStats?.doanhSo) {
+      if (todayStats.doanhSo.giaTri !== undefined && todayStats.doanhSo.giaTri !== null) {
+        todayOrdersCount = parseInt(todayStats.doanhSo.giaTri) || 0
+      } else if (typeof todayStats.doanhSo === 'number') {
+        todayOrdersCount = todayStats.doanhSo
+      } else if (typeof todayStats.doanhSo === 'string') {
+        todayOrdersCount = parseInt(todayStats.doanhSo) || 0
+      }
+    }
+
+    let yesterdayRevenue = 0
+    if (yesterdayStats?.doanhThu) {
+      if (yesterdayStats.doanhThu.giaTri !== undefined && yesterdayStats.doanhThu.giaTri !== null) {
+        yesterdayRevenue = parseFloat(yesterdayStats.doanhThu.giaTri) || 0
+      } else if (typeof yesterdayStats.doanhThu === 'number') {
+        yesterdayRevenue = yesterdayStats.doanhThu
+      } else if (typeof yesterdayStats.doanhThu === 'string') {
+        yesterdayRevenue = parseFloat(yesterdayStats.doanhThu) || 0
+      }
+    }
+
+    let yesterdayOrders = 0
+    if (yesterdayStats?.doanhSo) {
+      if (yesterdayStats.doanhSo.giaTri !== undefined && yesterdayStats.doanhSo.giaTri !== null) {
+        yesterdayOrders = parseInt(yesterdayStats.doanhSo.giaTri) || 0
+      } else if (typeof yesterdayStats.doanhSo === 'number') {
+        yesterdayOrders = yesterdayStats.doanhSo
+      } else if (typeof yesterdayStats.doanhSo === 'string') {
+        yesterdayOrders = parseInt(yesterdayStats.doanhSo) || 0
+      }
+    }
+
+    console.log('💰 [SalesQuickStats] Today Revenue:', todayRevenue, '(from doanhThu.giaTri)')
+    console.log('📦 [SalesQuickStats] Today Orders:', todayOrdersCount, '(from doanhSo.giaTri)')
+    console.log('💰 [SalesQuickStats] Yesterday Revenue:', yesterdayRevenue)
+    console.log('📦 [SalesQuickStats] Yesterday Orders:', yesterdayOrders)
 
     // Tính toán % thay đổi
     const revenueChange = yesterdayRevenue > 0
@@ -303,34 +364,37 @@ const loadStats = async () => {
       ordersChange
     }
 
-    console.log('📈 [SalesQuickStats] Stats đã tính:', stats.value)
+    console.log('📈 [SalesQuickStats] Stats cuối cùng:', stats.value)
 
-    // Top products
-    const topProductsData = topProductsResponse?.data || topProductsResponse
-    if (topProductsData && Array.isArray(topProductsData)) {
+    // Top products - Backend trả về ResponseObject<List<SanPhamBanChayResponse>>
+    // Response structure: { success, data: [...], message }
+    const topProductsData = topProductsResponse?.data || []
+    console.log('🏆 [SalesQuickStats] Top Products Raw Data:', topProductsResponse)
+    console.log('🏆 [SalesQuickStats] Top Products Parsed:', topProductsData)
+
+    if (Array.isArray(topProductsData) && topProductsData.length > 0) {
       topProducts.value = topProductsData.map(item => ({
         id: item.id,
-        tenSanPham: item.tenSanPham,
-        soLuongDaBan: item.soLuongBan || 0,
-        doanhThu: parseFloat(item.doanhThu) || 0
+        tenSanPham: item.tenSanPham || item.ten || 'N/A',
+        soLuongDaBan: parseInt(item.soLuongBan || item.soLuong || 0),
+        doanhThu: parseFloat(item.doanhThu || 0)
       }))
     } else {
       topProducts.value = []
     }
 
-    // Render chart - đợi DOM sẵn sàng
-    // Đợi nhiều lần để đảm bảo canvas đã được render hoàn toàn
+    console.log('🏆 Processed Top Products:', topProducts.value)
+
+    // Render chart
+    isLoading.value = false
     await nextTick()
-    await nextTick() // Double nextTick để chắc chắn
-    // Đợi thêm một chút để đảm bảo canvas đã được mount vào DOM
-    await new Promise(resolve => setTimeout(resolve, 150))
+    await new Promise(resolve => setTimeout(resolve, 100))
     await renderChart(chartDataResponse)
 
   } catch (err) {
-    console.error('❌ [SalesQuickStats] Lỗi khi load thống kê:', err)
-    error.value = err.response?.data?.message || err.message || 'Không thể tải thống kê. Vui lòng thử lại!'
+    console.error('❌ [SalesQuickStats] Lỗi nghiêm trọng:', err)
+    error.value = 'Không thể tải thống kê. Vui lòng thử lại!'
     showError(error.value)
-  } finally {
     isLoading.value = false
   }
 }
@@ -349,9 +413,9 @@ const createGradient = (ctx, color1, color2) => {
  * Render revenue chart
  */
 const renderChart = async (chartDataResponse) => {
-  // Đợi canvas sẵn sàng với retry mechanism
+  // Đợi canvas sẵn sàng
   let retries = 0
-  const maxRetries = 10
+  const maxRetries = 5
 
   while (!revenueChartCanvas.value && retries < maxRetries) {
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -359,107 +423,71 @@ const renderChart = async (chartDataResponse) => {
   }
 
   if (!revenueChartCanvas.value) {
-    console.error('❌ [SalesQuickStats] Chart canvas không sẵn sàng sau', maxRetries, 'lần thử')
+    console.error('❌ Chart canvas không sẵn sàng')
     return
   }
 
-  // Đảm bảo canvas đã được mount vào DOM
-  if (!revenueChartCanvas.value.getContext) {
-    console.error('❌ [SalesQuickStats] Canvas chưa được mount vào DOM')
-    await nextTick()
-    if (!revenueChartCanvas.value || !revenueChartCanvas.value.getContext) {
-      console.error('❌ [SalesQuickStats] Vẫn không thể truy cập canvas')
-      return
-    }
-  }
-
-  // Destroy chart cũ nếu có
+  // Destroy chart cũ
   if (revenueChart) {
     revenueChart.destroy()
     revenueChart = null
   }
 
-  // Parse data từ response
-  // Response có cấu trúc: { success: true, data: BieuDoDoanhSoResponse[], message: "..." }
+  // Parse data - Backend trả về ResponseObject<List<BieuDoDoanhSoResponse>>
+  // Response structure: { success, data: [...], message }
   let chartLabels = []
   let chartData = []
   let orderCounts = []
 
-  const responseData = chartDataResponse?.data || chartDataResponse
+  const responseData = chartDataResponse?.data || []
+  console.log('📊 [SalesQuickStats] Chart Raw Response:', chartDataResponse)
+  console.log('📊 [SalesQuickStats] Chart Parsed Data:', responseData)
 
-  if (responseData && Array.isArray(responseData)) {
+  if (Array.isArray(responseData) && responseData.length > 0) {
     responseData.forEach(item => {
-      // item là BieuDoDoanhSoResponse: { thoiGian, doanhThu, soHoaDon }
-      const timeLabel = item.thoiGian || item.time || item.label || ''
-      const revenue = item.doanhThu
-        ? parseFloat(item.doanhThu)
-        : (item.revenue ? parseFloat(item.revenue) : 0)
-      const orders = item.soHoaDon || 0
-
-      chartLabels.push(timeLabel)
-      chartData.push(revenue)
-      orderCounts.push(orders)
+      // item: { thoiGian, doanhThu (BigDecimal), soHoaDon (Long) }
+      chartLabels.push(item.thoiGian || '')
+      chartData.push(parseFloat(item.doanhThu || 0))
+      orderCounts.push(parseInt(item.soHoaDon || 0))
     })
   }
 
-  // Lưu vào ref để dùng trong template
+  // Nếu không có dữ liệu thực, tạo labels giờ cho ngày hôm nay
+  if (chartLabels.length === 0) {
+    console.log('⚠️ Không có dữ liệu chart, tạo labels mặc định')
+    chartLabels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
+    chartData = Array(24).fill(0)
+    orderCounts = Array(24).fill(0)
+  }
+
   labels.value = chartLabels
   data.value = chartData
 
-  // Nếu không có dữ liệu, tạo dữ liệu mẫu để hiển thị
-  if (chartLabels.length === 0) {
-    console.warn('⚠️ [SalesQuickStats] Không có dữ liệu biểu đồ, tạo dữ liệu mẫu')
-    // Tạo labels cho 24 giờ trong ngày
-    chartLabels = Array.from({ length: 24 }, (_, i) => {
-      const hour = String(i).padStart(2, '0')
-      return `${hour}:00`
-    })
-    chartData = Array.from({ length: 24 }, () => 0)
-    orderCounts = Array.from({ length: 24 }, () => 0)
-    labels.value = chartLabels
-    data.value = chartData
-  }
-
-  console.log('📊 [SalesQuickStats] Rendering chart với', chartLabels.length, 'điểm dữ liệu')
+  console.log('📊 Chart Labels:', chartLabels)
+  console.log('📊 Chart Data:', chartData)
 
   try {
     const ctx = revenueChartCanvas.value.getContext('2d')
-
-    // Tạo gradient cho background
-    const gradient = createGradient(
-      ctx,
-      'rgba(13, 202, 240, 0.3)',
-      'rgba(13, 202, 240, 0.05)'
-    )
+    const gradient = createGradient(ctx, 'rgba(13, 202, 240, 0.3)', 'rgba(13, 202, 240, 0.05)')
 
     revenueChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: chartLabels,
-        datasets: [
-          {
-            label: 'Doanh thu (VND)',
-            data: chartData,
-            borderColor: '#0dcaf0',
-            backgroundColor: gradient,
-            tension: 0.4,
-            fill: true,
-            pointRadius: chartLabels.length > 10 ? 3 : 5,
-            pointHoverRadius: chartLabels.length > 10 ? 5 : 8,
-            pointBackgroundColor: '#0dcaf0',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointHoverBackgroundColor: '#0aa2c0',
-            pointHoverBorderColor: '#ffffff',
-            pointHoverBorderWidth: 3,
-            borderWidth: 2.5,
-            // Animation
-            animation: {
-              duration: 1500,
-              easing: 'easeInOutQuart'
-            }
-          }
-        ]
+        datasets: [{
+          label: 'Doanh thu (VND)',
+          data: chartData,
+          borderColor: '#0dcaf0',
+          backgroundColor: gradient,
+          tension: 0.4,
+          fill: true,
+          pointRadius: chartLabels.length > 10 ? 3 : 5,
+          pointHoverRadius: chartLabels.length > 10 ? 5 : 8,
+          pointBackgroundColor: '#0dcaf0',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          borderWidth: 2.5
+        }]
       },
       options: {
         responsive: true,
@@ -469,105 +497,60 @@ const renderChart = async (chartDataResponse) => {
           mode: 'index'
         },
         plugins: {
-          legend: {
-            display: false
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             padding: 12,
-            titleFont: {
-              size: 14,
-              weight: 'bold'
-            },
-            bodyFont: {
-              size: 13
-            },
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
             borderColor: '#0dcaf0',
             borderWidth: 1,
             cornerRadius: 8,
             displayColors: false,
             callbacks: {
-              title: (context) => {
-                return `Thời gian: ${context[0].label}`
-              },
+              title: (context) => `Thời gian: ${context[0].label}`,
               label: (context) => {
                 const revenue = context.parsed.y
-                const index = context.dataIndex
-                const orders = orderCounts[index] || 0
+                const orders = orderCounts[context.dataIndex] || 0
                 return [
                   `Doanh thu: ${formatCurrency(revenue)}`,
-                  `Số đơn: ${orders.toLocaleString()} đơn`,
+                  `Số đơn: ${orders} đơn`,
                   orders > 0 ? `TB/đơn: ${formatCurrency(revenue / orders)}` : ''
                 ].filter(Boolean)
-              },
-              labelColor: () => {
-                return {
-                  borderColor: '#0dcaf0',
-                  backgroundColor: '#0dcaf0'
-                }
               }
             }
           }
         },
         scales: {
           x: {
-            grid: {
-              display: false,
-              drawBorder: false
-            },
+            grid: { display: false },
             ticks: {
               color: '#6c757d',
-              font: {
-                size: 11
-              },
-              maxRotation: chartLabels.length > 12 ? 45 : 0,
-              minRotation: 0
+              font: { size: 11 },
+              maxRotation: chartLabels.length > 12 ? 45 : 0
             }
           },
           y: {
             beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
-              drawBorder: false
-            },
+            grid: { color: 'rgba(0, 0, 0, 0.05)' },
             ticks: {
               color: '#6c757d',
-              font: {
-                size: 11
-              },
+              font: { size: 11 },
               callback: (value) => {
-                if (value >= 1000000000) {
-                  return `${(value / 1000000000).toFixed(1)}T`
-                }
-                if (value >= 1000000) {
-                  return `${(value / 1000000).toFixed(1)}M`
-                }
-                if (value >= 1000) {
-                  return `${(value / 1000).toFixed(0)}K`
-                }
+                if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}T`
+                if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                if (value >= 1000) return `${(value / 1000).toFixed(0)}K`
                 return value.toLocaleString()
-              },
-              padding: 8
+              }
             }
-          }
-        },
-        // Animation
-        animation: {
-          duration: 1500,
-          easing: 'easeInOutQuart'
-        },
-        // Hover effects
-        onHover: (event, activeElements) => {
-          if (activeElements.length > 0) {
-            event.native.target.style.cursor = 'pointer'
-          } else {
-            event.native.target.style.cursor = 'default'
           }
         }
       }
     })
+
+    console.log('✅ Chart rendered successfully')
   } catch (err) {
-    console.error('❌ [SalesQuickStats] Lỗi khi render chart:', err)
+    console.error('❌ Lỗi render chart:', err)
   }
 }
 
@@ -805,4 +788,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

@@ -6,9 +6,12 @@ import { taoKhachHangMoi, capNhatKhachHang } from '@/service/banhang/banHangServ
  * Composable quản lý khách hàng
  * Xử lý: tìm kiếm, tạo mới, cập nhật khách hàng cho hóa đơn
  */
-export function useCustomerManagement(hoaDonHienTai, capNhatHoaDon) {
+export function useCustomerManagement(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai) {
   const isLoading = ref(false)
   const { success: showSuccess, error: showError } = useToast()
+
+  const ensureHoaDonReady =
+    typeof ensureHoaDonTonTai === 'function' ? ensureHoaDonTonTai : async () => hoaDonHienTai.value
 
   /**
    * Cập nhật khách hàng cho hóa đơn
@@ -16,6 +19,16 @@ export function useCustomerManagement(hoaDonHienTai, capNhatHoaDon) {
    */
   const handleUpdateCustomer = async (customer) => {
     if (!hoaDonHienTai.value) return
+
+    try {
+      await ensureHoaDonReady()
+    } catch (error) {
+      console.error(
+        '❌ [useCustomerManagement] Không thể sync hóa đơn trước khi cập nhật khách hàng:',
+        error,
+      )
+      return
+    }
 
     isLoading.value = true
     try {

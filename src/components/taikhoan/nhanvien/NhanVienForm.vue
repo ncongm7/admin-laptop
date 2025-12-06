@@ -39,7 +39,7 @@
               @blur="hideSuggestions"
             />
             <div v-if="showSuggestions" class="suggestions-dropdown">
-              <div class="suggestion-item" @click="selectSuggestion('NV' + getNextNumber())">
+              <div class="suggestion-item" @mousedown.prevent="selectSuggestion('NV' + getNextNumber())">
                 <i class="bi bi-lightbulb"></i>
                 <span>NV{{ getNextNumber() }}</span>
                 <small>Tự động tăng</small>
@@ -102,20 +102,134 @@
       <div class="form-row">
         <div class="form-group">
           <label>Chức vụ</label>
-          <select v-model="form.chucVu" class="form-control">
-            <option value="">Chọn chức vụ</option>
-            <option value="Nhân viên bán hàng">Nhân viên bán hàng</option>
-            <option value="Quản lý cửa hàng">Quản lý cửa hàng</option>
-          </select>
+          <input
+            type="text"
+            class="form-control"
+            value="Nhân viên"
+            readonly
+            style="background-color: #f8f9fa; cursor: not-allowed;"
+          />
+          <small class="text-muted">Chức vụ mặc định: Nhân viên (không thể thay đổi)</small>
         </div>
           <div class="form-group" style="flex: 2">
-            <label>Địa chỉ</label>
+            <label>Địa chỉ chi tiết</label>
             <input
-              v-model="form.diaChi"
+              v-model="form.diaChiChiTiet"
               type="text"
               class="form-control"
-              placeholder="Nhập địa chỉ"
+              placeholder="Nhập số nhà, tên đường..."
             />
+          </div>
+        </div>
+
+        <!-- Dropdown địa chỉ: Tỉnh/Thành phố, Quận/Huyện, Phường/Xã -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tỉnh/Thành phố</label>
+            <div class="position-relative">
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="selectedProvinceName"
+                  @input="handleProvinceSearch"
+                  @focus="showProvinceDropdown = true"
+                  @blur="handleProvinceBlur"
+                  :disabled="loadingProvinces"
+                  placeholder="Chọn tỉnh/thành phố"
+                  autocomplete="off"
+                />
+                <span class="input-group-text bg-white border-start-0" style="cursor: pointer; pointer-events: none;">
+                  <i class="bi" :class="showProvinceDropdown ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </span>
+              </div>
+              <div v-if="showProvinceDropdown && !loadingProvinces" class="dropdown-menu show w-100 position-absolute"
+                style="max-height: 250px; overflow-y: auto; z-index: 9999; top: 100%; margin-top: 2px;">
+                <div v-if="filteredProvinces.length === 0" class="dropdown-item text-muted">
+                  Không tìm thấy tỉnh/thành phố
+                </div>
+                <a v-for="province in filteredProvinces" :key="province.id" class="dropdown-item"
+                  href="javascript:void(0)" @mousedown.prevent="selectProvince(province)"
+                  :class="{ active: form.tinhCode == province.id }">
+                  {{ province.name }}
+                </a>
+              </div>
+            </div>
+            <div v-if="loadingProvinces" class="text-muted small mt-1">
+              <i class="bi bi-hourglass-split"></i> Đang tải...
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Quận/Huyện</label>
+            <div class="position-relative">
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="selectedDistrictName"
+                  @input="handleDistrictSearch"
+                  @focus="showDistrictDropdown = true"
+                  @blur="handleDistrictBlur"
+                  :disabled="loadingDistricts || !form.tinhCode"
+                  placeholder="Chọn quận/huyện"
+                  autocomplete="off"
+                />
+                <span class="input-group-text bg-white border-start-0" style="cursor: pointer; pointer-events: none;">
+                  <i class="bi" :class="showDistrictDropdown ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </span>
+              </div>
+              <div v-if="showDistrictDropdown && !loadingDistricts && form.tinhCode" class="dropdown-menu show w-100 position-absolute"
+                style="max-height: 250px; overflow-y: auto; z-index: 9999; top: 100%; margin-top: 2px;">
+                <div v-if="filteredDistricts.length === 0" class="dropdown-item text-muted">
+                  Không tìm thấy quận/huyện
+                </div>
+                <a v-for="district in filteredDistricts" :key="district.id" class="dropdown-item"
+                  href="javascript:void(0)" @mousedown.prevent="selectDistrict(district)"
+                  :class="{ active: form.huyenCode == district.id }">
+                  {{ district.name }}
+                </a>
+              </div>
+            </div>
+            <div v-if="loadingDistricts" class="text-muted small mt-1">
+              <i class="bi bi-hourglass-split"></i> Đang tải...
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Phường/Xã</label>
+            <div class="position-relative">
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="selectedWardName"
+                  @input="handleWardSearch"
+                  @focus="showWardDropdown = true"
+                  @blur="handleWardBlur"
+                  :disabled="loadingWards || !form.huyenCode"
+                  placeholder="Chọn phường/xã"
+                  autocomplete="off"
+                />
+                <span class="input-group-text bg-white border-start-0" style="cursor: pointer; pointer-events: none;">
+                  <i class="bi" :class="showWardDropdown ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </span>
+              </div>
+              <div v-if="showWardDropdown && !loadingWards && form.huyenCode" class="dropdown-menu show w-100 position-absolute"
+                style="max-height: 250px; overflow-y: auto; z-index: 9999; top: 100%; margin-top: 2px;">
+                <div v-if="filteredWards.length === 0" class="dropdown-item text-muted">
+                  Không tìm thấy phường/xã
+                </div>
+                <a v-for="ward in filteredWards" :key="ward.id" class="dropdown-item"
+                  href="javascript:void(0)" @mousedown.prevent="selectWard(ward)"
+                  :class="{ active: form.xaCode == ward.id }">
+                  {{ ward.name }}
+                </a>
+              </div>
+            </div>
+            <div v-if="loadingWards" class="text-muted small mt-1">
+              <i class="bi bi-hourglass-split"></i> Đang tải...
+            </div>
           </div>
         </div>
 
@@ -233,12 +347,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { nhanVienApi } from '@/service/ApiNhanVien'
 import vaiTroService from '@/service/vaiTroService'
 import ImageUploader from '@/components/common/ImageUploader.vue'
 import LoginInfoModal from './LoginInfoModal.vue'
+import VietnamAddressService from '@/service/taikhoan/vietnamAddressService'
 
 const router = useRouter()
 const showSuggestions = ref(false)
@@ -258,8 +373,15 @@ const form = ref({
   email: '',
   gender: 'Nam',
   trangThai: 1,
-  chucVu: 'Bán hàng',
-  diaChi: '',
+  chucVu: 'Nhân viên', // Mặc định là "Nhân viên"
+  diaChiChiTiet: '', // Địa chỉ chi tiết (số nhà, tên đường)
+  tinhCode: '', // Mã tỉnh/thành phố
+  tinh: '', // Tên tỉnh/thành phố
+  huyenCode: '', // Mã quận/huyện
+  huyen: '', // Tên quận/huyện
+  xaCode: '', // Mã phường/xã
+  xa: '', // Tên phường/xã
+  diaChi: '', // Địa chỉ đầy đủ (sẽ được tạo từ các trường trên)
   danhGia: '',
   avatar: '',
   // Thông tin tài khoản
@@ -270,6 +392,57 @@ const form = ref({
   maVaiTro: null,
 })
 
+// Address dropdown states
+const showProvinceDropdown = ref(false)
+const showDistrictDropdown = ref(false)
+const showWardDropdown = ref(false)
+const loadingProvinces = ref(false)
+const loadingDistricts = ref(false)
+const loadingWards = ref(false)
+const provinces = ref([])
+const districts = ref([])
+const wards = ref([])
+const provinceSearchText = ref('')
+const districtSearchText = ref('')
+const wardSearchText = ref('')
+
+// Computed properties for address dropdowns
+const selectedProvinceName = computed(() => {
+  return form.value.tinh || ''
+})
+
+const selectedDistrictName = computed(() => {
+  return form.value.huyen || ''
+})
+
+const selectedWardName = computed(() => {
+  return form.value.xa || ''
+})
+
+const filteredProvinces = computed(() => {
+  if (!provinceSearchText.value.trim()) {
+    return provinces.value
+  }
+  const search = provinceSearchText.value.toLowerCase()
+  return provinces.value.filter(p => p.name.toLowerCase().includes(search))
+})
+
+const filteredDistricts = computed(() => {
+  if (!districtSearchText.value.trim()) {
+    return districts.value
+  }
+  const search = districtSearchText.value.toLowerCase()
+  return districts.value.filter(d => d.name.toLowerCase().includes(search))
+})
+
+const filteredWards = computed(() => {
+  if (!wardSearchText.value.trim()) {
+    return wards.value
+  }
+  const search = wardSearchText.value.toLowerCase()
+  return wards.value.filter(w => w.name.toLowerCase().includes(search))
+})
+
 // Load existing codes to avoid duplicates
 onMounted(async () => {
   try {
@@ -278,6 +451,9 @@ onMounted(async () => {
   } catch (e) {
     console.error('Lỗi tải danh sách mã:', e)
   }
+  
+  // Load danh sách tỉnh/thành phố
+  await loadProvinces()
   
   // Load danh sách vai trò - chỉ lấy NHAN_VIEN cho nhân viên
   try {
@@ -301,16 +477,38 @@ onMounted(async () => {
     vaiTroList.value = []
   }
   
-  // Watch checkbox createTaiKhoan để tự động set vai trò khi được check
+  // Watch checkbox createTaiKhoan để tự động fill tài khoản/mật khẩu
   watch(() => form.value.createTaiKhoan, (isChecked) => {
-    if (isChecked && vaiTroList.value && vaiTroList.value.length > 0) {
+    if (isChecked) {
+      // Tự động fill tài khoản = SĐT và mật khẩu = 123456
+      if (form.value.phone) {
+        form.value.tenDangNhap = form.value.phone
+      }
+      form.value.matKhau = '123456'
+      
       // Tự động set vai trò NHAN_VIEN khi checkbox được check
-      const nhanVienRole = vaiTroList.value.find((vt) => {
-        const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
-        return maVaiTro === 'NHAN_VIEN'
-      })
-      if (nhanVienRole && form.value && !form.value.maVaiTro) {
-        form.value.maVaiTro = nhanVienRole.id
+      if (vaiTroList.value && vaiTroList.value.length > 0) {
+        const nhanVienRole = vaiTroList.value.find((vt) => {
+          const maVaiTro = vt.maVaiTro || vt.ma_vai_tro
+          return maVaiTro === 'NHAN_VIEN'
+        })
+        if (nhanVienRole && form.value && !form.value.maVaiTro) {
+          form.value.maVaiTro = nhanVienRole.id
+        }
+      }
+    } else {
+      // Clear các field tài khoản khi uncheck
+      form.value.tenDangNhap = ''
+      form.value.matKhau = ''
+    }
+  })
+  
+  // Watch SĐT để tự động cập nhật tên đăng nhập nếu đang ở chế độ tự tạo tài khoản
+  watch(() => form.value.phone, (newPhone) => {
+    if (form.value.createTaiKhoan && newPhone) {
+      // Chỉ cập nhật nếu tên đăng nhập đang là SĐT cũ (hoặc rỗng)
+      if (!form.value.tenDangNhap || form.value.tenDangNhap === form.value.phone) {
+        form.value.tenDangNhap = newPhone
       }
     }
   })
@@ -355,6 +553,124 @@ const handleUploadSuccess = (imageUrl) => {
 const handleUploadError = (error) => {
   console.error('❌ Upload lỗi:', error)
 }
+
+// Address functions
+const loadProvinces = async () => {
+  loadingProvinces.value = true
+  try {
+    const data = await VietnamAddressService.getAllProvinces()
+    provinces.value = data
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách tỉnh/thành phố:', error)
+    provinces.value = []
+  } finally {
+    loadingProvinces.value = false
+  }
+}
+
+const handleProvinceSearch = (event) => {
+  provinceSearchText.value = event.target.value
+  showProvinceDropdown.value = true
+}
+
+const handleProvinceBlur = () => {
+  setTimeout(() => {
+    showProvinceDropdown.value = false
+  }, 200)
+}
+
+const selectProvince = async (province) => {
+  form.value.tinhCode = province.id || province.code
+  form.value.tinh = province.name
+  provinceSearchText.value = ''
+  showProvinceDropdown.value = false
+  
+  // Reset quận/huyện và phường/xã
+  form.value.huyenCode = ''
+  form.value.huyen = ''
+  form.value.xaCode = ''
+  form.value.xa = ''
+  districts.value = []
+  wards.value = []
+  
+  // Load quận/huyện
+  if (form.value.tinhCode) {
+    await loadDistricts(form.value.tinhCode)
+  }
+}
+
+const loadDistricts = async (provinceCode) => {
+  loadingDistricts.value = true
+  try {
+    const data = await VietnamAddressService.getDistrictsByProvince(provinceCode)
+    districts.value = data
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách quận/huyện:', error)
+    districts.value = []
+  } finally {
+    loadingDistricts.value = false
+  }
+}
+
+const handleDistrictSearch = (event) => {
+  districtSearchText.value = event.target.value
+  showDistrictDropdown.value = true
+}
+
+const handleDistrictBlur = () => {
+  setTimeout(() => {
+    showDistrictDropdown.value = false
+  }, 200)
+}
+
+const selectDistrict = async (district) => {
+  form.value.huyenCode = district.id || district.code
+  form.value.huyen = district.name
+  districtSearchText.value = ''
+  showDistrictDropdown.value = false
+  
+  // Reset phường/xã
+  form.value.xaCode = ''
+  form.value.xa = ''
+  wards.value = []
+  
+  // Load phường/xã
+  if (form.value.huyenCode) {
+    await loadWards(form.value.huyenCode)
+  }
+}
+
+const loadWards = async (districtCode) => {
+  loadingWards.value = true
+  try {
+    const data = await VietnamAddressService.getWardsByDistrict(districtCode)
+    wards.value = data
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách phường/xã:', error)
+    wards.value = []
+  } finally {
+    loadingWards.value = false
+  }
+}
+
+const handleWardSearch = (event) => {
+  wardSearchText.value = event.target.value
+  showWardDropdown.value = true
+}
+
+const handleWardBlur = () => {
+  setTimeout(() => {
+    showWardDropdown.value = false
+  }, 200)
+}
+
+const selectWard = (ward) => {
+  form.value.xaCode = ward.id || ward.code
+  form.value.xa = ward.name
+  wardSearchText.value = ''
+  showWardDropdown.value = false
+}
+
 function onCancel() {
   router.push('/nhan-vien')
 }
@@ -383,6 +699,14 @@ function onSubmit() {
     }
   }
   
+  // Tạo địa chỉ đầy đủ từ các trường
+  const diaChiParts = []
+  if (form.value.diaChiChiTiet) diaChiParts.push(form.value.diaChiChiTiet)
+  if (form.value.xa) diaChiParts.push(form.value.xa)
+  if (form.value.huyen) diaChiParts.push(form.value.huyen)
+  if (form.value.tinh) diaChiParts.push(form.value.tinh)
+  const diaChiFull = diaChiParts.join(', ') || ''
+  
   const payload = {
     maNhanVien: form.value.maNhanVien || `NV${Date.now().toString().slice(-6)}`,
     hoTen: form.value.name,
@@ -390,8 +714,8 @@ function onSubmit() {
     email: form.value.email,
     gioiTinh: form.value.gender === 'Nam' ? 1 : 0,
     anhNhanVien: form.value.avatar ? form.value.avatar : null,
-    chucVu: form.value.chucVu || '',
-    diaChi: form.value.diaChi || '',
+    chucVu: form.value.chucVu || 'Nhân viên', // Mặc định là "Nhân viên"
+    diaChi: diaChiFull, // Địa chỉ đầy đủ
     danhGia: form.value.danhGia || '',
     trangThai: Number(form.value.trangThai),
   }

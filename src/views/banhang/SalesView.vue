@@ -5,8 +5,11 @@
       <h2 class="page-title"><i class="bi bi-shop"></i> Bán hàng tại quầy</h2>
       <div class="header-actions">
         <!-- Nút in hóa đơn (chỉ hiện khi có hóa đơn) -->
-        <InvoicePrint v-if="hoaDonHienTai" :hoaDon="hoaDonHienTai" :allowDraft="true" @printed="handleInvoicePrinted"
-          class="me-2" />
+        <InvoicePrint v-if="hoaDonHienTai" ref="invoicePrintRef" :hoaDon="hoaDonHienTai" :allowDraft="true"
+          @printed="handleInvoicePrinted" class="me-2" />
+        <!-- InvoicePrint riêng cho hóa đơn đã thanh toán (ẩn button, chỉ dùng để preview) -->
+        <InvoicePrint v-if="paidInvoice" ref="paidInvoicePrintRef" :hoaDon="paidInvoice" :allowDraft="false"
+          :autoPrint="false" @printed="handlePaidInvoicePrinted" style="display: none;" />
         <button class="btn btn-success btn-lg" @click="taoHoaDonMoi" :disabled="isLoading || daDatGioiHan"
           :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
           <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
@@ -50,7 +53,7 @@
           <SalesQuickStats />
         </div>
         <div class="col-lg-6">
-          <RecentTransactions />
+          <RecentTransactions ref="recentTransactionsRef" />
         </div>
       </div>
     </div>
@@ -74,7 +77,7 @@
           <SalesQuickStats />
         </div>
         <div class="col-lg-6">
-          <RecentTransactions />
+          <RecentTransactions ref="recentTransactionsRef" />
         </div>
       </div>
     </div>
@@ -122,21 +125,16 @@
 
     <!-- Modal thanh toán -->
     <ModalThanhToan v-if="showPaymentModal" :hoaDon="hoaDonHienTai" @close="closePaymentModal"
-      @payment-confirmed="handlePaymentConfirmed" @hoa-don-updated="handleHoaDonUpdated" />
+      @payment-confirmed="handlePaymentConfirmedWrapper" @hoa-don-updated="handleHoaDonUpdated" />
 
     <!-- Modal gợi ý voucher -->
-<<<<<<< HEAD
-    <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id" @close="closeVoucherModal"
+    <<<<<<< HEAD <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
+      @close="closeVoucherModal" @voucher-selected="handleVoucherSelected" />
+    =======
+    <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
+      :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
-=======
-    <VoucherSuggestionModal
-      :visible="showVoucherModal"
-      :idHoaDon="hoaDonHienTai?.id"
-      :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId"
-      @close="closeVoucherModal"
-      @voucher-selected="handleVoucherSelected"
-    />
->>>>>>> origin/longupdatev3
+    >>>>>>> origin/longupdatev3
 
     <!-- Modal tạo khách hàng mới -->
     <template v-if="showCustomerFormModal">
@@ -169,7 +167,7 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import TransactionTabs from '@/components/banhang/TransactionTabs.vue'
 import ProductSearch from '@/components/banhang/ProductSearch.vue'
@@ -211,6 +209,7 @@ const {
   handleSaveDraft,
   loadDanhSachHoaDonCho,
   capNhatHoaDon,
+  ensureHoaDonTonTai,
   xoaHoaDonSauThanhToan,
   copyBill,
   startAutoSave,
@@ -229,14 +228,14 @@ const {
   handleDeleteItem,
   handleScanImei,
   closeQuantityModal,
-} = useProductManagement(hoaDonHienTai, capNhatHoaDon)
+} = useProductManagement(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai)
 
 // ==================== QUẢN LÝ KHÁCH HÀNG ====================
 const {
   isLoading: customerLoading,
   handleUpdateCustomer,
   handleSearchCustomer,
-} = useCustomerManagement(hoaDonHienTai, capNhatHoaDon)
+} = useCustomerManagement(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai)
 
 // Override handleCreateCustomer để mở modal thay vì dùng prompt
 const handleCreateCustomer = () => {
@@ -306,14 +305,20 @@ const {
   openPaymentModal,
   handlePaymentConfirmed,
   closePaymentModal,
-} = usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan, capNhatHoaDon)
+} = usePayment(hoaDonHienTai, xoaHoaDonSauThanhToan, capNhatHoaDon, ensureHoaDonTonTai)
+
+// Ref cho InvoicePrint component để có thể gọi method từ bên ngoài
+const invoicePrintRef = ref(null)
+const paidInvoicePrintRef = ref(null)
+const paidInvoice = ref(null) // Lưu hóa đơn vừa thanh toán để hiển thị preview
+const recentTransactionsRef = ref(null) // Ref cho RecentTransactions component
 
 // ==================== QUẢN LÝ VOUCHER & ĐIỂM TÍCH LŨY ====================
 const {
   isLoading: voucherLoading,
   handleApplyVoucher,
   handleUsePoints,
-} = useVoucherPoints(hoaDonHienTai, capNhatHoaDon)
+} = useVoucherPoints(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai)
 
 // State cho modal voucher
 const showVoucherModal = ref(false)
@@ -322,11 +327,19 @@ const showVoucherModal = ref(false)
 const showCustomerFormModal = ref(false)
 
 // Handlers cho voucher modal
-const openVoucherModal = () => {
+const openVoucherModal = async () => {
   if (!hoaDonHienTai.value) {
     showError('Vui lòng tạo hóa đơn trước!')
     return
   }
+
+  try {
+    await ensureHoaDonTonTai()
+  } catch (error) {
+    console.error('❌ [SalesView] Không thể sync hóa đơn trước khi mở modal voucher:', error)
+    return
+  }
+
   showVoucherModal.value = true
 }
 
@@ -359,6 +372,13 @@ const handleHoaDonUpdated = (hoaDonMoi) => {
 const handleRemoveVoucher = async () => {
   if (!hoaDonHienTai.value) return
 
+  try {
+    await ensureHoaDonTonTai()
+  } catch (error) {
+    console.error('❌ [SalesView] Không thể sync hóa đơn trước khi xóa voucher:', error)
+    return
+  }
+
   // Hiển thị confirm dialog trước khi xóa
   const confirmed = await showConfirm({
     title: 'Xác nhận xóa khuyến mãi',
@@ -388,7 +408,7 @@ const handleRemoveVoucher = async () => {
 const handleUpdateItem = async (updatedHoaDon) => {
   if (updatedHoaDon) {
     capNhatHoaDon(updatedHoaDon)
-    
+
     // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
     await checkAndRemoveInvalidVoucher(updatedHoaDon)
   }
@@ -455,6 +475,69 @@ const handleCopyBill = async (sourceBill) => {
 const handleInvoicePrinted = () => {
   // Có thể thêm logic sau khi in hóa đơn (ví dụ: log, thông báo, etc.)
   console.log('✅ Đã in hóa đơn:', hoaDonHienTai.value?.ma || hoaDonHienTai.value?.id)
+}
+
+/**
+ * Wrapper để xử lý thanh toán thành công và mở preview hóa đơn
+ */
+const handlePaymentConfirmedWrapper = async (paymentData) => {
+  try {
+    // Đảm bảo modal thanh toán đóng ngay lập tức (trước khi xử lý)
+    closePaymentModal()
+
+    const result = await handlePaymentConfirmed(paymentData)
+
+    // Kiểm tra nếu thanh toán thành công
+    if (result && result.success && result.hoaDon) {
+      // Đợi một chút để đảm bảo modal thanh toán đã đóng hoàn toàn
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Lưu hóa đơn đã thanh toán để hiển thị preview
+      paidInvoice.value = result.hoaDon
+
+      // Đợi một chút để component InvoicePrint được render
+      await nextTick()
+
+      // Mở preview modal bằng cách gọi method của InvoicePrint component
+      if (paidInvoicePrintRef.value && typeof paidInvoicePrintRef.value.handlePrintInvoice === 'function') {
+        // Gọi method để mở preview (không tự động in, autoPrint=false)
+        await paidInvoicePrintRef.value.handlePrintInvoice()
+      } else {
+        console.warn('⚠️ [SalesView] PaidInvoicePrint ref không có method handlePrintInvoice')
+        // Fallback: thử lại sau một chút
+        setTimeout(async () => {
+          if (paidInvoicePrintRef.value && typeof paidInvoicePrintRef.value.handlePrintInvoice === 'function') {
+            await paidInvoicePrintRef.value.handlePrintInvoice()
+          }
+        }, 500)
+      }
+
+      // Reload danh sách transactions để cập nhật dữ liệu mới nhất
+      if (recentTransactionsRef.value && typeof recentTransactionsRef.value.refreshTransactions === 'function') {
+        // Đợi một chút để đảm bảo backend đã cập nhật xong
+        setTimeout(() => {
+          recentTransactionsRef.value.refreshTransactions()
+        }, 1000)
+      }
+    } else if (result && !result.success) {
+      // Thanh toán thất bại - modal đã được đóng, không cần làm gì thêm
+      console.error('❌ [SalesView] Thanh toán thất bại:', result.error)
+    }
+  } catch (error) {
+    console.error('❌ [SalesView] Lỗi khi xử lý thanh toán:', error)
+    // Đảm bảo modal được đóng ngay cả khi có lỗi
+    closePaymentModal()
+  }
+}
+
+/**
+ * Xử lý sau khi in hóa đơn đã thanh toán
+ */
+const handlePaidInvoicePrinted = () => {
+  console.log('✅ Đã in hóa đơn đã thanh toán:', paidInvoice.value?.ma || paidInvoice.value?.id)
+  // Có thể xóa paidInvoice sau khi in xong (tùy chọn)
+  // paidInvoice.value = null
 }
 
 // ==================== COMPUTED - TRẠNG THÁI LOADING TỔNG HỢP ====================

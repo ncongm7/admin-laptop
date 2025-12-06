@@ -4,12 +4,41 @@
       <!-- Sidebar: Danh sách conversation -->
       <div class="chat-sidebar">
         <div class="sidebar-header">
-          <h5 class="mb-0">
-            <i class="bi bi-chat-dots me-2"></i>
-            Tin nhắn
-          </h5>
+          <div class="header-left">
+            <h5 class="mb-0">
+              <i class="bi bi-chat-dots me-2"></i>
+              Tin nhắn
+            </h5>
+            <!-- Connection status indicator -->
+            <div v-if="wsConnectionStatus === 'connected'" class="status-indicator connected" title="Đã kết nối">
+              <i class="bi bi-circle-fill"></i>
+            </div>
+            <div v-else-if="wsConnectionStatus === 'connecting'" class="status-indicator connecting" title="Đang kết nối...">
+              <i class="bi bi-circle-fill"></i>
+            </div>
+            <div v-else-if="wsConnectionStatus === 'reconnecting'" class="status-indicator reconnecting" title="Đang kết nối lại...">
+              <i class="bi bi-arrow-clockwise"></i>
+            </div>
+            <div v-else class="status-indicator disconnected" title="Mất kết nối">
+              <i class="bi bi-circle-fill"></i>
+            </div>
+          </div>
           <button class="btn btn-sm btn-outline-primary" @click="refreshConversations">
             <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+
+        <!-- Conversation Filters -->
+        <div class="conversation-filters">
+          <button 
+            v-for="filter in filters" 
+            :key="filter.key"
+            class="filter-btn"
+            :class="{ active: activeFilter === filter.key }"
+            @click="setFilter(filter.key)">
+            <i :class="filter.icon"></i>
+            <span>{{ filter.label }}</span>
+            <span v-if="filter.count > 0" class="filter-badge">{{ filter.count }}</span>
           </button>
         </div>
 
@@ -73,9 +102,32 @@
               </div>
             </div>
             <div class="chat-actions">
-              <button class="btn btn-sm btn-outline-secondary" title="Thông tin">
+              <button class="btn btn-sm btn-outline-secondary" @click="showCustomerInfo = !showCustomerInfo" title="Thông tin khách hàng">
                 <i class="bi bi-info-circle"></i>
               </button>
+              <!-- Message Search -->
+              <div class="message-search-box">
+                <input
+                  type="text"
+                  v-model="messageSearchKeyword"
+                  @input="handleMessageSearch"
+                  placeholder="Tìm trong tin nhắn..."
+                  class="form-control form-control-sm"
+                  style="width: 200px;"
+                />
+                <div v-if="messageSearchKeyword && searchResults.length > 0" class="search-results-info">
+                  <span>{{ currentSearchIndex + 1 }} / {{ searchResults.length }}</span>
+                  <button class="btn btn-sm btn-link" @click="navigateSearch('prev')" :disabled="currentSearchIndex === 0">
+                    <i class="bi bi-chevron-up"></i>
+                  </button>
+                  <button class="btn btn-sm btn-link" @click="navigateSearch('next')" :disabled="currentSearchIndex === searchResults.length - 1">
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                  <button class="btn btn-sm btn-link" @click="clearMessageSearch">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -93,6 +145,7 @@
                 :key="message.id"
                 class="message-wrapper"
                 :class="{ 'message-customer': message.isFromCustomer, 'message-staff': !message.isFromCustomer }"
+                :data-message-id="message.id"
               >
                 <!-- Date separator -->
                 <div v-if="shouldShowDateSeparator(message, index)" class="date-separator">
@@ -124,7 +177,8 @@
                     </div>
 
                     <!-- Text content -->
-                    <p class="message-text" v-html="formatMessage(message.noiDung)"></p>
+                    <p class="message-text" v-html="formatMessage(message.noiDung, messageSearchKeyword)" 
+                       :class="{ 'search-highlight': highlightedMessageId === message.id }"></p>
 
                     <!-- Message metadata -->
                     <div class="message-meta">
@@ -172,6 +226,7 @@
             </div>
 
             <div class="input-group">
+              <MessageTemplates @select="insertTemplate" />
               <button class="btn btn-outline-secondary" @click="toggleEmojiPicker" title="Emoji">
                 <i class="bi bi-emoji-smile"></i>
               </button>
@@ -224,6 +279,13 @@
         </button>
       </div>
     </div>
+
+    <!-- Customer Info Panel -->
+    <CustomerInfoPanel
+      :is-open="showCustomerInfo"
+      :customer-id="selectedConversation?.khachHangId"
+      @close="showCustomerInfo = false"
+    />
   </div>
 </template>
 
@@ -234,6 +296,8 @@ import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/authStore'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
+import MessageTemplates from '@/components/chat/MessageTemplates.vue'
+import CustomerInfoPanel from '@/components/chat/CustomerInfoPanel.vue'
 
 const { success: showSuccess, error: showError } = useToast()
 const authStore = useAuthStore()
@@ -255,10 +319,19 @@ const selectedImage = ref(null)
 const messagesContainer = ref(null)
 const messageInput = ref(null)
 const fileInput = ref(null)
+const activeFilter = ref('all') // 'all', 'unread', 'escalated', 'active'
+const messageSearchKeyword = ref('')
+const searchResults = ref([])
+const currentSearchIndex = ref(-1)
+const highlightedMessageId = ref(null)
+const showCustomerInfo = ref(false)
 
 // WebSocket
 let stompClient = null
 let reconnectTimer = null
+const wsConnectionStatus = ref('disconnected') // 'connected', 'connecting', 'disconnected', 'reconnecting'
+const reconnectAttempts = ref(0)
+const maxReconnectAttempts = 10
 
 // Computed
 const canSendMessage = computed(() => {
@@ -270,7 +343,11 @@ const loadConversations = async () => {
   try {
     const response = await chatService.getAllConversations()
     conversations.value = response.data || []
-    filteredConversations.value = conversations.value
+    // Mark escalated conversations (you may need to add this field to ConversationResponse)
+    conversations.value.forEach(conv => {
+      conv.isEscalated = conv.isEscalated || false // Add this field if not present
+    })
+    applyFilters()
   } catch (error) {
     console.error('Lỗi khi load conversations:', error)
     showError('Không thể tải danh sách cuộc trò chuyện')
@@ -505,18 +582,60 @@ const scrollToMessage = (messageId) => {
   }
 }
 
-const filterConversations = () => {
-  if (!searchKeyword.value.trim()) {
-    filteredConversations.value = conversations.value
-    return
+const filters = computed(() => {
+  const all = conversations.value.length
+  const unread = conversations.value.filter(c => c.unreadCount > 0).length
+  const escalated = conversations.value.filter(c => c.isEscalated).length
+  const active = conversations.value.filter(c => c.unreadCount > 0 || c.isEscalated).length
+
+  return [
+    { key: 'all', label: 'Tất cả', icon: 'bi bi-inbox', count: all },
+    { key: 'unread', label: 'Chưa đọc', icon: 'bi bi-envelope', count: unread },
+    { key: 'escalated', label: 'Đã escalate', icon: 'bi bi-exclamation-triangle', count: escalated },
+    { key: 'active', label: 'Đang xử lý', icon: 'bi bi-clock-history', count: active }
+  ]
+})
+
+const setFilter = (filterKey) => {
+  activeFilter.value = filterKey
+  applyFilters()
+}
+
+const applyFilters = () => {
+  let filtered = conversations.value
+
+  // Apply active filter
+  switch (activeFilter.value) {
+    case 'unread':
+      filtered = filtered.filter(c => c.unreadCount > 0)
+      break
+    case 'escalated':
+      filtered = filtered.filter(c => c.isEscalated)
+      break
+    case 'active':
+      filtered = filtered.filter(c => c.unreadCount > 0 || c.isEscalated)
+      break
+    case 'all':
+    default:
+      // No filter
+      break
   }
 
-  const keyword = searchKeyword.value.toLowerCase()
-  filteredConversations.value = conversations.value.filter(conv =>
-    conv.khachHangTen.toLowerCase().includes(keyword) ||
-    conv.khachHangMa?.toLowerCase().includes(keyword) ||
-    conv.lastMessage?.noiDung?.toLowerCase().includes(keyword)
-  )
+  // Apply search keyword
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.toLowerCase()
+    filtered = filtered.filter(conv =>
+      conv.khachHangTen.toLowerCase().includes(keyword) ||
+      conv.khachHangMa?.toLowerCase().includes(keyword) ||
+      conv.lastMessage?.noiDung?.toLowerCase().includes(keyword)
+    )
+  }
+
+  filteredConversations.value = filtered
+}
+
+const filterConversations = () => {
+  applyFilters()
 }
 
 const refreshConversations = async () => {
@@ -526,27 +645,78 @@ const refreshConversations = async () => {
 
 // WebSocket setup
 const connectWebSocket = () => {
+  if (stompClient && stompClient.connected) {
+    wsConnectionStatus.value = 'connected'
+    return
+  }
+
+  if (stompClient) {
+    stompClient.deactivate()
+    stompClient = null
+  }
+
+  wsConnectionStatus.value = 'connecting'
+  reconnectAttempts.value = 0
+
   const socket = new SockJS('http://localhost:8080/ws')
   stompClient = new Client({
     webSocketFactory: () => socket,
-    reconnectDelay: 5000,
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
+    reconnectDelay: 0, // Disable auto reconnect, we'll handle it manually
+    heartbeatIncoming: 10000, // Match server heartbeat
+    heartbeatOutgoing: 10000,
+    connectionTimeout: 5000, // 5 seconds timeout
     onConnect: () => {
       console.log('✅ WebSocket connected')
+      wsConnectionStatus.value = 'connected'
+      reconnectAttempts.value = 0
+      
       if (selectedConversationId.value) {
         subscribeToConversation(selectedConversationId.value)
       }
     },
     onStompError: (frame) => {
       console.error('❌ WebSocket error:', frame)
+      wsConnectionStatus.value = 'disconnected'
+      handleReconnect()
     },
     onDisconnect: () => {
       console.log('🔌 WebSocket disconnected')
+      wsConnectionStatus.value = 'disconnected'
+      handleReconnect()
+    },
+    onWebSocketError: (event) => {
+      console.error('❌ WebSocket connection error:', event)
+      wsConnectionStatus.value = 'disconnected'
+      handleReconnect()
     }
   })
 
   stompClient.activate()
+}
+
+// Exponential backoff reconnection
+const handleReconnect = () => {
+  if (reconnectAttempts.value >= maxReconnectAttempts) {
+    console.error('❌ Max reconnection attempts reached')
+    wsConnectionStatus.value = 'disconnected'
+    return
+  }
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+  }
+
+  reconnectAttempts.value++
+  wsConnectionStatus.value = 'reconnecting'
+
+  // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value - 1), 30000)
+
+  console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`)
+
+  reconnectTimer = setTimeout(() => {
+    connectWebSocket()
+  }, delay)
 }
 
 const subscribeToConversation = (conversationId) => {
@@ -686,12 +856,90 @@ const formatMessageTime = (date) => {
   return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
-const formatMessage = (text) => {
+const formatMessage = (text, searchKeyword = '') => {
   if (!text) return ''
+  
+  let formatted = text
+  
+  // Highlight search keyword if provided
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.trim()
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    formatted = formatted.replace(regex, '<mark class="search-match">$1</mark>')
+  }
+  
   // Convert URLs to links
   const urlRegex = /(https?:\/\/[^\s]+)/g
-  return text.replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
+  formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
     .replace(/\n/g, '<br>')
+  
+  return formatted
+}
+
+const handleMessageSearch = () => {
+  if (!messageSearchKeyword.value.trim() || !selectedConversation.value) {
+    searchResults.value = []
+    currentSearchIndex.value = -1
+    highlightedMessageId.value = null
+    return
+  }
+
+  const keyword = messageSearchKeyword.value.toLowerCase()
+  searchResults.value = messages.value
+    .map((msg, index) => ({ message: msg, index }))
+    .filter(({ message }) => 
+      message.noiDung && message.noiDung.toLowerCase().includes(keyword)
+    )
+
+  if (searchResults.value.length > 0) {
+    currentSearchIndex.value = 0
+    navigateToSearchResult(0)
+  } else {
+    currentSearchIndex.value = -1
+    highlightedMessageId.value = null
+  }
+}
+
+const navigateSearch = (direction) => {
+  if (searchResults.value.length === 0) return
+
+  if (direction === 'next') {
+    currentSearchIndex.value = (currentSearchIndex.value + 1) % searchResults.value.length
+  } else {
+    currentSearchIndex.value = currentSearchIndex.value === 0 
+      ? searchResults.value.length - 1 
+      : currentSearchIndex.value - 1
+  }
+
+  navigateToSearchResult(currentSearchIndex.value)
+}
+
+const navigateToSearchResult = (index) => {
+  if (index < 0 || index >= searchResults.value.length) return
+
+  const result = searchResults.value[index]
+  highlightedMessageId.value = result.message.id
+
+  // Scroll to message
+  nextTick(() => {
+    const messageElement = document.querySelector(`[data-message-id="${result.message.id}"]`)
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        if (highlightedMessageId.value === result.message.id) {
+          highlightedMessageId.value = null
+        }
+      }, 2000)
+    }
+  })
+}
+
+const clearMessageSearch = () => {
+  messageSearchKeyword.value = ''
+  searchResults.value = []
+  currentSearchIndex.value = -1
+  highlightedMessageId.value = null
 }
 
 const getLastMessagePreview = (lastMessage) => {
@@ -738,6 +986,11 @@ const toggleEmojiPicker = () => {
   showError('Tính năng emoji đang được phát triển')
 }
 
+const insertTemplate = (templateText) => {
+  newMessage.value = templateText
+  messageInput.value?.focus()
+}
+
 // Lifecycle
 onMounted(async () => {
   await loadConversations()
@@ -745,6 +998,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+  }
   if (stompClient) {
     stompClient.deactivate()
   }
@@ -788,9 +1044,122 @@ onUnmounted(() => {
   border-bottom: 1px solid #e0e0e0;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connected {
+  background: #4caf50;
+  color: #4caf50;
+  animation: none;
+}
+
+.status-indicator.connecting {
+  background: #ff9800;
+  color: #ff9800;
+}
+
+.status-indicator.reconnecting {
+  background: #ff9800;
+  color: #ff9800;
+  animation: spin 1s linear infinite;
+}
+
+.status-indicator.disconnected {
+  background: #f44336;
+  color: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .search-box {
   background: #fff;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.conversation-filters {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.filter-btn:hover {
+  background: #f0f0f0;
+  border-color: #2196f3;
+}
+
+.filter-btn.active {
+  background: #2196f3;
+  color: white;
+  border-color: #2196f3;
+}
+
+.filter-btn i {
+  font-size: 14px;
+}
+
+.filter-badge {
+  background: #f44336;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-btn.active .filter-badge {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .conversation-list {

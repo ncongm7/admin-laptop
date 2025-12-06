@@ -12,7 +12,7 @@ import { xoaVoucher } from '@/service/banhang/voucherService'
  * Composable quản lý sản phẩm trong hóa đơn
  * Xử lý: thêm sản phẩm, xóa sản phẩm, modal số lượng, quét IMEI
  */
-export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
+export function useProductManagement(hoaDonHienTai, capNhatHoaDon, ensureHoaDonTonTai) {
   // Toast & Confirm
   const { error: showError, success: showSuccess, warning: showWarning } = useToast()
   const { showConfirm } = useConfirm()
@@ -24,9 +24,13 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
   const soLuongNhap = ref(1)
   const quantityInput = ref(null)
 
+  // Helper đảm bảo hóa đơn đã tồn tại trên backend
+  const ensureHoaDonReady =
+    typeof ensureHoaDonTonTai === 'function' ? ensureHoaDonTonTai : async () => hoaDonHienTai.value
+
   /**
    * Xử lý khi chọn sản phẩm từ tìm kiếm
-   * 
+   *
    * ProductSearch component emit cấu trúc mới:
    * {
    *   variant: ChiTietSanPhamResponse,  // Biến thể đã chọn
@@ -136,6 +140,22 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
       showError(
         `Lỗi: ID sản phẩm không hợp lệ (${productId}). Có thể đây là mã sản phẩm (${selectedProduct.value.maCTSP || selectedProduct.value.maCtsp}), không phải UUID. Vui lòng thử lại!`,
       )
+      return
+    }
+
+    // Đảm bảo hóa đơn đã được tạo trên backend trước khi thêm sản phẩm
+    try {
+      await ensureHoaDonReady()
+    } catch (error) {
+      console.error(
+        '❌ [useProductManagement] Không thể sync hóa đơn trước khi thêm sản phẩm:',
+        error,
+      )
+      return
+    }
+
+    if (!hoaDonHienTai.value) {
+      showError('Hóa đơn không tồn tại. Vui lòng tạo hóa đơn mới!')
       return
     }
 
@@ -292,6 +312,13 @@ export function useProductManagement(hoaDonHienTai, capNhatHoaDon) {
     if (!hoaDonHienTai.value || !imeiCode) return
 
     console.log('Quét mã IMEI/Barcode:', imeiCode)
+
+    try {
+      await ensureHoaDonReady()
+    } catch (error) {
+      console.error('❌ [useProductManagement] Không thể sync hóa đơn trước khi quét IMEI:', error)
+      return
+    }
 
     isLoading.value = true
     try {

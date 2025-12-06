@@ -35,11 +35,11 @@
                     class="product-main-image"
                     @error="handleImageError"
                   />
-                  <div v-if="productDetail.anhSanPhams && productDetail.anhSanPhams.length > 1" class="product-thumbnails mt-2">
+                  <div v-if="getAllProductImages().length > 1" class="product-thumbnails mt-2">
                     <img
-                      v-for="(img, index) in productDetail.anhSanPhams.slice(0, 4)"
+                      v-for="(img, index) in getAllProductImages().slice(0, 4)"
                       :key="index"
-                      :src="img.uri"
+                      :src="img.url || img.uri"
                       :alt="`Ảnh ${index + 1}`"
                       class="thumbnail"
                       :class="{ active: selectedImageIndex === index }"
@@ -388,17 +388,45 @@ const canSelectVariant = computed(() => {
 })
 
 /**
+ * Lấy tất cả hình ảnh của sản phẩm từ chiTietSanPhams
+ */
+const getAllProductImages = () => {
+  if (!productDetail.value) return []
+  
+  const allImages = []
+  
+  // Backend trả về: productDetail.chiTietSanPhams[].hinhAnhs[] với cấu trúc {id, url, anhChinhDaiDien}
+  if (productDetail.value.chiTietSanPhams && productDetail.value.chiTietSanPhams.length > 0) {
+    for (const ctsp of productDetail.value.chiTietSanPhams) {
+      if (ctsp.hinhAnhs && Array.isArray(ctsp.hinhAnhs) && ctsp.hinhAnhs.length > 0) {
+        allImages.push(...ctsp.hinhAnhs)
+      }
+    }
+  }
+  
+  // Fallback: Thử các field khác (backward compatibility)
+  if (allImages.length === 0 && productDetail.value.anhSanPhams) {
+    return productDetail.value.anhSanPhams
+  }
+  
+  return allImages
+}
+
+/**
  * Lấy ảnh chính của sản phẩm
  */
 const getProductMainImage = () => {
   if (!productDetail.value) return 'https://via.placeholder.com/400x400?text=No+Image'
   
-  const images = productDetail.value.anhSanPhams || []
+  const images = getAllProductImages()
   if (images.length === 0) return 'https://via.placeholder.com/400x400?text=No+Image'
   
-  // Lấy ảnh đã chọn hoặc ảnh mặc định
-  const selectedImage = images[selectedImageIndex.value] || images.find(img => img.is_default) || images[0]
-  return selectedImage.uri || 'https://via.placeholder.com/400x400?text=No+Image'
+  // Lấy ảnh đã chọn hoặc ảnh mặc định (ưu tiên anhChinhDaiDien = true)
+  const selectedImage = images[selectedImageIndex.value] || 
+                       images.find(img => img.anhChinhDaiDien === true || img.is_default) || 
+                       images[0]
+  
+  return selectedImage.url || selectedImage.uri || 'https://via.placeholder.com/400x400?text=No+Image'
 }
 
 /**

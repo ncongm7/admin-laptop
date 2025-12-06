@@ -3,23 +3,24 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h6 class="mb-0">
                 <i class="bi bi-layers"></i> Hóa đơn chờ
-                <span class="badge bg-light text-dark ms-2">{{ bills.length }}</span>
+                <span class="badge bg-light text-dark ms-2">{{ pendingBills.length }}</span>
             </h6>
-            <button class="btn btn-sm btn-light" @click="$emit('create-new')" :disabled="bills.length >= 10">
+            <button class="btn btn-sm btn-light" @click="$emit('create-new')" :disabled="pendingBills.length >= 10">
                 <i class="bi bi-plus"></i>
             </button>
         </div>
 
         <div class="card-body p-2" style="position: relative;">
             <!-- Danh sách hóa đơn chờ -->
-            <div v-if="bills.length > 0" class="bills-list">
-                <div v-for="(bill, index) in bills" :key="bill.id" class="bill-tab"
+            <div v-if="pendingBills.length > 0" class="bills-list">
+                <div v-for="(bill, index) in pendingBills" :key="bill.id" class="bill-tab"
                     :class="{ active: bill.id === selectedBillId }" @click="$emit('select-bill', bill)">
                     <div class="bill-info">
                         <div class="bill-number">
                             <i class="bi bi-receipt"></i>
                             <span>Hóa đơn {{ index + 1 }}</span>
-                            <span v-if="bill.isDraft" class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">
+                            <span v-if="bill.isDraft" class="badge bg-warning text-dark ms-2"
+                                style="font-size: 0.7rem;">
                                 Draft
                             </span>
                         </div>
@@ -32,13 +33,10 @@
                         </div>
                     </div>
                     <div class="bill-actions">
-                        <button 
-                            class="btn-copy-bill" 
-                            @click.stop="confirmCopy(bill)" 
-                            title="Copy hóa đơn"
-                            :disabled="isCopying || getBillItemsCount(bill) === 0"
-                            v-if="getBillItemsCount(bill) > 0">
-                            <span v-if="isCopying && copyingBillId === bill.id" class="spinner-border spinner-border-sm me-1"></span>
+                        <button class="btn-copy-bill" @click.stop="confirmCopy(bill)" title="Copy hóa đơn"
+                            :disabled="isCopying || getBillItemsCount(bill) === 0" v-if="getBillItemsCount(bill) > 0">
+                            <span v-if="isCopying && copyingBillId === bill.id"
+                                class="spinner-border spinner-border-sm me-1"></span>
                             <i v-else class="bi bi-files"></i>
                         </button>
                         <button class="btn-close-bill" @click.stop="confirmRemove(bill)" title="Xóa hóa đơn">
@@ -55,7 +53,7 @@
             </div>
 
             <!-- Cảnh báo giới hạn -->
-            <div v-if="bills.length >= 10" class="alert alert-warning alert-sm mt-2 mb-0" role="alert">
+            <div v-if="pendingBills.length >= 10" class="alert alert-warning alert-sm mt-2 mb-0" role="alert">
                 <i class="bi bi-exclamation-triangle"></i> Tối đa 10 hóa đơn chờ
             </div>
         </div>
@@ -63,6 +61,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useConfirm } from '@/composables/useConfirm'
 
 const props = defineProps({
@@ -87,6 +86,27 @@ const props = defineProps({
 const emit = defineEmits(['select-bill', 'remove-bill', 'create-new', 'copy-bill'])
 
 const { showConfirm } = useConfirm()
+
+/**
+ * Filter bills to only show pending invoices (chưa thanh toán)
+ * Đảm bảo không hiển thị hóa đơn đã thanh toán, đang giao, hoàn thành
+ */
+const pendingBills = computed(() => {
+    return props.bills.filter(bill => {
+        // Lọc ra các hóa đơn chưa thanh toán
+        const trangThai = bill.trangThai
+        const trangThaiThanhToan = bill.trangThaiThanhToan
+
+        // Nếu có trangThai, kiểm tra trạng thái
+        if (trangThai) {
+            // Chỉ hiển thị hóa đơn chờ thanh toán
+            return trangThai === 'CHO_THANH_TOAN' || trangThai === 'CHO'
+        }
+
+        // Fallback: dựa vào trangThaiThanhToan
+        return trangThaiThanhToan === 0 || trangThaiThanhToan === undefined || trangThaiThanhToan === null
+    })
+})
 
 const getBillItemsCount = (bill) => {
     return bill.hoaDonChiTiet?.length || 0
@@ -332,44 +352,44 @@ const formatCurrency = (value) => {
     .transaction-tabs {
         margin-bottom: 1rem;
     }
-    
+
     .card-header {
         padding: 0.75rem;
     }
-    
+
     .card-header h6 {
         font-size: 0.9rem;
     }
-    
+
     .bills-list {
         gap: 0.5rem;
     }
-    
+
     .bill-tab {
         min-width: 180px;
         padding: 0.6rem;
     }
-    
+
     .bill-number {
         font-size: 0.85rem;
     }
-    
+
     .bill-code {
         font-size: 0.75rem;
     }
-    
+
     .bill-total {
         font-size: 0.9rem;
     }
-    
+
     .bill-items-count {
         font-size: 0.75rem;
     }
-    
+
     .bill-actions {
         gap: 0.2rem;
     }
-    
+
     .btn-copy-bill,
     .btn-close-bill {
         width: 24px;
@@ -383,11 +403,11 @@ const formatCurrency = (value) => {
         min-width: 160px;
         padding: 0.5rem;
     }
-    
+
     .bill-number {
         font-size: 0.8rem;
     }
-    
+
     .bill-total {
         font-size: 0.85rem;
     }

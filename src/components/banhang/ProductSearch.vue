@@ -95,6 +95,7 @@
                                 class="product-image"
                                 loading="lazy"
                                 @error="handleImageError"
+                                @load="handleImageLoad"
                             />
                             <!-- Badges -->
                             <div class="product-badges">
@@ -583,7 +584,16 @@ const handleKeyboardShortcut = (event) => {
  * Xử lý lỗi ảnh
  */
 const handleImageError = (event) => {
+    console.warn('⚠️ Lỗi khi load hình ảnh:', event.target.src)
     handleImageErrorUtil(event, 'medium')
+}
+
+/**
+ * Xử lý khi ảnh load thành công
+ */
+const handleImageLoad = (event) => {
+    // Ẩn loading indicator nếu có
+    event.target.style.opacity = '1'
 }
 
 /**
@@ -915,10 +925,61 @@ const confirmAddProduct = () => {
 }
 
 const getProductImage = (product) => {
-    if (product.anhSanPhams && product.anhSanPhams.length > 0) {
-        const defaultImage = product.anhSanPhams.find(img => img.is_default)
-        return defaultImage ? defaultImage.uri : product.anhSanPhams[0].uri
+    // Backend trả về: product.chiTietSanPhams[].hinhAnhs[] với cấu trúc {id, url, anhChinhDaiDien}
+    // Ưu tiên lấy hình ảnh từ chi tiết sản phẩm đầu tiên
+    if (product.chiTietSanPhams && product.chiTietSanPhams.length > 0) {
+        for (const ctsp of product.chiTietSanPhams) {
+            if (ctsp.hinhAnhs && Array.isArray(ctsp.hinhAnhs) && ctsp.hinhAnhs.length > 0) {
+                // Tìm hình ảnh chính đại diện (anhChinhDaiDien = true)
+                const defaultImage = ctsp.hinhAnhs.find(img => img.anhChinhDaiDien === true)
+                if (defaultImage && defaultImage.url) {
+                    // Đảm bảo URL là đầy đủ (có protocol)
+                    const url = defaultImage.url.trim()
+                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                        return url
+                    }
+                }
+                // Nếu không có hình chính, lấy hình đầu tiên
+                if (ctsp.hinhAnhs[0] && ctsp.hinhAnhs[0].url) {
+                    const url = ctsp.hinhAnhs[0].url.trim()
+                    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                        return url
+                    }
+                }
+            }
+        }
     }
+    
+    // Fallback: Thử các field khác (backward compatibility)
+    if (product.anhSanPhams && product.anhSanPhams.length > 0) {
+        const defaultImage = product.anhSanPhams.find(img => img.is_default || img.anhChinhDaiDien)
+        if (defaultImage) {
+            const url = (defaultImage.uri || defaultImage.url || '').trim()
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                return url
+            }
+        }
+        const firstImage = product.anhSanPhams[0]
+        if (firstImage) {
+            const url = (firstImage.uri || firstImage.url || '').trim()
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                return url
+            }
+        }
+    }
+    
+    // Fallback: Thử các field khác
+    const fallbackFields = ['anhDaiDien', 'hinhAnh', 'image', 'imageUrl']
+    for (const field of fallbackFields) {
+        if (product[field]) {
+            const url = String(product[field]).trim()
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                return url
+            }
+        }
+    }
+    
+    // Trả về placeholder nếu không tìm thấy URL hợp lệ
     return PLACEHOLDER_IMAGES.medium
 }
 

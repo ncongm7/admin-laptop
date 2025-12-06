@@ -16,7 +16,8 @@
 
                 <div class="modal-body">
                     <!-- Alert thông báo thay đổi giá/voucher/điểm -->
-                    <div v-if="thongBaoThayDoi" class="alert alert-warning alert-dismissible fade show mb-3 shadow-sm" role="alert" style="border-left: 4px solid #ffc107;">
+                    <div v-if="thongBaoThayDoi" class="alert alert-warning alert-dismissible fade show mb-3 shadow-sm"
+                        role="alert" style="border-left: 4px solid #ffc107;">
                         <h6 class="alert-heading mb-3 d-flex align-items-center">
                             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
                             <span>Đã phát hiện thay đổi trong hóa đơn</span>
@@ -25,9 +26,11 @@
                         <hr>
                         <p class="mb-0 d-flex align-items-center">
                             <i class="bi bi-info-circle me-2"></i>
-                            <span><strong>Đã tự động cập nhật hóa đơn.</strong> Vui lòng kiểm tra lại và xác nhận thanh toán lần nữa.</span>
+                            <span><strong>Đã tự động cập nhật hóa đơn.</strong> Vui lòng kiểm tra lại và xác nhận thanh
+                                toán lần nữa.</span>
                         </p>
-                        <button type="button" class="btn-close" @click="thongBaoThayDoi = null" aria-label="Close"></button>
+                        <button type="button" class="btn-close" @click="thongBaoThayDoi = null"
+                            aria-label="Close"></button>
                     </div>
 
                     <!-- Preview hóa đơn -->
@@ -113,21 +116,56 @@
 
                             <!-- Số tiền khách đưa (chỉ hiện với tiền mặt) -->
                             <div v-if="isTienMat" class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    Số tiền khách đưa
-                                </label>
-                                <input type="number" class="form-control" v-model.number="tienKhachDua" :min="tongTien"
-                                    :max="tongTien * 10" :step="1000" placeholder="Nhập số tiền khách đưa"
-                                    :disabled="isProcessing" @blur="validateTienKhachDua" />
-                                <div v-if="tienThua > 0" class="mt-2">
-                                    <span class="text-success fw-bold">
-                                        Tiền thừa trả khách: {{ formatCurrency(tienThua) }}
-                                    </span>
+                                <!-- Option COD (chỉ hiện khi có giao hàng) -->
+                                <div v-if="formData.canGiaoHang" class="mb-3 p-3 bg-light rounded border">
+                                    <label class="form-label fw-semibold mb-2">
+                                        <i class="bi bi-truck text-primary"></i> Phương thức thanh toán:
+                                    </label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="paymentMethodCash"
+                                            id="paymentAtCounter" value="counter" v-model="paymentMethodCash"
+                                            :disabled="isProcessing" />
+                                        <label class="form-check-label" for="paymentAtCounter">
+                                            <strong>Khách thanh toán tại quầy</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="paymentMethodCash"
+                                            id="paymentCOD" value="cod" v-model="paymentMethodCash"
+                                            :disabled="isProcessing" />
+                                        <label class="form-check-label" for="paymentCOD">
+                                            <strong>Người nhận thanh toán khi nhận hàng (COD)</strong>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div v-if="tienKhachDua > 0 && tienThua < 0" class="mt-2">
-                                    <span class="text-danger">
-                                        Số tiền chưa đủ: {{ formatCurrency(Math.abs(tienThua)) }}
-                                    </span>
+
+                                <!-- Input tiền khách đưa (chỉ hiện khi thanh toán tại quầy) -->
+                                <div v-if="!isCOD">
+                                    <label class="form-label fw-semibold">
+                                        Số tiền khách đưa
+                                    </label>
+                                    <input type="number" class="form-control" v-model.number="tienKhachDua"
+                                        :min="tongTien" :max="tongTien * 10" :step="1000"
+                                        placeholder="Nhập số tiền khách đưa" :disabled="isProcessing"
+                                        @blur="validateTienKhachDua" />
+                                    <div v-if="tienThua > 0" class="mt-2">
+                                        <span class="text-success fw-bold">
+                                            Tiền thừa trả khách: {{ formatCurrency(tienThua) }}
+                                        </span>
+                                    </div>
+                                    <div v-if="tienKhachDua > 0 && tienThua < 0" class="mt-2">
+                                        <span class="text-danger">
+                                            Số tiền chưa đủ: {{ formatCurrency(Math.abs(tienThua)) }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Thông báo COD -->
+                                <div v-if="isCOD" class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Hóa đơn sẽ được thanh toán khi giao hàng.</strong>
+                                    <br>
+                                    <small>Người nhận sẽ thanh toán bằng tiền mặt khi nhận hàng.</small>
                                 </div>
                             </div>
 
@@ -136,18 +174,13 @@
                                 <label class="form-label fw-semibold">Mã giao dịch</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" v-model="formData.maGiaoDich"
-                                        placeholder="Nhập mã giao dịch (nếu có)" :disabled="isProcessing" />
-                                    <!-- Nút hiện QR (chỉ hiện với phương thức QR) -->
-                                    <button v-if="isQRPayment" type="button" class="btn btn-primary" @click="generateQR"
-                                        :disabled="qrLoading || isProcessing">
-                                        <span v-if="qrLoading" class="spinner-border spinner-border-sm me-1"></span>
-                                        <i v-else class="bi bi-qr-code me-1"></i>
-                                        {{ qrStatus === 'confirmed' ? 'Đã thanh toán' : 'Hiện QR' }}
-                                    </button>
+                                        :placeholder="isQRPayment ? 'Mã giao dịch sẽ tự động cập nhật sau khi quét QR' : 'Nhập mã giao dịch (nếu có)'"
+                                        :disabled="isProcessing || (isQRPayment && qrStatus !== 'confirmed')"
+                                        :readonly="isQRPayment && qrStatus !== 'confirmed'" />
                                 </div>
                                 <small v-if="isQRPayment && !qrTransactionId" class="text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
-                                    Nhấn "Hiện QR" để khách hàng quét mã thanh toán
+                                    Nhấn "Xác nhận thanh toán" để hiển thị mã QR và chờ khách hàng quét
                                 </small>
                                 <div v-if="qrTransactionId" class="alert alert-success alert-sm mt-2 mb-0">
                                     <i class="bi bi-check-circle-fill me-2"></i>
@@ -366,7 +399,7 @@
                                                 class="serial-dropdown mt-2">
                                                 <div class="dropdown-header">
                                                     <strong>Chọn serial khả dụng ({{ availableSerials[product.id].length
-                                                        }})</strong>
+                                                    }})</strong>
                                                     <button class="btn-close-dropdown"
                                                         @click="showSerialDropdown[product.id] = false">
                                                         <i class="bi bi-x"></i>
@@ -378,7 +411,7 @@
                                                         @click="selectSerialFromDropdown(product, serial)">
                                                         <i class="bi bi-upc-scan"></i>
                                                         <span class="serial-number">{{ getSerialDisplay(serial)
-                                                            }}</span>
+                                                        }}</span>
                                                         <span class="badge" :class="{
                                                             'bg-success': serial.trangThai === 1, // 1 = Trong kho (khả dụng)
                                                             'bg-warning': serial.trangThai === 2, // 2 = Đã bán
@@ -467,10 +500,10 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSerialValidation } from '@/composables/useSerialValidation'
 import { useQRPaymentPOS } from '@/composables/useQRPaymentPOS'
-import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung } from '@/service/banhang/banHangService'
 import { layDanhSachPhuongThucThanhToan, layDanhSachSerialKhaDung, kiemTraTruocThanhToan } from '@/service/banhang/banHangService'
 import { validateSerialNumber, sanitizeInput, validatePrice } from '@/utils/validation'
 import DiaChiService from '@/service/taikhoan/diaChiService'
+import VietnamAddressService from '@/service/taikhoan/vietnamAddressService'
 import DiaChiForm from '@/components/taikhoan/khachhang/DiaChiForm.vue'
 import QRPaymentModal from '@/components/banhang/QRPaymentModal.vue'
 
@@ -502,6 +535,7 @@ const formData = ref({
     ghiChuGiaoHang: ''
 })
 const tienKhachDua = ref(0)
+const paymentMethodCash = ref('counter') // 'counter' hoặc 'cod'
 const isProcessing = ref(false)
 const serialInputs = ref([])
 const showCameraScanner = ref(false)
@@ -509,6 +543,7 @@ const availableSerials = ref({})
 const showSerialDropdown = ref({})
 const isLoadingSerials = ref(false)
 const thongBaoThayDoi = ref(null) // Thông báo thay đổi giá/voucher/điểm
+const pendingQRPayment = ref(null) // Lưu payload chờ xác nhận QR
 
 // State - Scan feedback
 const scanSuccess = ref({})
@@ -544,6 +579,36 @@ const customerInfoForAddress = computed(() => {
 // ==================== QR PAYMENT ====================
 const hoaDonForQR = computed(() => props.hoaDon)
 
+// Định nghĩa finalizeQRPayment trước để có thể sử dụng trong callback
+async function finalizeQRPayment(paymentData = {}) {
+    const sanitizedTransactionId = paymentData?.transactionId
+        ? sanitizeInput(paymentData.transactionId)
+        : null
+
+    if (sanitizedTransactionId) {
+        formData.value.maGiaoDich = sanitizedTransactionId
+    }
+
+    const payload = pendingQRPayment.value
+        ? { ...pendingQRPayment.value }
+        : buildPaymentPayload()
+
+    if (sanitizedTransactionId) {
+        payload.maGiaoDich = sanitizedTransactionId
+    }
+
+    console.log('💰 Payload thanh toán (QR):', payload)
+
+    pendingQRPayment.value = null
+
+    isProcessing.value = true
+    try {
+        emit('payment-confirmed', payload)
+    } finally {
+        isProcessing.value = false
+    }
+}
+
 const {
     qrCodeData,
     loading: qrLoading,
@@ -556,11 +621,23 @@ const {
     handleExpired: handleQRExpired
 } = useQRPaymentPOS({
     hoaDon: hoaDonForQR,
-    onPaymentConfirmed: (paymentData) => {
+    onPaymentConfirmed: async (paymentData) => {
         console.log('✅ [ModalThanhToan] QR Payment confirmed:', paymentData)
         // Auto-fill mã giao dịch
         formData.value.maGiaoDich = paymentData.transactionId
         showSuccess(`Đã nhận thanh toán QR! Mã GD: ${paymentData.transactionId}`)
+
+        // Tự động hoàn tất thanh toán sau khi QR được xác nhận
+        // Đợi một chút để đảm bảo formData đã được cập nhật
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Tự động gọi finalizeQRPayment để hoàn tất thanh toán
+        try {
+            await finalizeQRPayment({ transactionId: paymentData.transactionId })
+        } catch (error) {
+            console.error('❌ [ModalThanhToan] Lỗi khi hoàn tất thanh toán QR:', error)
+            showError('Có lỗi xảy ra khi hoàn tất thanh toán. Vui lòng thử lại!')
+        }
     }
 })
 
@@ -627,6 +704,11 @@ const isTienMat = computed(() => {
 const isQRPayment = computed(() => {
     const methodName = selectedMethodName.value.toLowerCase()
     return methodName.includes('qr') || methodName.includes('chuyển khoản qr') || methodName.includes('chuyen khoan qr')
+})
+
+// Kiểm tra có phải COD không
+const isCOD = computed(() => {
+    return isTienMat.value && formData.value.canGiaoHang && paymentMethodCash.value === 'cod'
 })
 
 const tienThua = computed(() => {
@@ -704,8 +786,13 @@ const selectedWardName = computed(() => {
 // Computed: Lọc chỉ hiển thị 2 phương thức thanh toán (Offline và Online)
 const filteredPaymentMethods = computed(() => {
     return paymentMethods.value.filter(method => {
-        const name = method.tenPhuongThuc.toLowerCase()
-        // Chỉ cho phép "Tiền mặt" (offline) và "Chuyển khoản QR" (online)
+        const name = (method.tenPhuongThuc || '').toLowerCase()
+        const type = (method.loaiPhuongThuc || '').toLowerCase()
+
+        // Ưu tiên check theo loại (loaiPhuongThuc) vì không bị lỗi font
+        if (type === 'cash' || type === 'qr payment') return true
+
+        // Fallback check theo tên
         return (name.includes('tiền mặt') || name.includes('tien mat')) ||
             (name.includes('qr') || name.includes('chuyển khoản qr') || name.includes('chuyen khoan qr'))
     })
@@ -940,7 +1027,7 @@ const focusNextSerialInput = (currentProduct) => {
 }
 
 const { showConfirm } = useConfirm()
-const { error: showError, warning: showWarning } = useToast()
+const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToast()
 
 const xoaSerial = async (serialNumber) => {
     const confirmed = await showConfirm({
@@ -964,7 +1051,7 @@ const getSerialsByProduct = (productId) => {
  * Validate tiền khách đưa
  */
 const validateTienKhachDua = () => {
-    if (isTienMat.value && tienKhachDua.value) {
+    if (isTienMat.value && !isCOD.value && tienKhachDua.value) {
         if (!validatePrice(tienKhachDua.value)) {
             showError('Số tiền không hợp lệ!')
             tienKhachDua.value = tongTien.value
@@ -980,6 +1067,94 @@ const validateTienKhachDua = () => {
     }
 }
 
+const buildPaymentPayload = () => {
+    const payloadData = {
+        ...formData.value,
+        soTienThanhToan: tongTien.value,
+        serialNumbers: getSerialPayload()
+    }
+
+    if (payloadData.ghiChu) {
+        payloadData.ghiChu = sanitizeInput(payloadData.ghiChu)
+    }
+
+    if (payloadData.maGiaoDich) {
+        payloadData.maGiaoDich = sanitizeInput(payloadData.maGiaoDich)
+    }
+
+    const selectedMethod = filteredPaymentMethods.value.find(
+        (method) => method.id === payloadData.idPhuongThucThanhToan
+    )
+
+    if (selectedMethod) {
+        payloadData.tenPhuongThucThanhToan = selectedMethod.tenPhuongThuc
+        if (selectedMethod.maPhuongThuc) {
+            payloadData.maPhuongThucThanhToan = selectedMethod.maPhuongThuc
+        }
+    }
+
+    if (formData.value.canGiaoHang) {
+        if (!formData.value.tenNguoiNhan || formData.value.tenNguoiNhan.trim().length === 0) {
+            payloadData.tenNguoiNhan = props.hoaDon?.khachHang?.hoTen || props.hoaDon?.tenKhachHang || null
+        } else {
+            payloadData.tenNguoiNhan = formData.value.tenNguoiNhan
+        }
+
+        if (!formData.value.sdtNguoiNhan || formData.value.sdtNguoiNhan.trim().length === 0) {
+            payloadData.sdtNguoiNhan = props.hoaDon?.khachHang?.soDienThoai || props.hoaDon?.sdt || null
+        } else {
+            payloadData.sdtNguoiNhan = formData.value.sdtNguoiNhan
+        }
+
+        if (diaChiFormRef.value) {
+            const diaChiForm = diaChiFormRef.value.form
+            const parts = []
+            if (diaChiForm.diaChi) parts.push(diaChiForm.diaChi)
+            if (diaChiForm.xa) parts.push(diaChiForm.xa)
+            if (diaChiForm.tinh) parts.push(diaChiForm.tinh)
+            payloadData.diaChiGiaoHang = parts.join(', ') || null
+            payloadData.diaChiChiTiet = diaChiForm.diaChi || null
+            payloadData.tinh = diaChiForm.tinh || null
+            payloadData.xa = diaChiForm.xa || null
+        } else {
+            payloadData.diaChiGiaoHang = null
+            payloadData.diaChiChiTiet = null
+            payloadData.tinh = null
+            payloadData.xa = null
+        }
+
+        payloadData.ghiChuGiaoHang = formData.value.ghiChuGiaoHang || null
+    } else {
+        payloadData.canGiaoHang = false
+        payloadData.tenNguoiNhan = null
+        payloadData.sdtNguoiNhan = null
+        payloadData.diaChiGiaoHang = null
+        payloadData.diaChiChiTiet = null
+        payloadData.tinh = null
+        payloadData.xa = null
+        payloadData.ghiChuGiaoHang = null
+    }
+
+    // Xử lý tiền mặt
+    if (isTienMat.value) {
+        if (isCOD.value) {
+            // COD: không gửi tienKhachDua và tienTraLai
+            payloadData.isCOD = true
+            payloadData.tienKhachDua = null
+            payloadData.tienTraLai = null
+        } else {
+            // Thanh toán tại quầy: gửi tienKhachDua và tienTraLai
+            payloadData.isCOD = false
+            payloadData.tienKhachDua = tienKhachDua.value
+            payloadData.tienTraLai = tienThua.value
+        }
+    } else {
+        payloadData.isCOD = false
+    }
+
+    return payloadData
+}
+
 const handlePayment = async () => {
     if (!canPay.value) {
         // Kiểm tra cụ thể từng điều kiện để hiển thị thông báo phù hợp
@@ -991,9 +1166,17 @@ const handlePayment = async () => {
             showWarning('Vui lòng quét đủ serial cho tất cả sản phẩm!')
             return
         }
-        if (isTienMat.value && tienKhachDua.value < tongTien.value) {
-            showError('Số tiền khách đưa chưa đủ!')
-            return
+        // Validate tiền mặt
+        if (isTienMat.value) {
+            if (isCOD.value) {
+                // COD: không cần kiểm tra tienKhachDua
+            } else {
+                // Thanh toán tại quầy: cần tienKhachDua >= tongTien
+                if (tienKhachDua.value < tongTien.value) {
+                    showError('Số tiền khách đưa chưa đủ!')
+                    return
+                }
+            }
         }
         if (formData.value.canGiaoHang) {
             if (!diaChiFormRef.value) {
@@ -1115,68 +1298,39 @@ const handlePayment = async () => {
         }
 
         // 2. Không có thay đổi, tiếp tục thanh toán như bình thường
-        const payloadData = {
-            ...formData.value,
-            soTienThanhToan: tongTien.value,
-            serialNumbers: getSerialPayload() // QUAN TRỌNG: Gửi kèm serial numbers
-        }
+        const payloadData = buildPaymentPayload()
 
-        // Sanitize ghi chú và mã giao dịch
-        if (payloadData.ghiChu) {
-            payloadData.ghiChu = sanitizeInput(payloadData.ghiChu)
-        }
-        if (payloadData.maGiaoDich) {
-            payloadData.maGiaoDich = sanitizeInput(payloadData.maGiaoDich)
-        }
+        if (isQRPayment.value) {
+            // Lưu payload để gửi sau khi nhận tín hiệu thanh toán thành công
+            pendingQRPayment.value = payloadData
 
-        // Xử lý thông tin giao hàng
-        if (formData.value.canGiaoHang) {
-            // Nếu không có tên người nhận, dùng tên khách hàng
-            if (!formData.value.tenNguoiNhan || formData.value.tenNguoiNhan.trim().length === 0) {
-                payloadData.tenNguoiNhan = props.hoaDon?.khachHang?.hoTen || props.hoaDon?.tenKhachHang || null
-            } else {
-                payloadData.tenNguoiNhan = formData.value.tenNguoiNhan
+            if (qrStatus.value === 'confirmed' && qrTransactionId.value) {
+                // Đã nhận thanh toán (trường hợp hiếm), hoàn tất ngay
+                await finalizeQRPayment({ transactionId: qrTransactionId.value })
+                return
             }
-            // Nếu không có SĐT người nhận, dùng SĐT khách hàng
-            if (!formData.value.sdtNguoiNhan || formData.value.sdtNguoiNhan.trim().length === 0) {
-                payloadData.sdtNguoiNhan = props.hoaDon?.khachHang?.soDienThoai || props.hoaDon?.sdt || null
-            } else {
-                payloadData.sdtNguoiNhan = formData.value.sdtNguoiNhan
-            }
-            // Lấy địa chỉ từ DiaChiForm
-            if (diaChiFormRef.value) {
-                const diaChiForm = diaChiFormRef.value.form
-                const parts = []
-                if (diaChiForm.diaChi) parts.push(diaChiForm.diaChi)
-                if (diaChiForm.xa) parts.push(diaChiForm.xa)
-                if (diaChiForm.tinh) parts.push(diaChiForm.tinh)
-                payloadData.diaChiGiaoHang = parts.join(', ') || null
-                payloadData.diaChiChiTiet = diaChiForm.diaChi || null
-                payloadData.tinh = diaChiForm.tinh || null
-                payloadData.xa = diaChiForm.xa || null
-            } else {
-                payloadData.diaChiGiaoHang = null
-                payloadData.diaChiChiTiet = null
-                payloadData.tinh = null
-                payloadData.xa = null
-            }
-            payloadData.ghiChuGiaoHang = formData.value.ghiChuGiaoHang || null
-        } else {
-            // Nếu không chọn giao hàng, set null
-            payloadData.canGiaoHang = false
-            payloadData.tenNguoiNhan = null
-            payloadData.sdtNguoiNhan = null
-            payloadData.diaChiGiaoHang = null
-            payloadData.diaChiChiTiet = null
-            payloadData.tinh = null
-            payloadData.xa = null
-            payloadData.ghiChuGiaoHang = null
-        }
 
-        // Nếu là tiền mặt, lưu thêm thông tin tiền khách đưa và tiền trả lại
-        if (isTienMat.value) {
-            payloadData.tienKhachDua = tienKhachDua.value
-            payloadData.tienTraLai = tienThua.value // tienThua = tienKhachDua - tongTien (số tiền trả lại)
+            try {
+                if (showQRModal.value && qrStatus.value === 'checking') {
+                    showInfo('Đang chờ khách hàng quét mã QR...')
+                } else {
+                    await generateQR()
+
+                    if (!showQRModal.value) {
+                        pendingQRPayment.value = null
+                        showError(qrError.value || 'Không thể tạo mã QR. Vui lòng thử lại!')
+                    } else {
+                        showInfo('Đã hiển thị mã QR. Vui lòng chờ khách hàng thanh toán.')
+                    }
+                }
+            } catch (qrException) {
+                console.error('❌ [ModalThanhToan] Lỗi khi tạo mã QR:', qrException)
+                pendingQRPayment.value = null
+                showError('Không thể tạo mã QR. Vui lòng thử lại!')
+            }
+
+            // Với QR, dừng luồng lại cho tới khi nhận tín hiệu thanh toán
+            return
         }
 
         console.log('💰 Payload thanh toán:', payloadData)
@@ -1205,6 +1359,7 @@ const close = async () => {
         }
         resetSerials()
         thongBaoThayDoi.value = null // Xóa thông báo khi đóng modal
+        pendingQRPayment.value = null
         emit('close')
     }
 }
@@ -1212,30 +1367,150 @@ const close = async () => {
 /**
  * Xử lý khi thay đổi checkbox giao hàng
  */
-const handleGiaoHangChange = () => {
-    if (formData.value.canGiaoHang) {
-        // Tự động điền thông tin khách hàng nếu có
-        if (!formData.value.tenNguoiNhan && props.hoaDon?.khachHang?.hoTen) {
-            formData.value.tenNguoiNhan = props.hoaDon.khachHang.hoTen
-        }
-        if (!formData.value.sdtNguoiNhan && props.hoaDon?.khachHang?.soDienThoai) {
-            formData.value.sdtNguoiNhan = props.hoaDon.khachHang.soDienThoai
-        }
-        // Không tự động điền địa chỉ nữa vì đã dùng dropdown
-    } else {
-        // Xóa thông tin giao hàng khi bỏ chọn
-        formData.value.tenNguoiNhan = ''
-        formData.value.sdtNguoiNhan = ''
-        formData.value.diaChiChiTiet = ''
-        formData.value.tinhCode = ''
-        formData.value.tinh = ''
-        formData.value.xaCode = ''
-        formData.value.xa = ''
-        formData.value.diaChiGiaoHang = ''
-        formData.value.ghiChuGiaoHang = ''
-        wards.value = []
-        wardSearchText.value = ''
+const resetDeliveryState = () => {
+    formData.value.tenNguoiNhan = ''
+    formData.value.sdtNguoiNhan = ''
+    formData.value.diaChiChiTiet = ''
+    formData.value.tinhCode = ''
+    formData.value.tinh = ''
+    formData.value.xaCode = ''
+    formData.value.xa = ''
+    formData.value.diaChiGiaoHang = ''
+    formData.value.ghiChuGiaoHang = ''
+    selectedSavedAddressId.value = ''
+    wards.value = []
+    wardSearchText.value = ''
+
+    if (diaChiFormRef.value?.resetForm) {
+        diaChiFormRef.value.resetForm()
     }
+}
+
+const ensureCustomerReadyForDelivery = () => {
+    const customer = props.hoaDon?.khachHang
+
+    // Không chặn nếu thiếu thông tin, chỉ lấy những gì có sẵn để fill vào form
+    // Người dùng có thể tự nhập thêm thông tin thiếu
+    const name = (customer?.hoTen || props.hoaDon?.tenKhachHang || '').trim()
+    const phone = (customer?.soDienThoai || props.hoaDon?.soDienThoai || props.hoaDon?.sdt || '').trim()
+
+    return {
+        canProceed: true,
+        customer: customer || {},
+        name,
+        phone,
+        maKhachHang: customer?.maKhachHang || null,
+    }
+}
+
+const pickPreferredAddress = (addresses = []) => {
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+        return null
+    }
+    return addresses.find((addr) => addr?.macDinh) || addresses[0]
+}
+
+const ensureDiaChiFormBaseline = async (customerBasics) => {
+    await nextTick()
+    if (!diaChiFormRef.value) return
+
+    if (typeof diaChiFormRef.value.resetForm === 'function') {
+        diaChiFormRef.value.resetForm()
+    }
+
+    const form = diaChiFormRef.value.form
+    if (form) {
+        form.hoTen = customerBasics?.name || form.hoTen || ''
+        form.sdt = customerBasics?.phone || form.sdt || ''
+        form.maKhachHang = props.hoaDon?.khachHang?.maKhachHang || form.maKhachHang || ''
+    }
+}
+
+const hydrateDiaChiFormFromAddress = async (address, customerBasics) => {
+    if (!address) return
+
+    const receiverName = address.hoTen || customerBasics?.name || ''
+    const receiverPhone = address.sdt || customerBasics?.phone || ''
+
+    formData.value.tenNguoiNhan = receiverName
+    formData.value.sdtNguoiNhan = receiverPhone
+    formData.value.diaChiChiTiet = address.diaChi || ''
+    formData.value.tinh = address.tinh || ''
+    formData.value.xa = address.xa || ''
+    formData.value.diaChiGiaoHang = formatAddressDisplay(address)
+    selectedSavedAddressId.value = address.id || ''
+
+    await nextTick()
+
+    const diaChiForm = diaChiFormRef.value
+    if (!diaChiForm) return
+
+    if (typeof diaChiForm.fetchProvinces === 'function' && (!diaChiForm.provinces || diaChiForm.provinces.length === 0)) {
+        await diaChiForm.fetchProvinces()
+    }
+
+    const form = diaChiForm.form
+    if (form) {
+        form.diaChi = address.diaChi || ''
+        form.hoTen = receiverName || form.hoTen || ''
+        form.sdt = receiverPhone || form.sdt || ''
+    }
+
+    if (address.tinh && diaChiForm.provinces && diaChiForm.provinces.length > 0) {
+        const matchedProvince = diaChiForm.provinces.find((province) => province.name === address.tinh)
+
+        if (matchedProvince && typeof diaChiForm.selectProvince === 'function') {
+            await diaChiForm.selectProvince(matchedProvince)
+        } else if (form) {
+            form.tinh = address.tinh
+        }
+    } else if (form) {
+        form.tinh = address.tinh || form.tinh
+    }
+
+    await nextTick()
+
+    if (address.xa && diaChiForm.wards && diaChiForm.wards.length > 0) {
+        const matchedWard = diaChiForm.wards.find((ward) => ward.name === address.xa)
+
+        if (matchedWard && typeof diaChiForm.selectWard === 'function') {
+            diaChiForm.selectWard(matchedWard)
+        } else if (form) {
+            form.xa = address.xa
+            form.xaCode = address.xa
+        }
+    } else if (form) {
+        form.xa = address.xa || form.xa
+        form.xaCode = address.xa || form.xaCode
+    }
+}
+
+const handleGiaoHangChange = async () => {
+    if (!formData.value.canGiaoHang) {
+        resetDeliveryState()
+        return
+    }
+
+    const readiness = ensureCustomerReadyForDelivery()
+    if (!readiness.canProceed) {
+        formData.value.canGiaoHang = false
+        return
+    }
+
+    formData.value.tenNguoiNhan = readiness.name
+    formData.value.sdtNguoiNhan = readiness.phone
+
+    await nextTick()
+
+    const addresses = await loadSavedAddresses({ notifyOnMissing: true })
+
+    if (!addresses || addresses.length === 0) {
+        await ensureDiaChiFormBaseline(readiness)
+        return
+    }
+
+    const preferredAddress = pickPreferredAddress(addresses)
+    await hydrateDiaChiFormFromAddress(preferredAddress, readiness)
 }
 
 // ==================== ADDRESS METHODS ====================
@@ -1365,20 +1640,42 @@ const buildFullAddress = () => {
 /**
  * Load danh sách địa chỉ đã lưu của khách hàng
  */
-const loadSavedAddresses = async () => {
+const loadSavedAddresses = async ({ notifyOnMissing = false } = {}) => {
     const maKhachHang = props.hoaDon?.khachHang?.maKhachHang
+    const missingAddressMessage = 'Khách hàng thiếu thông tin địa chỉ. Vui lòng thêm địa chỉ giao hàng.'
+
     if (!maKhachHang) {
         savedAddresses.value = []
-        return
+        if (notifyOnMissing) {
+            showWarning(missingAddressMessage)
+        }
+        return []
     }
 
     try {
         isLoadingAddresses.value = true
         const response = await DiaChiService.findByMaKhachHang(maKhachHang)
-        savedAddresses.value = response.data || []
+        const data = response?.data || response || []
+        savedAddresses.value = Array.isArray(data) ? data : []
+
+        if (notifyOnMissing && savedAddresses.value.length === 0) {
+            showWarning(missingAddressMessage)
+        }
+
+        return savedAddresses.value
     } catch (error) {
         console.error('Lỗi khi load danh sách địa chỉ:', error)
         savedAddresses.value = []
+
+        if (notifyOnMissing) {
+            if (error?.response?.status === 404) {
+                showWarning(missingAddressMessage)
+            } else {
+                showError('Không thể tải danh sách địa chỉ. Vui lòng thử lại sau.')
+            }
+        }
+
+        return []
     } finally {
         isLoadingAddresses.value = false
     }
@@ -1387,57 +1684,47 @@ const loadSavedAddresses = async () => {
 /**
  * Xử lý khi DiaChiForm lưu địa chỉ thành công
  */
-const handleAddressSaved = () => {
+const handleAddressSaved = async () => {
     // Reload danh sách địa chỉ
-    loadSavedAddresses()
+    const addresses = await loadSavedAddresses({ notifyOnMissing: false })
+
+    if (formData.value.canGiaoHang && addresses.length > 0) {
+        const readiness = ensureCustomerReadyForDelivery()
+        if (readiness.canProceed) {
+            const preferredAddress = pickPreferredAddress(addresses)
+            await hydrateDiaChiFormFromAddress(preferredAddress, readiness)
+        }
+    }
+
     showSuccess('Đã lưu địa chỉ thành công!')
 }
 
 /**
  * Điền form khi chọn địa chỉ đã lưu
  */
-const loadSavedAddress = () => {
+const loadSavedAddress = async () => {
     if (!selectedSavedAddressId.value) {
         return
     }
 
-    const address = savedAddresses.value.find(addr => addr.id === selectedSavedAddressId.value)
+    const address = savedAddresses.value.find((addr) => addr.id === selectedSavedAddressId.value)
     if (!address) {
         return
     }
 
-    // Điền thông tin vào DiaChiForm thông qua ref
-    if (diaChiFormRef.value) {
-        // Set form data của DiaChiForm
-        diaChiFormRef.value.form.diaChi = address.diaChi || ''
-        diaChiFormRef.value.form.tinh = address.tinh || ''
-        diaChiFormRef.value.form.xa = address.xa || ''
-        diaChiFormRef.value.form.xaCode = address.xa || ''
-
-        // Tìm mã tỉnh từ tên tỉnh và set vào form
-        if (address.tinh && diaChiFormRef.value.provinces) {
-            const province = diaChiFormRef.value.provinces.find(p => p.name === address.tinh)
-            if (province) {
-                diaChiFormRef.value.form.tinhCode = province.id
-                // Load danh sách xã/phường
-                diaChiFormRef.value.selectProvince(province)
-            }
-        }
+    const readiness = ensureCustomerReadyForDelivery()
+    if (!readiness.canProceed) {
+        formData.value.canGiaoHang = false
+        return
     }
 
-    // Điền tên và SĐT nếu có
-    if (address.hoTen && !formData.value.tenNguoiNhan) {
-        formData.value.tenNguoiNhan = address.hoTen
-    }
-    if (address.sdt && !formData.value.sdtNguoiNhan) {
-        formData.value.sdtNguoiNhan = address.sdt
-    }
+    await hydrateDiaChiFormFromAddress(address, readiness)
 }
 
 /**
  * Format địa chỉ để hiển thị trong dropdown
  */
-const formatAddressDisplay = (address) => {
+function formatAddressDisplay(address) {
     const parts = []
     if (address.diaChi) parts.push(address.diaChi)
     if (address.xa) parts.push(address.xa)
@@ -1569,16 +1856,28 @@ const onBarcodeDetected = async (result) => {
 }
 
 // Watch để load địa chỉ khi có khách hàng
-watch(() => props.hoaDon?.khachHang?.maKhachHang, (newVal) => {
-    if (newVal && formData.value.canGiaoHang) {
-        loadSavedAddresses()
-    }
-})
+watch(
+    () => props.hoaDon?.khachHang?.maKhachHang,
+    async (newVal, oldVal) => {
+        if (newVal && newVal !== oldVal && formData.value.canGiaoHang) {
+            await handleGiaoHangChange()
+        }
+    },
+)
 
-// Watch để load địa chỉ khi bật giao hàng
-watch(() => formData.value.canGiaoHang, (newVal) => {
-    if (newVal && props.hoaDon?.khachHang?.maKhachHang) {
-        loadSavedAddresses()
+// Watch để làm sạch dữ liệu khi hủy giao hàng bằng code
+watch(
+    () => formData.value.canGiaoHang,
+    (newVal, oldVal) => {
+        if (!newVal && oldVal) {
+            resetDeliveryState()
+        }
+    },
+)
+
+watch(showQRModal, (visible) => {
+    if (!visible && qrStatus.value !== 'confirmed') {
+        pendingQRPayment.value = null
     }
 })
 
@@ -1593,9 +1892,14 @@ onMounted(() => {
         loadSavedAddresses()
     }
 
-    // Tự động set số tiền khách đưa bằng tổng tiền (tiện lợi hơn)
-    if (tongTien.value > 0) {
+    // Tự động set số tiền khách đưa bằng tổng tiền (tiện lợi hơn) - chỉ khi không phải COD
+    if (tongTien.value > 0 && !isCOD.value) {
         tienKhachDua.value = tongTien.value
+    }
+
+    // Reset paymentMethodCash khi thay đổi phương thức thanh toán
+    if (!isTienMat.value) {
+        paymentMethodCash.value = 'counter'
     }
 
     // Debug: Log cấu trúc hóa đơn để kiểm tra

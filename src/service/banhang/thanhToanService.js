@@ -107,3 +107,23 @@ export const layDanhSachNhanVien = async () => {
   }
 }
 
+/**
+ * Thanh toán COD (Cash on Delivery) khi giao hàng thành công
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @param {Number} tienKhachDua - Số tiền khách đưa khi nhận hàng
+ * @returns {Promise}
+ */
+export const thanhToanCOD = async (idHoaDon, tienKhachDua) => {
+  try {
+    console.log('💰 [ThanhToanService] Thanh toán COD:', { idHoaDon, tienKhachDua })
+    const response = await axiosInstance.post(`${API_BASE}/hoa-don/${idHoaDon}/thanh-toan-cod`, {
+      tienKhachDua
+    })
+    console.log('✅ [ThanhToanService] Thanh toán COD thành công')
+    return response.data
+  } catch (error) {
+    console.error('❌ [ThanhToanService] Lỗi khi thanh toán COD:', error)
+    throw error
+  }
+}
+
