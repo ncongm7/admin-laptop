@@ -10,26 +10,14 @@
             <!-- Thanh tìm kiếm và quét mã -->
             <div class="search-bar mb-3">
                 <div class="input-group">
-                    <input 
-                        ref="searchInput" 
-                        type="text" 
-                        class="form-control form-control-lg" 
-                        v-model="keyword"
-                        @input="handleSearchInput" 
-                        @keyup.enter="handleSearch"
-                        @paste="handlePaste"
+                    <input ref="searchInput" type="text" class="form-control form-control-lg" v-model="keyword"
+                        @input="handleSearchInput" @keyup.enter="handleSearch" @paste="handlePaste"
                         placeholder="Tìm tên, mã sản phẩm hoặc quét mã..." />
-                    <button 
-                        class="btn btn-outline-info" 
-                        @click="openAdvancedSearch"
-                        title="Tìm kiếm nâng cao">
+                    <button class="btn btn-outline-info" @click="openAdvancedSearch" title="Tìm kiếm nâng cao">
                         <i class="bi bi-funnel"></i>
                     </button>
-                    <button 
-                        class="btn btn-outline-primary" 
-                        @click="toggleBarcodeScanner"
-                        :class="{ 'active': showBarcodeScanner }"
-                        title="Bật/tắt quét mã vạch/QR">
+                    <button class="btn btn-outline-primary" @click="toggleBarcodeScanner"
+                        :class="{ 'active': showBarcodeScanner }" title="Bật/tắt quét mã vạch/QR">
                         <i class="bi bi-upc-scan"></i>
                     </button>
                     <button class="btn btn-primary" @click="handleSearch">
@@ -71,7 +59,7 @@
             <div v-if="!isLoading && ketQua.length > 0" class="search-results">
                 <div class="results-header mb-2 d-flex justify-content-between align-items-center">
                     <span class="text-muted">
-                        Tìm thấy <strong>{{ totalElements }}</strong> sản phẩm
+                        <strong>{{ totalElements }}</strong> sản phẩm
                         <span v-if="totalElements > ketQua.length" class="text-muted">
                             (hiển thị {{ ketQua.length }})
                         </span>
@@ -82,21 +70,11 @@
                 </div>
 
                 <div class="product-grid">
-                    <div 
-                        v-for="product in ketQua" 
-                        :key="product.id" 
-                        class="product-card"
-                        :class="{ 'product-new': isNewProduct(product), 'product-hot': isHotProduct(product) }"
-                    >
+                    <div v-for="product in ketQua" :key="product.id" class="product-card"
+                        :class="{ 'product-new': isNewProduct(product), 'product-hot': isHotProduct(product) }">
                         <div class="product-image-wrapper">
-                            <img 
-                                :src="getProductImage(product)" 
-                                :alt="getProductName(product)" 
-                                class="product-image"
-                                loading="lazy"
-                                @error="handleImageError"
-                                @load="handleImageLoad"
-                            />
+                            <img :src="getProductImage(product)" :alt="getProductName(product)" class="product-image"
+                                loading="lazy" @error="handleImageError" @load="handleImageLoad" />
                             <!-- Badges -->
                             <div class="product-badges">
                                 <span v-if="isNewProduct(product)" class="badge bg-success badge-new">
@@ -127,19 +105,27 @@
                             </div>
 
                             <div class="product-footer">
-                                <div class="d-flex gap-2">
-                                    <button 
-                                        class="btn btn-sm btn-outline-info flex-fill" 
-                                        @click="openProductDetailModal(product)"
-                                        title="Xem chi tiết (D)">
-                                        <i class="bi bi-info-circle"></i> Chi tiết
-                                    </button>
-                                    <button 
-                                        class="btn btn-sm btn-primary flex-fill" 
-                                        @click="openVariantModal(product)"
-                                        title="Chọn sản phẩm (Enter)">
-                                        <i class="bi bi-cart-plus"></i> Chọn
-                                    </button>
+                                <div class="d-flex gap-2 align-items-center justify-content-between w-100">
+                                    <div class="flex-grow-1 d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-info flex-fill"
+                                            @click="openProductDetailModal(product)" title="Xem chi tiết (D)">
+                                            <i class="bi bi-info-circle"></i> Chi tiết
+                                        </button>
+                                        <button class="btn btn-sm btn-primary flex-fill"
+                                            @click="openVariantModal(product)" title="Chọn sản phẩm (Enter)">
+                                            <i class="bi bi-cart-plus"></i> Chọn
+                                        </button>
+                                    </div>
+                                    <div class="ms-2 flex-shrink-0 text-muted small d-flex align-items-center">
+                                        <i class="bi bi-box2"></i>
+                                        <span class="ms-1">
+                                            {{product.chiTietSanPhams && product.chiTietSanPhams.length
+                                                ? product.chiTietSanPhams.reduce((total, v) => total + (v.soLuongTon || 0),
+                                                    0)
+                                                : 0
+                                            }} SP
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -156,27 +142,26 @@
                                 </button>
                             </li>
                             <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                                <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 0">
+                                <button class="page-link" @click="goToPage(currentPage - 1)"
+                                    :disabled="currentPage === 0">
                                     <i class="bi bi-chevron-left"></i>
                                 </button>
                             </li>
-                            <li 
-                                v-for="page in visiblePages" 
-                                :key="page"
-                                class="page-item" 
-                                :class="{ active: page === currentPage }"
-                            >
+                            <li v-for="page in visiblePages" :key="page" class="page-item"
+                                :class="{ active: page === currentPage }">
                                 <button class="page-link" @click="goToPage(page)">
                                     {{ page + 1 }}
                                 </button>
                             </li>
                             <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
-                                <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage >= totalPages - 1">
+                                <button class="page-link" @click="goToPage(currentPage + 1)"
+                                    :disabled="currentPage >= totalPages - 1">
                                     <i class="bi bi-chevron-right"></i>
                                 </button>
                             </li>
                             <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
-                                <button class="page-link" @click="goToPage(totalPages - 1)" :disabled="currentPage >= totalPages - 1">
+                                <button class="page-link" @click="goToPage(totalPages - 1)"
+                                    :disabled="currentPage >= totalPages - 1">
                                     <i class="bi bi-chevron-double-right"></i>
                                 </button>
                             </li>
@@ -297,13 +282,15 @@
                             <div class="info-row">
                                 <span class="label">Giá bán:</span>
                                 <span class="value price">
-                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGiam" class="price-discounted">
+                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGiam"
+                                        class="price-discounted">
                                         {{ formatCurrency(selectedVariant.giaGiam) }}
                                     </span>
                                     <span v-else>
                                         {{ formatCurrency(selectedVariant.giaBan) }}
                                     </span>
-                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGoc" class="price-original ms-2">
+                                    <span v-if="selectedVariant.coGiamGia && selectedVariant.giaGoc"
+                                        class="price-original ms-2">
                                         <del>{{ formatCurrency(selectedVariant.giaGoc) }}</del>
                                     </span>
                                 </span>
@@ -346,7 +333,8 @@
 
                             <div class="total-row">
                                 <span class="label">Tổng tiền:</span>
-                                <span class="value total">{{ formatCurrency(getCurrentPrice(selectedVariant) * quantity) }}</span>
+                                <span class="value total">{{ formatCurrency(getCurrentPrice(selectedVariant) * quantity)
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -364,27 +352,16 @@
         </div>
 
         <!-- Modal backdrop -->
-        <div 
-            v-if="showVariantModal || showQuantityModal || showProductDetailModal" 
-            class="modal-backdrop fade show"
-            style="z-index: 9998; pointer-events: auto;"
-            @click="handleBackdropClick"
-        ></div>
+        <div v-if="showVariantModal || showQuantityModal || showProductDetailModal" class="modal-backdrop fade show"
+            style="z-index: 9998; pointer-events: auto;" @click="handleBackdropClick"></div>
 
         <!-- Modal chi tiết sản phẩm -->
-        <ProductDetailModal
-            :visible="showProductDetailModal"
-            :product="selectedProductForDetail"
-            @close="closeProductDetailModal"
-            @select-variant="handleSelectVariantFromDetail"
-        />
+        <ProductDetailModal :visible="showProductDetailModal" :product="selectedProductForDetail"
+            @close="closeProductDetailModal" @select-variant="handleSelectVariantFromDetail" />
 
         <!-- Modal tìm kiếm nâng cao -->
-        <AdvancedProductSearch
-            :visible="showAdvancedSearch"
-            @close="closeAdvancedSearch"
-            @results="handleAdvancedSearchResults"
-        />
+        <AdvancedProductSearch :visible="showAdvancedSearch" @close="closeAdvancedSearch"
+            @results="handleAdvancedSearchResults" />
     </div>
 </template>
 
@@ -453,11 +430,11 @@ const visiblePages = computed(() => {
     const maxVisible = 5
     let start = Math.max(0, currentPage.value - Math.floor(maxVisible / 2))
     let end = Math.min(totalPages.value, start + maxVisible)
-    
+
     if (end - start < maxVisible) {
         start = Math.max(0, end - maxVisible)
     }
-    
+
     for (let i = start; i < end; i++) {
         pages.push(i)
     }
@@ -467,7 +444,7 @@ const visiblePages = computed(() => {
 // Load sản phẩm còn hàng khi vào màn hình
 onMounted(async () => {
     await loadSanPhamConHang()
-    
+
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcut)
 })
@@ -530,7 +507,7 @@ const loadSanPhamConHang = async (page = 0) => {
  */
 const goToPage = async (page) => {
     if (page < 0 || page >= totalPages.value) return
-    
+
     if (keyword.value) {
         await handleSearch(page)
     } else {
@@ -548,7 +525,7 @@ const handleKeyboardShortcut = (event) => {
         openAdvancedSearch()
         return
     }
-    
+
     // Esc: Đóng modal
     if (event.key === 'Escape') {
         if (showVariantModal.value) {
@@ -564,20 +541,16 @@ const handleKeyboardShortcut = (event) => {
         }
         return
     }
-    
+
     // Enter: Chọn sản phẩm đầu tiên (nếu đang focus vào input search và có kết quả)
     if (event.key === 'Enter' && document.activeElement === searchInput.value && ketQua.value.length > 0) {
         event.preventDefault()
         openVariantModal(ketQua.value[0])
         return
     }
-    
+
     // D: Mở chi tiết sản phẩm đầu tiên
-    if (event.key === 'd' && !event.ctrlKey && !event.altKey && ketQua.value.length > 0) {
-        if (document.activeElement === searchInput.value || document.activeElement.tagName === 'BODY') {
-            openProductDetailModal(ketQua.value[0])
-        }
-    }
+
 }
 
 /**
@@ -613,13 +586,13 @@ const isHotProduct = (product) => {
     const variantCount = getVariantCount(product)
     // Hot nếu có >= 5 biến thể hoặc tổng tồn kho > 50
     if (variantCount >= 5) return true
-    
+
     // Tính tổng tồn kho từ các biến thể
     if (product.chiTietSanPhams && product.chiTietSanPhams.length > 0) {
         const totalStock = product.chiTietSanPhams.reduce((sum, v) => sum + (v.soLuongTon || 0), 0)
         return totalStock > 50
     }
-    
+
     return false
 }
 
@@ -639,7 +612,7 @@ const hasDiscount = (product) => {
 const handleSearchInput = () => {
     // Sanitize input
     keyword.value = sanitizeInput(keyword.value)
-    
+
     // Nếu đang ở chế độ quét, kiểm tra xem có phải mã vạch/QR không
     if (isScanning.value && keyword.value.trim().length >= 8) {
         // Có thể là mã vạch/QR (thường dài hơn 8 ký tự)
@@ -705,7 +678,7 @@ const handleBarcodeInput = async (code) => {
                 })
 
                 showSuccess(`Đã tìm thấy sản phẩm: ${product.tenSanPham || product.tenSP}`)
-                
+
                 // Reset keyword sau khi quét thành công
                 keyword.value = ''
                 closeBarcodeScanner()
@@ -722,7 +695,7 @@ const handleBarcodeInput = async (code) => {
         }
     } catch (error) {
         console.error('❌ Lỗi khi tìm sản phẩm theo mã vạch/QR:', error)
-        
+
         // Nếu không tìm thấy theo IMEI, thử tìm kiếm bình thường
         console.log('⚠️ Thử tìm kiếm bình thường với mã:', code)
         keyword.value = code
@@ -949,7 +922,7 @@ const getProductImage = (product) => {
             }
         }
     }
-    
+
     // Fallback: Thử các field khác (backward compatibility)
     if (product.anhSanPhams && product.anhSanPhams.length > 0) {
         const defaultImage = product.anhSanPhams.find(img => img.is_default || img.anhChinhDaiDien)
@@ -967,7 +940,7 @@ const getProductImage = (product) => {
             }
         }
     }
-    
+
     // Fallback: Thử các field khác
     const fallbackFields = ['anhDaiDien', 'hinhAnh', 'image', 'imageUrl']
     for (const field of fallbackFields) {
@@ -978,7 +951,7 @@ const getProductImage = (product) => {
             }
         }
     }
-    
+
     // Trả về placeholder nếu không tìm thấy URL hợp lệ
     return PLACEHOLDER_IMAGES.medium
 }
@@ -1103,7 +1076,7 @@ const handleBackdropClick = () => {
 const handleSelectVariantFromDetail = (data) => {
     // Đóng modal chi tiết
     closeProductDetailModal()
-    
+
     // Mở modal chọn số lượng với biến thể đã chọn
     if (data.variant) {
         selectedVariant.value = data.variant
@@ -1138,10 +1111,10 @@ const handleAdvancedSearchResults = (products) => {
     currentPage.value = 0
     totalElements.value = products.length
     totalPages.value = Math.ceil(products.length / pageSize.value)
-    
+
     // Đóng modal
     closeAdvancedSearch()
-    
+
     console.log('✅ Đã nhận', products.length, 'kết quả từ tìm kiếm nâng cao')
 }
 
@@ -1151,7 +1124,7 @@ const handleAdvancedSearchResults = (products) => {
 const toggleBarcodeScanner = () => {
     showBarcodeScanner.value = !showBarcodeScanner.value
     isScanning.value = showBarcodeScanner.value
-    
+
     if (showBarcodeScanner.value) {
         // Focus vào input để có thể nhập mã
         nextTick(() => {
@@ -1176,7 +1149,7 @@ const closeBarcodeScanner = () => {
  */
 const onBarcodeDetected = async (result) => {
     console.log('📷 Camera đã quét được mã:', result)
-    
+
     if (!result || !result.trim()) {
         return
     }
@@ -1578,11 +1551,11 @@ const onBarcodeDetected = async (result) => {
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 0.75rem;
     }
-    
+
     .search-bar .input-group {
         flex-wrap: wrap;
     }
-    
+
     .search-bar .btn {
         min-width: 44px;
         min-height: 44px;
@@ -1616,33 +1589,34 @@ const onBarcodeDetected = async (result) => {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 0.5rem;
     }
-    
+
     .product-card {
         padding: 0.5rem;
     }
-    
+
     .product-image {
         height: 120px;
     }
-    
+
     .product-footer .btn {
         font-size: 0.85rem;
         padding: 0.4rem 0.5rem;
     }
-    
+
     .results-header {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     .keyboard-hint {
-        display: none; /* Ẩn keyboard hint trên mobile */
+        display: none;
+        /* Ẩn keyboard hint trên mobile */
     }
-    
+
     .barcode-scanner-container {
         padding: 0.75rem;
     }
-    
+
     .scanner-wrapper {
         max-width: 100%;
     }
@@ -1652,15 +1626,15 @@ const onBarcodeDetected = async (result) => {
     .product-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
-    
+
     .product-image {
         height: 100px;
     }
-    
+
     .product-name {
         font-size: 0.85rem;
     }
-    
+
     .quantity-input-group input {
         font-size: 1rem;
     }
@@ -1668,11 +1642,11 @@ const onBarcodeDetected = async (result) => {
     .total-row .value.total {
         font-size: 1.25rem;
     }
-    
+
     .pagination {
         font-size: 0.85rem;
     }
-    
+
     .pagination .page-link {
         padding: 0.375rem 0.5rem;
     }

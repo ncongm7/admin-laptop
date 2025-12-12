@@ -23,11 +23,11 @@
             @click="selectedStatusFilter = 'CHO_XAC_NHAN'">
             Chờ xác nhận
           </button>
-          <button type="button" class="btn btn-sm"
+          <!-- <button type="button" class="btn btn-sm"
             :class="selectedStatusFilter === 'DA_THANH_TOAN' ? 'btn-success' : 'btn-outline-success'"
             @click="selectedStatusFilter = 'DA_THANH_TOAN'">
             Đã thanh toán
-          </button>
+          </button> -->
           <button type="button" class="btn btn-sm"
             :class="selectedStatusFilter === 'DANG_GIAO' ? 'btn-warning' : 'btn-outline-warning'"
             @click="selectedStatusFilter = 'DANG_GIAO'">
@@ -92,7 +92,7 @@
               <div class="info-item">
                 <span class="label">Tổng tiền:</span>
                 <span class="value amount">{{ formatCurrency(transaction.tongTienSauGiam || transaction.tongTien || 0)
-                }}</span>
+                  }}</span>
               </div>
             </div>
 

@@ -61,6 +61,14 @@
                                 </div>
                             </div>
                             <div class="col-12 mt-2 pt-2 border-top">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>
+                                        <i class="bi bi-ticket-perforated"></i> Khuyến mãi:
+                                    </span>
+                                    <span class="fw-bold text-danger">
+                                        -{{ formatCurrency(hoaDon?.tienDuocGiam || 0) }}
+                                    </span>
+                                </div>
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-bold">Tổng cần trả:</span>
                                     <span class="fw-bold text-danger fs-5">{{ formatCurrency(tongTien) }}</span>
@@ -73,11 +81,19 @@
                         <!-- CỘT 1: Thông tin thanh toán -->
                         <div class="col-md-5">
                             <!-- Thông tin hóa đơn -->
-                            <div class="invoice-summary">
+                            <!-- <div class="invoice-summary">
                                 <h6 class="mb-3"><i class="bi bi-file-text"></i> Thông tin hóa đơn</h6>
                                 <div class="summary-row">
                                     <span>Mã hóa đơn:</span>
                                     <strong>{{ hoaDon?.ma || 'N/A' }}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>
+                                        <i class="bi bi-ticket-perforated"></i> Khuyến mãi:
+                                    </span>
+                                    <strong class="text-danger">
+                                        -{{ formatCurrency(hoaDon?.tienDuocGiam || 0) }}
+                                    </strong>
                                 </div>
                                 <div class="summary-row">
                                     <span>Tổng tiền:</span>
@@ -85,9 +101,9 @@
                                         {{ formatCurrency(tongTien) }}
                                     </strong>
                                 </div>
-                            </div>
+                            </div> -->
 
-                            <hr />
+
 
                             <!-- Chọn phương thức thanh toán -->
                             <div class="mb-3">
@@ -99,9 +115,7 @@
                                 <div v-if="filteredPaymentMethods.length === 0" class="alert alert-warning mb-2">
                                     <i class="bi bi-exclamation-triangle"></i>
                                     <strong>Chưa có phương thức thanh toán!</strong>
-                                    <br>
-                                    Vui lòng chạy file <code>SQL_INSERT_PHUONG_THUC_THANH_TOAN.sql</code> trong thư mục
-                                    backend.
+
                                 </div>
 
                                 <select class="form-select" v-model="formData.idPhuongThucThanhToan"
@@ -399,7 +413,7 @@
                                                 class="serial-dropdown mt-2">
                                                 <div class="dropdown-header">
                                                     <strong>Chọn serial khả dụng ({{ availableSerials[product.id].length
-                                                    }})</strong>
+                                                        }})</strong>
                                                     <button class="btn-close-dropdown"
                                                         @click="showSerialDropdown[product.id] = false">
                                                         <i class="bi bi-x"></i>
@@ -411,7 +425,7 @@
                                                         @click="selectSerialFromDropdown(product, serial)">
                                                         <i class="bi bi-upc-scan"></i>
                                                         <span class="serial-number">{{ getSerialDisplay(serial)
-                                                        }}</span>
+                                                            }}</span>
                                                         <span class="badge" :class="{
                                                             'bg-success': serial.trangThai === 1, // 1 = Trong kho (khả dụng)
                                                             'bg-warning': serial.trangThai === 2, // 2 = Đã bán

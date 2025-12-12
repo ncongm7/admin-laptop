@@ -1,16 +1,24 @@
 <template>
     <div class="invoice-details card">
         <div class="card-header bg-dark text-white">
-            <h6 class="mb-0">
-                <i class="bi bi-receipt-cutoff"></i> Chi tiết hóa đơn
-            </h6>
-            <small v-if="hoaDon?.ma" class="text-light">{{ hoaDon.ma }}</small>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">
+                        <i class="bi bi-receipt-cutoff"></i> Chi tiết hóa đơn
+                    </h6>
+                    <small v-if="hoaDon?.ma" class="text-light">{{ hoaDon.ma }}</small>
+                </div>
+                <div v-if="hoaDon?.khachHang?.hoTen" class="text-end">
+                    <small class="text-light opacity-75">Khách hàng:</small>
+                    <div class="fw-semibold">{{ hoaDon.khachHang.hoTen }}</div>
+                </div>
+            </div>
         </div>
 
         <div class="card-body p-0">
             <!-- Danh sách sản phẩm -->
             <div class="products-section">
-                <div v-if="!hoaDon || !hoaDon.hoaDonChiTiet || hoaDon.hoaDonChiTiet.length === 0" 
+                <div v-if="!hoaDon || !hoaDon.hoaDonChiTiet || hoaDon.hoaDonChiTiet.length === 0"
                     class="empty-cart text-center py-4">
                     <i class="bi bi-cart-x" style="font-size: 3rem; color: #ccc;"></i>
                     <p class="text-muted mt-2 mb-0">Chưa có sản phẩm</p>
@@ -18,37 +26,28 @@
 
                 <div v-else class="product-list">
                     <transition-group name="product-list" tag="div">
-                        <div 
-                            v-for="(item, index) in hoaDon.hoaDonChiTiet" 
-                            :key="item.id" 
-                            class="product-item"
-                            :data-tooltip="getProductTooltip(item)"
-                            :style="{ animationDelay: `${index * 0.05}s` }"
-                        >
+                        <div v-for="(item, index) in hoaDon.hoaDonChiTiet" :key="item.id" class="product-item"
+                            :data-tooltip="getProductTooltip(item)" :style="{ animationDelay: `${index * 0.05}s` }">
                             <div class="item-number">{{ index + 1 }}</div>
-                            
+
                             <!-- Ảnh sản phẩm -->
-                            <div class="item-image">
-                                <img 
-                                    :src="getProductImage(item)" 
-                                    :alt="item.tenSanPham"
-                                    class="product-thumbnail"
-                                    loading="lazy"
-                                    @error="handleImageError"
-                                />
-                            </div>
-                            
+                            <!-- <div class="item-image">
+                                <img :src="getProductImage(item)" :alt="item.tenSanPham" class="product-thumbnail"
+                                    loading="lazy" @error="handleImageError" />
+                            </div> -->
+
                             <div class="item-details">
                                 <h6 class="item-name" :title="item.tenSanPham">{{ item.tenSanPham }}</h6>
-                                
+
                                 <!-- Mã CTSP - NỔI BẬT -->
-                                <div class="item-ctsp-code mb-2">
+                                <!-- <div class="item-ctsp-code mb-2">
                                     <span class="ctsp-badge">
                                         <i class="bi bi-tag-fill me-1"></i>
                                         <strong>Mã CTSP:</strong>
-                                        <code class="ctsp-code-value">{{ item.maChiTietSanPham || item.maCTSP || 'N/A' }}</code>
+                                        <code
+                                            class="ctsp-code-value">{{ item.maChiTietSanPham || item.maCTSP || 'N/A' }}</code>
                                     </span>
-                                </div>
+                                </div> -->
 
                                 <!-- Thông tin CTSP chi tiết (nếu có) -->
                                 <div v-if="getCTSPInfo(item)" class="item-ctsp-specs mb-2">
@@ -75,7 +74,8 @@
                                 <div v-if="getSerialsForItem(item)" class="item-serials mt-1">
                                     <small class="text-info">
                                         <i class="bi bi-upc-scan"></i> Serial:
-                                        <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx" class="serial-badge">
+                                        <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx"
+                                            class="serial-badge">
                                             {{ serial }}
                                             <span v-if="idx < getSerialsForItem(item).length - 1">, </span>
                                         </span>
@@ -88,23 +88,18 @@
                                     TODO: Backend nên trả về thanhTien trong hoaDonChiTiet
                                     Hiện tại FE tính = donGia * soLuong (DB không có cột thanh_tien)
                                 -->
-                                <div class="item-total">{{ formatCurrency(item.thanhTien || (item.donGia * item.soLuong)) }}</div>
+                                <div class="item-total">{{ formatCurrency(item.thanhTien || (item.donGia *
+                                    item.soLuong)) }}</div>
                                 <div class="item-actions">
-                                    <button 
-                                        class="btn btn-sm btn-outline-warning" 
-                                        @click="openPriceOverrideModal(item)"
+                                    <button class="btn btn-sm btn-outline-warning" @click="openPriceOverrideModal(item)"
                                         title="Giảm giá đặc biệt">
                                         <i class="bi bi-tag"></i>
                                     </button>
-                                    <button 
-                                        class="btn btn-sm btn-outline-primary" 
-                                        @click="openEditQuantityModal(item)"
+                                    <button class="btn btn-sm btn-outline-primary" @click="openEditQuantityModal(item)"
                                         title="Sửa số lượng (E)">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button 
-                                        class="btn btn-sm btn-outline-danger" 
-                                        @click="confirmDelete(item)"
+                                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(item)"
                                         title="Xóa sản phẩm (Del)">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -118,6 +113,9 @@
 
         <!-- Phần tổng kết và khuyến mãi -->
         <div class="card-footer p-3">
+            <!-- Tên khách hàng -->
+
+
             <!-- Tổng tiền hàng -->
             <div class="summary-row">
                 <span>Tổng tiền hàng:</span>
@@ -126,34 +124,37 @@
 
             <!-- Voucher/Giảm giá -->
             <div class="voucher-section mt-2">
-                <label class="form-label small fw-semibold mb-1">
-                    <i class="bi bi-ticket-perforated"></i> Khuyến mãi
-                </label>
-                
+                <div class="summary-row mb-2">
+                    <span>
+                        <i class="bi bi-ticket-perforated"></i> Khuyến mãi:
+                    </span>
+                    <span class="fw-bold text-danger">
+                        -{{ formatCurrency(hoaDon?.tienDuocGiam || 0) }}
+                    </span>
+                </div>
+
                 <!-- Chưa có voucher -->
                 <div v-if="!hoaDon?.idPhieuGiamGia" class="voucher-not-applied">
-                    <button 
-                        class="btn btn-outline-primary btn-sm w-100" 
-                        @click="$emit('open-voucher-modal')">
+                    <button class="btn btn-outline-primary btn-sm w-100" @click="$emit('open-voucher-modal')">
                         <i class="bi bi-gift"></i> Chọn Khuyến Mãi
                     </button>
                 </div>
-                
+
                 <!-- Đã có voucher -->
                 <div v-else class="voucher-applied">
-                    <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded border border-success">
+                    <div
+                        class="d-flex align-items-center justify-content-between p-2 bg-light rounded border border-success">
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center mb-1">
                                 <i class="bi bi-check-circle-fill text-success me-2"></i>
                                 <strong class="text-success">{{ getVoucherName() }}</strong>
                             </div>
                             <small class="text-muted">
-                                Giảm: <span class="fw-bold text-success">{{ formatCurrency(hoaDon.tienDuocGiam) }}</span>
+                                Giảm: <span class="fw-bold text-success">{{ formatCurrency(hoaDon.tienDuocGiam)
+                                    }}</span>
                             </small>
                         </div>
-                        <button 
-                            class="btn btn-sm btn-outline-danger ms-2" 
-                            @click="handleRemoveVoucher"
+                        <button class="btn btn-sm btn-outline-danger ms-2" @click="handleRemoveVoucher"
                             title="Xóa voucher">
                             <i class="bi bi-x"></i>
                         </button>
@@ -164,15 +165,11 @@
             <!-- Sử dụng điểm tích lũy -->
             <div v-if="hoaDon?.khachHang && hoaDon.khachHang.diemTichLuy > 0" class="points-section mt-2">
                 <div class="form-check">
-                    <input 
-                        class="form-check-input" 
-                        type="checkbox" 
-                        id="usePoints"
-                        v-model="usePoints" 
+                    <input class="form-check-input" type="checkbox" id="usePoints" v-model="usePoints"
                         @change="toggleUsePoints" />
                     <label class="form-check-label small" for="usePoints">
                         <i class="bi bi-star-fill text-warning"></i>
-                        Dùng <strong>{{ hoaDon.khachHang.diemTichLuy }}</strong> điểm 
+                        Dùng <strong>{{ hoaDon.khachHang.diemTichLuy }}</strong> điểm
                         (≈ {{ formatCurrency(pointsToMoney(hoaDon.khachHang.diemTichLuy)) }})
                     </label>
                 </div>
@@ -187,12 +184,12 @@
                     {{ formatCurrency(hoaDon?.tongTienSauGiam || hoaDon?.tongTien || 0) }}
                 </span>
             </div>
-            
+
             <!-- Hiển thị điểm đã sử dụng (nếu có) -->
             <div v-if="hoaDon?.soDiemSuDung && hoaDon.soDiemSuDung > 0" class="summary-row mt-2">
                 <span class="text-muted small">
-                    <i class="bi bi-star-fill text-warning"></i> 
-                    Đã sử dụng {{ hoaDon.soDiemSuDung }} điểm 
+                    <i class="bi bi-star-fill text-warning"></i>
+                    Đã sử dụng {{ hoaDon.soDiemSuDung }} điểm
                     (≈ {{ formatCurrency(hoaDon.soTienQuyDoi || hoaDon.soDiemSuDung * 1000) }})
                 </span>
             </div>
@@ -200,9 +197,7 @@
 
         <!-- Các nút hành động -->
         <div class="card-footer p-3 bg-light">
-            <button 
-                class="btn btn-success btn-lg w-100 mb-2" 
-                @click="$emit('complete-payment')"
+            <button class="btn btn-success btn-lg w-100 mb-2" @click="$emit('complete-payment')"
                 :disabled="!canPayment">
                 <i class="bi bi-credit-card"></i> <strong>THANH TOÁN</strong>
             </button>
@@ -221,16 +216,13 @@
             </div>
 
             <!-- Nút in hóa đơn -->
-            <div class="row g-2">
-                <div class="col-12">
-                    <InvoicePrint :hoaDon="hoaDon" :allowDraft="true" @printed="handleInvoicePrinted" />
-                </div>
-            </div>
+
         </div>
     </div>
 
     <!-- Modal sửa số lượng -->
-    <div v-if="showEditQuantityModal" class="modal fade show d-block" style="z-index: 9999" @click.self="closeEditQuantityModal">
+    <div v-if="showEditQuantityModal" class="modal fade show d-block" style="z-index: 9999"
+        @click.self="closeEditQuantityModal">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
@@ -257,23 +249,14 @@
                                 </span>
                             </label>
                             <div class="quantity-input-group mt-2">
-                                <button 
-                                    class="btn btn-outline-secondary" 
-                                    @click="decreaseEditQuantity"
+                                <button class="btn btn-outline-secondary" @click="decreaseEditQuantity"
                                     :disabled="editQuantity <= 1 || isUpdating">
                                     <i class="bi bi-dash"></i>
                                 </button>
-                                <input 
-                                    type="number" 
-                                    class="form-control text-center" 
-                                    v-model.number="editQuantity"
-                                    :max="editingItem.soLuongTon" 
-                                    min="1" 
-                                    @input="validateEditQuantity"
+                                <input type="number" class="form-control text-center" v-model.number="editQuantity"
+                                    :max="editingItem.soLuongTon" min="1" @input="validateEditQuantity"
                                     :disabled="isUpdating" />
-                                <button 
-                                    class="btn btn-outline-secondary" 
-                                    @click="increaseEditQuantity"
+                                <button class="btn btn-outline-secondary" @click="increaseEditQuantity"
                                     :disabled="editQuantity >= editingItem.soLuongTon || isUpdating">
                                     <i class="bi bi-plus"></i>
                                 </button>
@@ -288,13 +271,11 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="closeEditQuantityModal" :disabled="isUpdating">
+                    <button type="button" class="btn btn-secondary" @click="closeEditQuantityModal"
+                        :disabled="isUpdating">
                         <i class="bi bi-x-circle"></i> Hủy
                     </button>
-                    <button 
-                        type="button" 
-                        class="btn btn-primary" 
-                        @click="confirmUpdateQuantity"
+                    <button type="button" class="btn btn-primary" @click="confirmUpdateQuantity"
                         :disabled="!canUpdateQuantity || isUpdating">
                         <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
                         <i v-else class="bi bi-check-circle"></i>
@@ -307,12 +288,8 @@
     <div v-if="showEditQuantityModal" class="modal-backdrop fade show"></div>
 
     <!-- Price Override Modal -->
-    <PriceOverrideModal
-        v-if="showPriceOverrideModal"
-        :productInfo="priceOverrideProduct"
-        @close="closePriceOverrideModal"
-        @price-overridden="handlePriceOverridden"
-    />
+    <PriceOverrideModal v-if="showPriceOverrideModal" :productInfo="priceOverrideProduct"
+        @close="closePriceOverrideModal" @price-overridden="handlePriceOverridden" />
 </template>
 
 <script setup>
@@ -351,9 +328,9 @@ const priceOverrideProduct = ref(null)
 
 // Computed
 const canPayment = computed(() => {
-    return props.hoaDon && 
-           props.hoaDon.hoaDonChiTiet && 
-           props.hoaDon.hoaDonChiTiet.length > 0
+    return props.hoaDon &&
+        props.hoaDon.hoaDonChiTiet &&
+        props.hoaDon.hoaDonChiTiet.length > 0
 })
 
 // Import composables
@@ -371,7 +348,7 @@ const confirmDelete = async (item) => {
         cancelText: 'Hủy',
         type: 'warning'
     })
-    
+
     if (confirmed) {
         emit('delete-item', item.id, item.tenSanPham)
     }
@@ -385,7 +362,7 @@ const handleRemoveVoucher = async () => {
         cancelText: 'Hủy',
         type: 'warning'
     })
-    
+
     if (confirmed) {
         emit('remove-voucher')
     }
@@ -445,7 +422,7 @@ const handlePriceOverridden = async (data) => {
         // TODO: Gọi API backend để cập nhật giá
         // Hiện tại chỉ log và thông báo
         console.log('📝 [InvoiceDetails] Giảm giá đặc biệt:', data)
-        
+
         // Emit event để parent component xử lý
         emit('update-item', {
             id: data.idHoaDonChiTiet,
@@ -457,7 +434,7 @@ const handlePriceOverridden = async (data) => {
                 giaTriGiam: data.giaTriGiam
             }
         })
-        
+
         showSuccess(`Đã cập nhật giá: ${formatCurrency(data.giaMoi)}`)
     } catch (error) {
         console.error('❌ [InvoiceDetails] Lỗi khi xử lý giảm giá:', error)
@@ -529,10 +506,10 @@ const confirmUpdateQuantity = async () => {
         if (response && response.data) {
             // Emit event để parent component cập nhật hóa đơn
             emit('update-item', response.data)
-            
+
             // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện sau khi cập nhật số lượng
             await checkAndRemoveInvalidVoucher(response.data)
-            
+
             showSuccess(`Đã cập nhật số lượng thành ${editQuantity.value}!`)
             closeEditQuantityModal()
         }
@@ -558,22 +535,22 @@ const handleInvoicePrinted = () => {
 /**
  * Lấy ảnh sản phẩm từ item
  */
-const getProductImage = (item) => {
-    // Thử lấy từ chiTietSanPham.anhSanPhams
-    if (item.chiTietSanPham?.anhSanPhams && item.chiTietSanPham.anhSanPhams.length > 0) {
-        const defaultImage = item.chiTietSanPham.anhSanPhams.find(img => img.is_default)
-        return defaultImage ? defaultImage.uri : item.chiTietSanPham.anhSanPhams[0].uri
-    }
-    
-    // Thử lấy từ sanPham.anhSanPhams
-    if (item.chiTietSanPham?.sanPham?.anhSanPhams && item.chiTietSanPham.sanPham.anhSanPhams.length > 0) {
-        const defaultImage = item.chiTietSanPham.sanPham.anhSanPhams.find(img => img.is_default)
-        return defaultImage ? defaultImage.uri : item.chiTietSanPham.sanPham.anhSanPhams[0].uri
-    }
-    
-    // Fallback
-    return PLACEHOLDER_IMAGES.small
-}
+// const getProductImage = (item) => {
+//     // Thử lấy từ chiTietSanPham.anhSanPhams
+//     if (item.chiTietSanPham?.anhSanPhams && item.chiTietSanPham.anhSanPhams.length > 0) {
+//         const defaultImage = item.chiTietSanPham.anhSanPhams.find(img => img.is_default)
+//         return defaultImage ? defaultImage.uri : item.chiTietSanPham.anhSanPhams[0].uri
+//     }
+
+//     // Thử lấy từ sanPham.anhSanPhams
+//     if (item.chiTietSanPham?.sanPham?.anhSanPhams && item.chiTietSanPham.sanPham.anhSanPhams.length > 0) {
+//         const defaultImage = item.chiTietSanPham.sanPham.anhSanPhams.find(img => img.is_default)
+//         return defaultImage ? defaultImage.uri : item.chiTietSanPham.sanPham.anhSanPhams[0].uri
+//     }
+
+//     // Fallback
+//     return PLACEHOLDER_IMAGES.small
+// }
 
 /**
  * Xử lý lỗi ảnh
@@ -600,12 +577,12 @@ const getSerialsForItem = (item) => {
             return s.serialNumber || s.serialNo || s.serial_no || s
         })
     }
-    
+
     // Fallback: Kiểm tra từ chiTietSanPham (nếu có)
     if (item.chiTietSanPham?.serials && Array.isArray(item.chiTietSanPham.serials)) {
         return item.chiTietSanPham.serials.map(s => s.serialNo || s.serialNumber || s)
     }
-    
+
     return null
 }
 
@@ -616,7 +593,7 @@ const getProductTooltip = (item) => {
     const parts = []
     parts.push(`Sản phẩm: ${item.tenSanPham}`)
     parts.push(`Mã CTSP: ${item.maChiTietSanPham || item.maCTSP || 'N/A'}`)
-    
+
     // Thêm thông tin CTSP chi tiết
     const ctspInfo = getCTSPInfo(item)
     if (ctspInfo) {
@@ -625,16 +602,16 @@ const getProductTooltip = (item) => {
         if (ctspInfo.storage) parts.push(`Ổ cứng: ${ctspInfo.storage}`)
         if (ctspInfo.color) parts.push(`Màu: ${ctspInfo.color}`)
     }
-    
+
     parts.push(`Giá: ${formatCurrency(item.donGia)}`)
     parts.push(`Số lượng: ${item.soLuong}`)
     parts.push(`Thành tiền: ${formatCurrency(item.thanhTien || (item.donGia * item.soLuong))}`)
-    
+
     const serials = getSerialsForItem(item)
     if (serials && serials.length > 0) {
         parts.push(`Serial: ${serials.join(', ')}`)
     }
-    
+
     return parts.join('\n')
 }
 
@@ -643,28 +620,28 @@ const getProductTooltip = (item) => {
  */
 const getCTSPInfo = (item) => {
     if (!item) return null
-    
+
     // Kiểm tra các nguồn dữ liệu có thể có
     const ctsp = item.chiTietSanPham || item.ctsp || item
-    
+
     const info = {}
-    
+
     if (ctsp.tenCpu || item.tenCpu) {
         info.cpu = ctsp.tenCpu || item.tenCpu
     }
-    
+
     if (ctsp.tenRam || item.tenRam) {
         info.ram = ctsp.tenRam || item.tenRam
     }
-    
+
     if (ctsp.dungLuongOCung || item.dungLuongOCung) {
         info.storage = ctsp.dungLuongOCung || item.dungLuongOCung
     }
-    
+
     if (ctsp.tenMauSac || item.tenMauSac) {
         info.color = ctsp.tenMauSac || item.tenMauSac
     }
-    
+
     return Object.keys(info).length > 0 ? info : null
 }
 
@@ -676,14 +653,14 @@ const handleKeyboardShortcut = (event) => {
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         return
     }
-    
+
     // E: Sửa số lượng sản phẩm đầu tiên
     if (event.key === 'e' && props.hoaDon?.hoaDonChiTiet?.length > 0) {
         event.preventDefault()
         openEditQuantityModal(props.hoaDon.hoaDonChiTiet[0])
         return
     }
-    
+
     // Delete: Xóa sản phẩm đầu tiên
     if (event.key === 'Delete' && props.hoaDon?.hoaDonChiTiet?.length > 0) {
         event.preventDefault()
@@ -696,7 +673,7 @@ const handleKeyboardShortcut = (event) => {
 watch(() => props.hoaDon, async (newHoaDon) => {
     usePoints.value = false
     closeEditQuantityModal()
-    
+
     // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
     if (newHoaDon) {
         await checkAndRemoveInvalidVoucher(newHoaDon)
@@ -1052,6 +1029,7 @@ onUnmounted(() => {
         opacity: 0;
         transform: translateX(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1087,7 +1065,7 @@ onUnmounted(() => {
         height: auto;
         max-height: calc(100vh - 200px);
     }
-    
+
     .products-section {
         max-height: 250px;
     }
@@ -1097,27 +1075,27 @@ onUnmounted(() => {
     .invoice-details {
         height: auto;
     }
-    
+
     .product-item {
         flex-wrap: wrap;
         padding: 0.5rem;
     }
-    
+
     .item-image {
         width: 50px;
         height: 50px;
     }
-    
+
     .item-number {
         width: 20px;
         height: 20px;
         font-size: 0.75rem;
     }
-    
+
     .item-name {
         font-size: 0.85rem;
     }
-    
+
     .item-total-action {
         width: 100%;
         flex-direction: row;
@@ -1126,26 +1104,26 @@ onUnmounted(() => {
         padding-top: 0.5rem;
         border-top: 1px solid #e9ecef;
     }
-    
+
     .item-actions {
         gap: 0.25rem;
     }
-    
+
     .item-actions .btn {
         min-width: 36px;
         min-height: 36px;
         padding: 0.25rem;
     }
-    
+
     .card-footer {
         padding: 0.75rem !important;
     }
-    
+
     .btn-lg {
         font-size: 1rem;
         padding: 0.75rem;
     }
-    
+
     /* Tooltip không hiển thị trên mobile */
     .product-item[data-tooltip]:hover::after {
         display: none;
@@ -1156,21 +1134,21 @@ onUnmounted(() => {
     .product-item {
         padding: 0.4rem;
     }
-    
+
     .item-image {
         width: 40px;
         height: 40px;
     }
-    
+
     .item-name {
         font-size: 0.8rem;
         -webkit-line-clamp: 1;
     }
-    
+
     .item-code {
         font-size: 0.7rem;
     }
-    
+
     .item-total {
         font-size: 0.9rem;
     }
@@ -1201,4 +1179,3 @@ onUnmounted(() => {
     padding: 0;
 }
 </style>
-

@@ -134,7 +134,7 @@
     <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
       :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
-    >>>>>>> origin/longupdatev3
+    
 
     <!-- Modal tạo khách hàng mới -->
     <template v-if="showCustomerFormModal">
