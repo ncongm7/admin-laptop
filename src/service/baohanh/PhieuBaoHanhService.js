@@ -122,3 +122,53 @@ export const taoYeuCauBaoHanh = async (requestData) => {
     throw error
   }
 }
+
+// Get warranty statistics
+export const getWarrantyStatistics = async () => {
+  try {
+    const response = await axiosInstance.get(`${API}/statistics`, {
+      timeout: 10000
+    })
+    if (response.data && response.data.data !== undefined) {
+      return response.data.data
+    }
+    return response.data
+  } catch (error) {
+    console.error('Error fetching warranty statistics:', error)
+    throw error
+  }
+}
+
+// Search warranties with filters
+export const searchWarranties = async (filters = {}) => {
+  try {
+    const { trangThai, fromDate, toDate, keyword } = filters
+    const params = {}
+
+    if (trangThai !== null && trangThai !== undefined && trangThai !== '') {
+      params.trangThai = trangThai
+    }
+    if (fromDate) {
+      params.fromDate = new Date(fromDate).toISOString()
+    }
+    if (toDate) {
+      params.toDate = new Date(toDate).toISOString()
+    }
+    if (keyword) {
+      params.keyword = keyword
+    }
+
+    const response = await axiosInstance.get(`${API}/search`, {
+      params,
+      timeout: 15000
+    })
+
+    if (response.data && response.data.data !== undefined) {
+      return response.data.data || []
+    }
+    return Array.isArray(response.data) ? response.data : []
+  } catch (error) {
+    console.error('Error searching warranties:', error)
+    throw error
+  }
+}

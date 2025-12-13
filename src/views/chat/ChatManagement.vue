@@ -10,13 +10,25 @@
               Tin nhắn
             </h5>
             <!-- Connection status indicator -->
-            <div v-if="wsConnectionStatus === 'connected'" class="status-indicator connected" title="Đã kết nối">
+            <div
+              v-if="wsConnectionStatus === 'connected'"
+              class="status-indicator connected"
+              title="Đã kết nối"
+            >
               <i class="bi bi-circle-fill"></i>
             </div>
-            <div v-else-if="wsConnectionStatus === 'connecting'" class="status-indicator connecting" title="Đang kết nối...">
+            <div
+              v-else-if="wsConnectionStatus === 'connecting'"
+              class="status-indicator connecting"
+              title="Đang kết nối..."
+            >
               <i class="bi bi-circle-fill"></i>
             </div>
-            <div v-else-if="wsConnectionStatus === 'reconnecting'" class="status-indicator reconnecting" title="Đang kết nối lại...">
+            <div
+              v-else-if="wsConnectionStatus === 'reconnecting'"
+              class="status-indicator reconnecting"
+              title="Đang kết nối lại..."
+            >
               <i class="bi bi-arrow-clockwise"></i>
             </div>
             <div v-else class="status-indicator disconnected" title="Mất kết nối">
@@ -30,12 +42,13 @@
 
         <!-- Conversation Filters -->
         <div class="conversation-filters">
-          <button 
-            v-for="filter in filters" 
+          <button
+            v-for="filter in filters"
             :key="filter.key"
             class="filter-btn"
             :class="{ active: activeFilter === filter.key }"
-            @click="setFilter(filter.key)">
+            @click="setFilter(filter.key)"
+          >
             <i :class="filter.icon"></i>
             <span>{{ filter.label }}</span>
             <span v-if="filter.count > 0" class="filter-badge">{{ filter.count }}</span>
@@ -81,7 +94,7 @@
           </div>
 
           <div v-if="conversations.length === 0" class="empty-state">
-            <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc"></i>
             <p class="text-muted mt-2">Chưa có cuộc trò chuyện nào</p>
           </div>
         </div>
@@ -102,7 +115,11 @@
               </div>
             </div>
             <div class="chat-actions">
-              <button class="btn btn-sm btn-outline-secondary" @click="showCustomerInfo = !showCustomerInfo" title="Thông tin khách hàng">
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                @click="showCustomerInfo = !showCustomerInfo"
+                title="Thông tin khách hàng"
+              >
                 <i class="bi bi-info-circle"></i>
               </button>
               <!-- Message Search -->
@@ -113,14 +130,25 @@
                   @input="handleMessageSearch"
                   placeholder="Tìm trong tin nhắn..."
                   class="form-control form-control-sm"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
-                <div v-if="messageSearchKeyword && searchResults.length > 0" class="search-results-info">
+                <div
+                  v-if="messageSearchKeyword && searchResults.length > 0"
+                  class="search-results-info"
+                >
                   <span>{{ currentSearchIndex + 1 }} / {{ searchResults.length }}</span>
-                  <button class="btn btn-sm btn-link" @click="navigateSearch('prev')" :disabled="currentSearchIndex === 0">
+                  <button
+                    class="btn btn-sm btn-link"
+                    @click="navigateSearch('prev')"
+                    :disabled="currentSearchIndex === 0"
+                  >
                     <i class="bi bi-chevron-up"></i>
                   </button>
-                  <button class="btn btn-sm btn-link" @click="navigateSearch('next')" :disabled="currentSearchIndex === searchResults.length - 1">
+                  <button
+                    class="btn btn-sm btn-link"
+                    @click="navigateSearch('next')"
+                    :disabled="currentSearchIndex === searchResults.length - 1"
+                  >
                     <i class="bi bi-chevron-down"></i>
                   </button>
                   <button class="btn btn-sm btn-link" @click="clearMessageSearch">
@@ -144,7 +172,10 @@
                 v-for="(message, index) in messages"
                 :key="message.id"
                 class="message-wrapper"
-                :class="{ 'message-customer': message.isFromCustomer, 'message-staff': !message.isFromCustomer }"
+                :class="{
+                  'message-customer': message.isFromCustomer,
+                  'message-staff': !message.isFromCustomer,
+                }"
                 :data-message-id="message.id"
               >
                 <!-- Date separator -->
@@ -155,10 +186,16 @@
                 <!-- Message bubble -->
                 <div class="message-bubble">
                   <!-- Reply preview (nếu có) -->
-                  <div v-if="message.replyTo" class="reply-preview" @click="scrollToMessage(message.replyToId)">
+                  <div
+                    v-if="message.replyTo"
+                    class="reply-preview"
+                    @click="scrollToMessage(message.replyToId)"
+                  >
                     <div class="reply-line"></div>
                     <div class="reply-content">
-                      <strong>{{ message.replyTo.isFromCustomer ? selectedConversation.khachHangTen : 'Bạn' }}</strong>
+                      <strong>{{
+                        message.replyTo.isFromCustomer ? selectedConversation.khachHangTen : 'Bạn'
+                      }}</strong>
                       <p class="mb-0">{{ message.replyTo.noiDung }}</p>
                     </div>
                   </div>
@@ -166,10 +203,20 @@
                   <!-- Message content -->
                   <div class="message-content">
                     <!-- File/Image -->
-                    <div v-if="message.messageType === 'image' && message.fileUrl" class="message-image">
-                      <img :src="message.fileUrl" alt="Image" @click="openImageModal(message.fileUrl)" />
+                    <div
+                      v-if="message.messageType === 'image' && message.fileUrl"
+                      class="message-image"
+                    >
+                      <img
+                        :src="message.fileUrl"
+                        alt="Image"
+                        @click="openImageModal(message.fileUrl)"
+                      />
                     </div>
-                    <div v-else-if="message.messageType === 'file' && message.fileUrl" class="message-file">
+                    <div
+                      v-else-if="message.messageType === 'file' && message.fileUrl"
+                      class="message-file"
+                    >
                       <a :href="message.fileUrl" target="_blank" class="file-link">
                         <i class="bi bi-file-earmark"></i>
                         <span>Tải file</span>
@@ -177,8 +224,11 @@
                     </div>
 
                     <!-- Text content -->
-                    <p class="message-text" v-html="formatMessage(message.noiDung, messageSearchKeyword)" 
-                       :class="{ 'search-highlight': highlightedMessageId === message.id }"></p>
+                    <p
+                      class="message-text"
+                      v-html="formatMessage(message.noiDung, messageSearchKeyword)"
+                      :class="{ 'search-highlight': highlightedMessageId === message.id }"
+                    ></p>
 
                     <!-- Message metadata -->
                     <div class="message-meta">
@@ -194,7 +244,11 @@
 
                   <!-- Message actions (hover) -->
                   <div class="message-actions">
-                    <button class="btn btn-sm btn-link" @click="replyToMessage(message)" title="Reply">
+                    <button
+                      class="btn btn-sm btn-link"
+                      @click="replyToMessage(message)"
+                      title="Reply"
+                    >
                       <i class="bi bi-reply"></i>
                     </button>
                   </div>
@@ -264,7 +318,7 @@
 
         <!-- Empty state -->
         <div v-else class="empty-chat">
-          <i class="bi bi-chat-dots" style="font-size: 4rem; color: #ccc;"></i>
+          <i class="bi bi-chat-dots" style="font-size: 4rem; color: #ccc"></i>
           <p class="text-muted mt-3">Chọn một cuộc trò chuyện để bắt đầu</p>
         </div>
       </div>
@@ -344,7 +398,7 @@ const loadConversations = async () => {
     const response = await chatService.getAllConversations()
     conversations.value = response.data || []
     // Mark escalated conversations (you may need to add this field to ConversationResponse)
-    conversations.value.forEach(conv => {
+    conversations.value.forEach((conv) => {
       conv.isEscalated = conv.isEscalated || false // Add this field if not present
     })
     applyFilters()
@@ -365,7 +419,7 @@ const selectConversation = async (conversation) => {
     // Đợi kết nối (tối đa 5 giây)
     let waitCount = 0
     while ((!stompClient || !stompClient.connected) && waitCount < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       waitCount++
     }
   }
@@ -421,7 +475,7 @@ const sendMessage = async () => {
       conversationId: selectedConversation.value.conversationId,
       messageType: 'text',
       isFromCustomer: false,
-      replyToId: replyingTo.value?.id || null
+      replyToId: replyingTo.value?.id || null,
     }
 
     // Validate nhanVienId
@@ -443,7 +497,7 @@ const sendMessage = async () => {
         conversationId: selectedConversation.value.conversationId,
         messageType: 'text',
         replyToId: replyingTo.value?.id || null,
-        replyTo: replyingTo.value || null
+        replyTo: replyingTo.value || null,
       }
       messages.value.push(optimisticMessage)
       await nextTick()
@@ -453,7 +507,7 @@ const sendMessage = async () => {
       // Message sẽ được thêm từ WebSocket subscription, không cần thêm ở đây
       stompClient.publish({
         destination: '/app/chat.send',
-        body: JSON.stringify(messageData)
+        body: JSON.stringify(messageData),
       })
 
       // Clear input ngay
@@ -467,12 +521,14 @@ const sendMessage = async () => {
 
       // Kiểm tra duplicate trước khi thêm
       if (response.data) {
-        const existingIndex = messages.value.findIndex(m =>
-          m.id === response.data.id ||
-          (m.noiDung === response.data.noiDung &&
-           m.isFromCustomer === response.data.isFromCustomer &&
-           m.ngayPhanHoi && response.data.ngayPhanHoi &&
-           Math.abs(new Date(m.ngayPhanHoi) - new Date(response.data.ngayPhanHoi)) < 1000)
+        const existingIndex = messages.value.findIndex(
+          (m) =>
+            m.id === response.data.id ||
+            (m.noiDung === response.data.noiDung &&
+              m.isFromCustomer === response.data.isFromCustomer &&
+              m.ngayPhanHoi &&
+              response.data.ngayPhanHoi &&
+              Math.abs(new Date(m.ngayPhanHoi) - new Date(response.data.ngayPhanHoi)) < 1000),
         )
 
         if (existingIndex === -1) {
@@ -524,8 +580,8 @@ const handleTyping = () => {
         conversationId: selectedConversation.value.conversationId,
         userId: getCurrentStaffId(),
         userName: 'Nhân viên',
-        isTyping: true
-      })
+        isTyping: true,
+      }),
     })
   }
 
@@ -543,8 +599,8 @@ const handleTyping = () => {
           conversationId: selectedConversation.value.conversationId,
           userId: getCurrentStaffId(),
           userName: 'Nhân viên',
-          isTyping: false
-        })
+          isTyping: false,
+        }),
       })
     }
   }, 1000)
@@ -554,9 +610,62 @@ const handleFileSelect = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  // TODO: Upload file và lấy URL
-  // Tạm thời chỉ hỗ trợ text
-  showError('Tính năng gửi file đang được phát triển')
+  // Validate request
+  if (!selectedConversation.value) {
+    showError('Vui lòng chọn cuộc hội thoại trước')
+    // Reset input
+    if (fileInput.value) fileInput.value.value = ''
+    return
+  }
+
+  isSending.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('conversationId', selectedConversation.value.conversationId)
+
+    // Call API upload
+    const response = await chatService.uploadFile(formData)
+
+    if (response.data && response.data.fileUrl) {
+      // Gửi message với thông tin file
+      const messageData = {
+        khachHangId: selectedConversation.value.khachHangId,
+        nhanVienId: getCurrentStaffId(),
+        noiDung: response.data.fileUrl, // Nội dung là URL của file
+        conversationId: selectedConversation.value.conversationId,
+        messageType:
+          response.data.messageType || (file.type.startsWith('image/') ? 'image' : 'file'),
+        isFromCustomer: false,
+        replyToId: replyingTo.value?.id || null,
+      }
+
+      // Gửi qua WebSocket hoặc REST (sendMessage đã handle logic này)
+      // Tuy nhiên sendMessage dùng newMessage.value, nên ta cần logic riêng hoặc modify sendMessage
+      // Để đơn giản và tái sử dụng, ta gọi API/socket trực tiếp ở đây
+
+      if (stompClient && stompClient.connected) {
+        stompClient.publish({
+          destination: '/app/chat.send',
+          body: JSON.stringify(messageData),
+        })
+      } else {
+        await chatService.sendMessage(messageData)
+        // Refresh messages
+        await loadMessages(selectedConversation.value.conversationId)
+      }
+
+      showSuccess('Gửi file thành công')
+    }
+  } catch (error) {
+    console.error('Lỗi khi upload file:', error)
+    showError(error.response?.data?.message || 'Không thể gửi file')
+  } finally {
+    isSending.value = false
+    // Reset file input
+    if (fileInput.value) fileInput.value.value = ''
+    if (event.target) event.target.value = ''
+  }
 }
 
 const triggerFileUpload = () => {
@@ -584,15 +693,20 @@ const scrollToMessage = (messageId) => {
 
 const filters = computed(() => {
   const all = conversations.value.length
-  const unread = conversations.value.filter(c => c.unreadCount > 0).length
-  const escalated = conversations.value.filter(c => c.isEscalated).length
-  const active = conversations.value.filter(c => c.unreadCount > 0 || c.isEscalated).length
+  const unread = conversations.value.filter((c) => c.unreadCount > 0).length
+  const escalated = conversations.value.filter((c) => c.isEscalated).length
+  const active = conversations.value.filter((c) => c.unreadCount > 0 || c.isEscalated).length
 
   return [
     { key: 'all', label: 'Tất cả', icon: 'bi bi-inbox', count: all },
     { key: 'unread', label: 'Chưa đọc', icon: 'bi bi-envelope', count: unread },
-    { key: 'escalated', label: 'Đã escalate', icon: 'bi bi-exclamation-triangle', count: escalated },
-    { key: 'active', label: 'Đang xử lý', icon: 'bi bi-clock-history', count: active }
+    {
+      key: 'escalated',
+      label: 'Đã escalate',
+      icon: 'bi bi-exclamation-triangle',
+      count: escalated,
+    },
+    { key: 'active', label: 'Đang xử lý', icon: 'bi bi-clock-history', count: active },
   ]
 })
 
@@ -607,13 +721,13 @@ const applyFilters = () => {
   // Apply active filter
   switch (activeFilter.value) {
     case 'unread':
-      filtered = filtered.filter(c => c.unreadCount > 0)
+      filtered = filtered.filter((c) => c.unreadCount > 0)
       break
     case 'escalated':
-      filtered = filtered.filter(c => c.isEscalated)
+      filtered = filtered.filter((c) => c.isEscalated)
       break
     case 'active':
-      filtered = filtered.filter(c => c.unreadCount > 0 || c.isEscalated)
+      filtered = filtered.filter((c) => c.unreadCount > 0 || c.isEscalated)
       break
     case 'all':
     default:
@@ -624,10 +738,11 @@ const applyFilters = () => {
   // Apply search keyword
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
-    filtered = filtered.filter(conv =>
-      conv.khachHangTen.toLowerCase().includes(keyword) ||
-      conv.khachHangMa?.toLowerCase().includes(keyword) ||
-      conv.lastMessage?.noiDung?.toLowerCase().includes(keyword)
+    filtered = filtered.filter(
+      (conv) =>
+        conv.khachHangTen.toLowerCase().includes(keyword) ||
+        conv.khachHangMa?.toLowerCase().includes(keyword) ||
+        conv.lastMessage?.noiDung?.toLowerCase().includes(keyword),
     )
   }
 
@@ -669,7 +784,7 @@ const connectWebSocket = () => {
       console.log('✅ WebSocket connected')
       wsConnectionStatus.value = 'connected'
       reconnectAttempts.value = 0
-      
+
       if (selectedConversationId.value) {
         subscribeToConversation(selectedConversationId.value)
       }
@@ -688,7 +803,7 @@ const connectWebSocket = () => {
       console.error('❌ WebSocket connection error:', event)
       wsConnectionStatus.value = 'disconnected'
       handleReconnect()
-    }
+    },
   })
 
   stompClient.activate()
@@ -712,7 +827,9 @@ const handleReconnect = () => {
   // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
   const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value - 1), 30000)
 
-  console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`)
+  console.log(
+    `🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`,
+  )
 
   reconnectTimer = setTimeout(() => {
     connectWebSocket()
@@ -724,8 +841,12 @@ const subscribeToConversation = (conversationId) => {
 
   // Unsubscribe trước nếu đã subscribe để tránh duplicate subscription
   const existingSubs = Object.keys(stompClient.subscriptions || {})
-  existingSubs.forEach(subId => {
-    if (subId.includes(`conversation/${conversationId}`) && !subId.includes('/typing') && !subId.includes('/read')) {
+  existingSubs.forEach((subId) => {
+    if (
+      subId.includes(`conversation/${conversationId}`) &&
+      !subId.includes('/typing') &&
+      !subId.includes('/read')
+    ) {
       stompClient.unsubscribe(subId)
       console.log('🔌 Unsubscribed old subscription:', subId)
     }
@@ -737,13 +858,15 @@ const subscribeToConversation = (conversationId) => {
       const newMsg = JSON.parse(message.body)
 
       // Xóa optimistic message (temp message) nếu có - ưu tiên xóa temp message trước
-      const tempIndex = messages.value.findIndex(m =>
-        (m.id && m.id.toString().startsWith('temp-')) ||
-        (m.noiDung === newMsg.noiDung &&
-         m.isFromCustomer === newMsg.isFromCustomer &&
-         !m.id &&
-         m.ngayPhanHoi && newMsg.ngayPhanHoi &&
-         Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi)) < 3000)
+      const tempIndex = messages.value.findIndex(
+        (m) =>
+          (m.id && m.id.toString().startsWith('temp-') && m.noiDung === newMsg.noiDung) ||
+          (m.noiDung === newMsg.noiDung &&
+            m.isFromCustomer === newMsg.isFromCustomer &&
+            !m.id &&
+            m.ngayPhanHoi &&
+            newMsg.ngayPhanHoi &&
+            Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi)) < 3000),
       )
       if (tempIndex > -1) {
         console.log('🗑️ Xóa optimistic message:', tempIndex, messages.value[tempIndex])
@@ -751,18 +874,22 @@ const subscribeToConversation = (conversationId) => {
       }
 
       // KIỂM TRA DUPLICATE CHẶT CHẼ: cả ID và nội dung + thời gian
-      const existingIndex = messages.value.findIndex(m => {
+      const existingIndex = messages.value.findIndex((m) => {
         // Kiểm tra theo ID (chính xác nhất) - bỏ qua temp messages
         if (m.id && newMsg.id && !m.id.toString().startsWith('temp-') && m.id === newMsg.id) {
           return true
         }
         // Kiểm tra theo nội dung + người gửi + thời gian (trong vòng 3 giây)
-        if (m.noiDung === newMsg.noiDung &&
-            m.isFromCustomer === newMsg.isFromCustomer &&
-            m.ngayPhanHoi && newMsg.ngayPhanHoi &&
-            !m.id?.toString().startsWith('temp-')) {
+        if (
+          m.noiDung === newMsg.noiDung &&
+          m.isFromCustomer === newMsg.isFromCustomer &&
+          m.ngayPhanHoi &&
+          newMsg.ngayPhanHoi &&
+          !m.id?.toString().startsWith('temp-')
+        ) {
           const timeDiff = Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi))
-          if (timeDiff < 3000) { // Cùng thời gian (3 giây)
+          if (timeDiff < 3000) {
+            // Cùng thời gian (3 giây)
             return true
           }
         }
@@ -784,7 +911,7 @@ const subscribeToConversation = (conversationId) => {
         console.log('⚠️ Duplicate message detected, updating existing:', {
           existingId: messages.value[existingIndex].id,
           newId: newMsg.id,
-          content: newMsg.noiDung
+          content: newMsg.noiDung,
         })
         messages.value[existingIndex] = newMsg
         nextTick(() => scrollToBottom())
@@ -815,7 +942,7 @@ const getInitials = (name) => {
   if (!name) return '?'
   return name
     .split(' ')
-    .map(n => n[0])
+    .map((n) => n[0])
     .join('')
     .toUpperCase()
     .substring(0, 2)
@@ -846,7 +973,12 @@ const formatDate = (date) => {
   } else if (d.toDateString() === yesterday.toDateString()) {
     return 'Hôm qua'
   } else {
-    return d.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    return d.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
   }
 }
 
@@ -858,21 +990,22 @@ const formatMessageTime = (date) => {
 
 const formatMessage = (text, searchKeyword = '') => {
   if (!text) return ''
-  
+
   let formatted = text
-  
+
   // Highlight search keyword if provided
   if (searchKeyword && searchKeyword.trim()) {
     const keyword = searchKeyword.trim()
     const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     formatted = formatted.replace(regex, '<mark class="search-match">$1</mark>')
   }
-  
+
   // Convert URLs to links
   const urlRegex = /(https?:\/\/[^\s]+)/g
-  formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
+  formatted = formatted
+    .replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
     .replace(/\n/g, '<br>')
-  
+
   return formatted
 }
 
@@ -887,9 +1020,7 @@ const handleMessageSearch = () => {
   const keyword = messageSearchKeyword.value.toLowerCase()
   searchResults.value = messages.value
     .map((msg, index) => ({ message: msg, index }))
-    .filter(({ message }) => 
-      message.noiDung && message.noiDung.toLowerCase().includes(keyword)
-    )
+    .filter(({ message }) => message.noiDung && message.noiDung.toLowerCase().includes(keyword))
 
   if (searchResults.value.length > 0) {
     currentSearchIndex.value = 0
@@ -906,9 +1037,8 @@ const navigateSearch = (direction) => {
   if (direction === 'next') {
     currentSearchIndex.value = (currentSearchIndex.value + 1) % searchResults.value.length
   } else {
-    currentSearchIndex.value = currentSearchIndex.value === 0 
-      ? searchResults.value.length - 1 
-      : currentSearchIndex.value - 1
+    currentSearchIndex.value =
+      currentSearchIndex.value === 0 ? searchResults.value.length - 1 : currentSearchIndex.value - 1
   }
 
   navigateToSearchResult(currentSearchIndex.value)
@@ -958,18 +1088,19 @@ const shouldShowDateSeparator = (message, index) => {
 
 const getCurrentStaffId = () => {
   // Lấy từ authStore (computed property)
-  const staffId = authStore.getUserId ||
-                  authStore.user?.userId ||
-                  authStore.user?.user_id ||
-                  authStore.user?.id ||
-                  localStorage.getItem('currentNhanVienId') ||
-                  null
+  const staffId =
+    authStore.getUserId ||
+    authStore.user?.userId ||
+    authStore.user?.user_id ||
+    authStore.user?.id ||
+    localStorage.getItem('currentNhanVienId') ||
+    null
 
   if (!staffId) {
     console.error('❌ [ChatManagement] Không tìm thấy ID nhân viên:', {
       getUserId: authStore.getUserId,
       user: authStore.user,
-      localStorage: localStorage.getItem('currentNhanVienId')
+      localStorage: localStorage.getItem('currentNhanVienId'),
     })
     showError('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.')
   }
@@ -1084,7 +1215,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1493,7 +1625,9 @@ onUnmounted(() => {
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
     opacity: 0.7;
   }
@@ -1621,4 +1755,3 @@ onUnmounted(() => {
   animation: highlight 2s ease-out;
 }
 </style>
-

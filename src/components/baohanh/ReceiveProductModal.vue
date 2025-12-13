@@ -13,16 +13,33 @@
           <form @submit.prevent="handleSubmit">
             <div class="mb-3">
               <label class="form-label">Upload ảnh tình trạng sản phẩm</label>
-              <input type="file" @change="handleFileChange" multiple accept="image/*" class="form-control">
+              <input
+                type="file"
+                @change="handleFileChange"
+                multiple
+                accept="image/*"
+                class="form-control"
+              />
               <small class="text-muted">Có thể chọn nhiều ảnh (tối đa 5 ảnh)</small>
             </div>
             <div v-if="previewImages.length > 0" class="mb-3">
               <div class="d-flex flex-wrap gap-2">
-                <div v-for="(img, idx) in previewImages" :key="idx" class="position-relative"
-                  style="width: 100px; height: 100px;">
-                  <img :src="img.url" class="img-thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-                  <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0"
-                    @click="removeImage(idx)">
+                <div
+                  v-for="(img, idx) in previewImages"
+                  :key="idx"
+                  class="position-relative"
+                  style="width: 100px; height: 100px"
+                >
+                  <img
+                    :src="img.url"
+                    class="img-thumbnail"
+                    style="width: 100%; height: 100%; object-fit: cover"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger position-absolute top-0 end-0"
+                    @click="removeImage(idx)"
+                  >
                     <i class="bi bi-x"></i>
                   </button>
                 </div>
@@ -30,8 +47,12 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Ghi chú tiếp nhận</label>
-              <textarea v-model="formData.ghiChu" class="form-control" rows="3"
-                placeholder="Ghi chú về tình trạng sản phẩm khi tiếp nhận..."></textarea>
+              <textarea
+                v-model="formData.ghiChu"
+                class="form-control"
+                rows="3"
+                placeholder="Ghi chú về tình trạng sản phẩm khi tiếp nhận..."
+              ></textarea>
             </div>
           </form>
         </div>
@@ -57,8 +78,8 @@ import { useAuthStore } from '@/stores/taikhoan/authStore'
 const props = defineProps({
   warranty: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -69,7 +90,7 @@ const previewImages = ref([])
 const selectedFiles = ref([])
 
 const formData = ref({
-  ghiChu: ''
+  ghiChu: '',
 })
 
 const handleFileChange = (event) => {
@@ -79,7 +100,7 @@ const handleFileChange = (event) => {
     return
   }
 
-  files.forEach(file => {
+  files.forEach((file) => {
     if (file.type.startsWith('image/')) {
       selectedFiles.value.push(file)
       const reader = new FileReader()
@@ -98,7 +119,8 @@ const removeImage = (index) => {
 
 const handleSubmit = async () => {
   // Validate idNhanVienTiepNhan
-  if (!authStore.user?.id) {
+  const staffId = authStore.user?.id || authStore.user?.userId
+  if (!staffId) {
     alert('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.')
     return
   }
@@ -106,16 +128,16 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const requestData = {
-      idNhanVienTiepNhan: authStore.user.id, // Đảm bảo không null
+      idNhanVienTiepNhan: staffId, // Đảm bảo không null
       ghiChu: formData.value.ghiChu || null,
-      hinhAnhTinhTrang: selectedFiles.value.length > 0 ? selectedFiles.value : null
+      hinhAnhTinhTrang: selectedFiles.value.length > 0 ? selectedFiles.value : null,
     }
 
     console.log('📤 [ReceiveProductModal] Request data:', {
       idBaoHanh: props.warranty.id,
       idNhanVienTiepNhan: requestData.idNhanVienTiepNhan,
       ghiChu: requestData.ghiChu,
-      hasImages: requestData.hinhAnhTinhTrang ? requestData.hinhAnhTinhTrang.length : 0
+      hasImages: requestData.hinhAnhTinhTrang ? requestData.hinhAnhTinhTrang.length : 0,
     })
 
     await baohanhService.tiepNhanSanPham(props.warranty.id, requestData)
@@ -123,7 +145,8 @@ const handleSubmit = async () => {
     emit('close')
   } catch (error) {
     console.error('❌ [ReceiveProductModal] Lỗi khi tiếp nhận sản phẩm:', error)
-    const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tiếp nhận sản phẩm'
+    const errorMessage =
+      error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tiếp nhận sản phẩm'
     alert(`Lỗi: ${errorMessage}`)
   } finally {
     loading.value = false

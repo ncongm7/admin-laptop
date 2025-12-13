@@ -46,7 +46,7 @@ export const baohanhService = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 30000 // Tăng timeout cho upload file
+      timeout: 30000
     })
       .then(response => {
         console.log('✅ [baohanhService] tiepNhanSanPham response:', response.data)
@@ -81,6 +81,30 @@ export const baohanhService = {
   },
 
   /**
+   * Kiểm tra điều kiện bảo hành
+   * @param {string} idHoaDon - UUID của hóa đơn
+   * @returns {Promise} Response chứa thông tin điều kiện
+   */
+  kiemTraDieuKien(idHoaDon) {
+    if (!idHoaDon) {
+      return Promise.reject(new Error('ID hóa đơn là bắt buộc'))
+    }
+    return axiosInstance.get(`${API_BASE}/kiem-tra/${idHoaDon}`)
+  },
+
+  /**
+   * Lấy danh sách yêu cầu bảo hành theo hóa đơn
+   * @param {string} idHoaDon - UUID của hóa đơn
+   * @returns {Promise} Response chứa danh sách yêu cầu bảo hành
+   */
+  getWarrantyRequestsByInvoice(idHoaDon) {
+    if (!idHoaDon) {
+      return Promise.reject(new Error('ID hóa đơn là bắt buộc'))
+    }
+    return axiosInstance.get(`${API_BASE}/hoa-don/${idHoaDon}`)
+  },
+
+  /**
    * Bàn giao sản phẩm
    * @param {string} idBaoHanh - UUID của phiếu bảo hành
    * @param {Object} requestData - Dữ liệu bàn giao
@@ -91,10 +115,14 @@ export const baohanhService = {
       return Promise.reject(new Error('ID bảo hành là bắt buộc'))
     }
 
-    const formData = new FormData()
-    if (requestData.idNhanVienBanGiao) {
-      formData.append('idNhanVienBanGiao', requestData.idNhanVienBanGiao)
+    if (!requestData.idNhanVienBanGiao) {
+      return Promise.reject(new Error('ID nhân viên bàn giao là bắt buộc'))
     }
+
+    const formData = new FormData()
+    // Luôn append idNhanVienBanGiao (required field)
+    formData.append('idNhanVienBanGiao', String(requestData.idNhanVienBanGiao))
+
     if (requestData.ghiChu) {
       formData.append('ghiChu', requestData.ghiChu)
     }
@@ -104,8 +132,15 @@ export const baohanhService = {
       })
     }
     if (requestData.xacNhanKhachHang !== undefined) {
-      formData.append('xacNhanKhachHang', requestData.xacNhanKhachHang)
+      formData.append('xacNhanKhachHang', String(requestData.xacNhanKhachHang))
     }
+
+    console.log('📤 [baohanhService] Sending banGiaoSanPham request:', {
+      idBaoHanh,
+      idNhanVienBanGiao: requestData.idNhanVienBanGiao,
+      hasImages: requestData.hinhAnhSauSua ? requestData.hinhAnhSauSua.length : 0,
+      xacNhanKhachHang: requestData.xacNhanKhachHang
+    })
 
     return axiosInstance.post(`${API_BASE}/ban-giao/${idBaoHanh}`, formData, {
       headers: {

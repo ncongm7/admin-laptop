@@ -13,14 +13,33 @@
           <form @submit.prevent="handleSubmit">
             <div class="mb-3">
               <label class="form-label">Upload ảnh sau sửa chữa</label>
-              <input type="file" @change="handleFileChange" multiple accept="image/*" class="form-control">
+              <input
+                type="file"
+                @change="handleFileChange"
+                multiple
+                accept="image/*"
+                class="form-control"
+              />
               <small class="text-muted">Có thể chọn nhiều ảnh (tối đa 5 ảnh)</small>
             </div>
             <div v-if="previewImages.length > 0" class="mb-3">
               <div class="d-flex flex-wrap gap-2">
-                <div v-for="(img, idx) in previewImages" :key="idx" class="position-relative" style="width: 100px; height: 100px;">
-                  <img :src="img.url" class="img-thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-                  <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" @click="removeImage(idx)">
+                <div
+                  v-for="(img, idx) in previewImages"
+                  :key="idx"
+                  class="position-relative"
+                  style="width: 100px; height: 100px"
+                >
+                  <img
+                    :src="img.url"
+                    class="img-thumbnail"
+                    style="width: 100%; height: 100%; object-fit: cover"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger position-absolute top-0 end-0"
+                    @click="removeImage(idx)"
+                  >
                     <i class="bi bi-x"></i>
                   </button>
                 </div>
@@ -28,11 +47,21 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Ghi chú bàn giao</label>
-              <textarea v-model="formData.ghiChu" class="form-control" rows="3" placeholder="Ghi chú về quá trình sửa chữa và bàn giao..."></textarea>
+              <textarea
+                v-model="formData.ghiChu"
+                class="form-control"
+                rows="3"
+                placeholder="Ghi chú về quá trình sửa chữa và bàn giao..."
+              ></textarea>
             </div>
             <div class="mb-3">
               <div class="form-check">
-                <input v-model="formData.xacNhanKhachHang" class="form-check-input" type="checkbox" id="xacNhanKhachHang">
+                <input
+                  v-model="formData.xacNhanKhachHang"
+                  class="form-check-input"
+                  type="checkbox"
+                  id="xacNhanKhachHang"
+                />
                 <label class="form-check-label" for="xacNhanKhachHang">
                   Khách hàng đã xác nhận nhận lại sản phẩm
                 </label>
@@ -66,8 +95,8 @@ import { useAuthStore } from '@/stores/taikhoan/authStore'
 const props = defineProps({
   warranty: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -79,7 +108,7 @@ const selectedFiles = ref([])
 
 const formData = ref({
   ghiChu: '',
-  xacNhanKhachHang: false
+  xacNhanKhachHang: false,
 })
 
 const handleFileChange = (event) => {
@@ -89,7 +118,7 @@ const handleFileChange = (event) => {
     return
   }
 
-  files.forEach(file => {
+  files.forEach((file) => {
     if (file.type.startsWith('image/')) {
       selectedFiles.value.push(file)
       const reader = new FileReader()
@@ -109,19 +138,62 @@ const removeImage = (index) => {
 const handleSubmit = async () => {
   loading.value = true
   try {
+    // Validate employee ID
+    const employeeId = authStore.user?.id || authStore.user?.userId
+    if (!employeeId) {
+      alert('Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.')
+      loading.value = false
+      return
+    }
+
     const requestData = {
-      idNhanVienBanGiao: authStore.user?.id,
+      idNhanVienBanGiao: employeeId,
       ghiChu: formData.value.ghiChu,
       hinhAnhSauSua: selectedFiles.value,
-      xacNhanKhachHang: formData.value.xacNhanKhachHang
+      xacNhanKhachHang: formData.value.xacNhanKhachHang,
     }
+
+    console.log('🔍 [HandoverProductModal] Submitting with data:', {
+      warrantyId: props.warranty.id,
+      employeeId: requestData.idNhanVienBanGiao,
+      hasGhiChu: !!requestData.ghiChu,
+      imageCount: requestData.hinhAnhSauSua.length,
+      xacNhanKhachHang: requestData.xacNhanKhachHang,
+    })
 
     await baohanhService.banGiaoSanPham(props.warranty.id, requestData)
     emit('success')
     emit('close')
   } catch (error) {
-    console.error('Lỗi khi bàn giao sản phẩm:', error)
-    alert('Có lỗi xảy ra khi bàn giao sản phẩm')
+    console.error('❌ [HandoverProductModal] Lỗi khi bàn giao sản phẩm:', error)
+    console.error('Error response:', error.response)
+    console.error('Error response data:', error.response?.data)
+    console.error('Error response status:', error.response?.status)
+
+    // Log validation errors in detail
+    if (error.response?.data?.errors) {
+      console.error('🔍 Validation Errors:', JSON.stringify(error.response.data.errors, null, 2))
+    }
+
+    // Extract and display backend error message
+    let errorMessage = 'Có lỗi xảy ra khi bàn giao sản phẩm'
+
+    // Handle validation errors specifically
+    if (error.response?.data?.code === 'VALIDATION_ERROR' && error.response?.data?.errors) {
+      const errors = error.response.data.errors
+      const errorDetails = Object.entries(errors)
+        .map(([field, message]) => `${field}: ${message}`)
+        .join('\n')
+      errorMessage = `Lỗi validation:\n${errorDetails}`
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+
+    alert(errorMessage)
   } finally {
     loading.value = false
   }
@@ -137,4 +209,3 @@ const handleSubmit = async () => {
   z-index: 1050;
 }
 </style>
-
