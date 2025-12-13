@@ -62,51 +62,64 @@
           </label>
         </div>
         <small class="text-muted">
-          Phiếu cá nhân chỉ dùng được khi đã gán cho khách ở màn "KH cá nhân".
+          Phiếu cá nhân chỉ dùng được khi đã gán cho khách ở màn "Khách hàng cá nhân".
         </small>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Giá trị giảm *</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.giaTriGiamGia"
-          :min="0"
-          :max="form.loaiPhieuGiamGia === 0 ? 100 : undefined"
-          :step="form.loaiPhieuGiamGia === 0 ? 0.01 : 1"
-          :disabled="isDetail"
-        />
-        <!-- Preview (không ảnh hưởng input) -->
-        <small class="text-muted">
-          {{
-            form.loaiPhieuGiamGia === 0
-              ? `${(+form.giaTriGiamGia || 0).toLocaleString('vi-VN')}%`
-              : vndFormat(+form.giaTriGiamGia || 0)
-          }}
-        </small>
+        <div class="input-group">
+          <template v-if="form.loaiPhieuGiamGia === 0">
+            <input
+              type="number"
+              class="form-control"
+              v-model.number="form.giaTriGiamGia"
+              :min="0"
+              :max="100"
+              :step="0.01"
+              :disabled="isDetail"
+            />
+            <span class="input-group-text">%</span>
+          </template>
+          <template v-else>
+            <input
+              type="text"
+              class="form-control"
+              :value="showCurrency(form.giaTriGiamGia)"
+              @input="onInputMoney($event, 'giaTriGiamGia')"
+              :disabled="isDetail"
+            />
+            <span class="input-group-text">VND</span>
+          </template>
+        </div>
       </div>
 
       <div class="col-md-4" v-if="showCap">
         <label class="form-label">Số tiền giảm tối đa</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.soTienGiamToiDa"
-          :disabled="isDetail"
-        />
-        <small class="text-muted">{{ showCurrency(form.soTienGiamToiDa) }}</small>
+        <div class="input-group">
+          <input
+            type="text"
+            class="form-control"
+            :value="showCurrency(form.soTienGiamToiDa)"
+            @input="onInputMoney($event, 'soTienGiamToiDa')"
+            :disabled="isDetail"
+          />
+          <span class="input-group-text">VND</span>
+        </div>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Hóa đơn tối thiểu</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.hoaDonToiThieu"
-          :disabled="isDetail"
-        />
-        <small class="text-muted">{{ showCurrency(form.hoaDonToiThieu) }}</small>
+        <div class="input-group">
+          <input
+            type="text"
+            class="form-control"
+            :value="showCurrency(form.hoaDonToiThieu)"
+            @input="onInputMoney($event, 'hoaDonToiThieu')"
+            :disabled="isDetail"
+          />
+          <span class="input-group-text">VND</span>
+        </div>
       </div>
 
       <div class="col-md-4">
@@ -151,7 +164,7 @@
           v-if="mode !== 'add'"
           type="button"
           class="btn btn-outline-primary me-2"
-          @click="goToKhachHang"
+          @click="goToKhachHangCaNhan"
         >
           KH cá nhân
         </button>
@@ -189,11 +202,18 @@ const vndFormat = (n) =>
   }).format(n)
 // ví dụ: vndFormat(1234567) -> "1.234.567 ₫"
 
+const onInputMoney = (event, field) => {
+  const val = event.target.value
+  // Xóa tất cả ký tự không phải số
+  const number = Number(val.replace(/\D/g, ''))
+  form.value[field] = number
+}
+
 const route = useRoute()
 const router = useRouter()
 
-const mode = ref('add')
-const id = route.params.id
+let id = route.params.id
+const mode = ref(route.params.id ? 'edit' : 'add')
 
 const form = ref({
   ma: '',
@@ -342,14 +362,29 @@ const save = async () => {
     if (!precheck()) return
     const payload = normalizedPayload()
     let resp
+
     if (mode.value === 'add') {
       resp = await addVoucher(payload)
+      const newId = resp?.data?.id
       showSuccess(resp?.message || 'Thêm thành công!')
+
+      // Nếu là phiếu riêng tư, chuyển sang trang edit để gán KH
+      if (payload.riengTu && newId) {
+        id = newId // Cập nhật id local
+        mode.value = 'edit' // Chuyển sang mode edit
+        // Thay thế URL, không push vào history
+        router.replace({ name: 'EditPhieuGiamGiaV2', params: { id: newId } })
+      } else {
+        router.push('/phieu-giam-gia2')
+      }
     } else if (mode.value === 'edit') {
       resp = await updateVoucher(payload, id)
       showSuccess(resp?.message || 'Cập nhật thành công!')
+      // Nếu không phải phiếu riêng tư thì mới chuyển trang
+      if (!payload.riengTu) {
+        router.push('/phieu-giam-gia2')
+      }
     }
-    router.push('/phieu-giam-gia2')
   } catch (e) {
     console.error(e)
     const errorMessage =
@@ -360,7 +395,7 @@ const save = async () => {
 
 const back = () => router.push('/phieu-giam-gia2')
 
-const goToKhachHang = () => {
+const goToKhachHangCaNhan = () => {
   if (!id) return
   router.push(`/quan-li-phieu-giam-gia/${id}/khach-hang`)
 }
