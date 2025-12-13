@@ -1,5 +1,55 @@
 <template>
   <div class="products-management">
+    <!-- Stats Dashboard -->
+    <div class="stats-dashboard mb-4">
+      <div class="row g-3">
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card total-products">
+            <div class="stat-icon">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="stat-details">
+              <h3>{{ totalProducts }}</h3>
+              <p>Tổng sản phẩm</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card active-products">
+            <div class="stat-icon">
+              <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-details">
+              <h3>{{ activeProducts }}</h3>
+              <p>Đang hoạt động</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card inactive-products">
+             <div class="stat-icon">
+              <i class="bi bi-slash-circle"></i>
+            </div>
+            <div class="stat-details">
+              <h3>{{ inactiveProducts }}</h3>
+              <p>Ngừng kinh doanh</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+           <div class="stat-card total-variants">
+            <div class="stat-icon">
+              <i class="bi bi-grid-3x3"></i>
+            </div>
+             <div class="stat-details">
+              <h3>{{ totalVariants }}</h3>
+              <p>Tổng biến thể</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div class="products-container">
       <!-- Filter Section -->
@@ -8,7 +58,7 @@
         @reset="resetFilter"
         @filtered-data="handleFilteredData"
         @loading="handleFilterLoading"
-        class="filter-section"
+        class="filter-section mb-4"
       />
 
       <!-- Product List -->
@@ -54,13 +104,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProductStore } from '@/stores/productStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 import ProductFilter from '@/components/sanpham/quanlisanpham/ProductFilter.vue'
 import ProductList from '@/components/sanpham/quanlisanpham/ProductList.vue'
 import ProductFormModal from '@/components/sanpham/quanlisanpham/ProductFormModal.vue'
 import ProductEditModal from '@/components/sanpham/quanlisanpham/ProductEditModal.vue'
 import ProductDetailModal from '@/components/sanpham/quanlisanpham/ProductDetailModal.vue'
-import { useProductDetailStore } from '@/stores/productDetailStore'
+import { useProductDetailStore } from '@/stores/sanpham/productDetailStore'
 
 const props = defineProps({
   showCreateModal: Boolean,
@@ -97,6 +147,14 @@ const filters = ref({
 })
 
 const isEditMode = computed(() => !!editForm.value.id)
+
+// Computed Stats
+const totalProducts = computed(() => productStore.products.length)
+const activeProducts = computed(() => productStore.products.filter(p => p.trangThai === 1).length)
+const inactiveProducts = computed(() => productStore.products.filter(p => p.trangThai !== 1).length)
+const totalVariants = computed(() => {
+  return productStore.products.reduce((sum, p) => sum + (p.variants ? p.variants.length : 0), 0)
+})
 
 const fetchData = async () => {
   try {
@@ -444,7 +502,58 @@ watch(
 <style scoped>
 .products-management {
   padding: 24px;
-  background-color: #f8fafc;
+  background-color: #f1f5f9; /* Softer background */
   min-height: 100vh;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.total-products .stat-icon { background: #e0f2fe; color: #0284c7; }
+.active-products .stat-icon { background: #dcfce7; color: #16a34a; }
+.inactive-products .stat-icon { background: #fee2e2; color: #dc2626; }
+.total-variants .stat-icon { background: #f3e8ff; color: #9333ea; }
+
+.stat-details h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-details p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Ensure modal style consistency */
+:deep(.modal-content) {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 </style>

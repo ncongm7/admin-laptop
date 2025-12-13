@@ -120,8 +120,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-import axiosInstance from '@/service/axiosInstance'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
+import axiosInstance from '@/service/common/axiosInstance'
 
 const authStore = useAuthStore()
 const accountInfo = ref(null)

@@ -66,3 +66,9 @@ export const deleteVoucher = async (id) => {
   const res = await fetch(`${API}/delete/${id}`, { method: 'DELETE' });
   return handleResponse(res);
 };
+
+// Chuyển trạng thái (toggle)
+export const toggleVoucherStatus = async (id) => {
+  const res = await fetch(`${API}/toggle-status/${id}`, { method: 'PUT' });
+  return handleResponse(res);
+};

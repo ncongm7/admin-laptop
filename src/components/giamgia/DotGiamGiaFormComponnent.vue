@@ -4,7 +4,7 @@
 
     <form @submit.prevent="save" class="row g-3">
       <div class="col-md-6">
-        <label class="form-label">Tên khuyến mãi *</label>
+        <label class="form-label">Tên đợt giảm giá: *</label>
         <input class="form-control" v-model="form.tenKm" :disabled="isDetail" />
       </div>
 
@@ -24,42 +24,51 @@
       <div class="col-md-3">
         <label class="form-label">Hoạt động</label>
         <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
+          <option :value="1">ON</option>
+          <option :value="0">OFF</option>
         </select>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Giá trị giảm *</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.giaTri"
-          :min="0"
-          :max="form.loaiDotGiamGia === 1 ? 100 : undefined"
-          :step="form.loaiDotGiamGia === 1 ? 0.01 : 1"
-          :disabled="isDetail"
-        />
-        <!-- Preview -->
-        <small class="text-muted">
-          {{
-            form.loaiDotGiamGia === 1
-              ? `${(+form.giaTri || 0).toLocaleString('vi-VN')}%`
-              : vndFormat(+form.giaTri || 0)
-          }}
-        </small>
+        <div class="input-group">
+          <template v-if="form.loaiDotGiamGia === 1">
+            <input
+              type="number"
+              class="form-control"
+              v-model.number="form.giaTri"
+              :min="0"
+              :max="100"
+              :step="0.01"
+              :disabled="isDetail"
+            />
+            <span class="input-group-text">%</span>
+          </template>
+          <template v-else>
+            <input
+              type="text"
+              class="form-control"
+              :value="showCurrency(form.giaTri)"
+              @input="onInputMoney($event, 'giaTri')"
+              :disabled="isDetail"
+            />
+            <span class="input-group-text">VND</span>
+          </template>
+        </div>
       </div>
 
       <div class="col-md-4" v-if="showCap">
         <label class="form-label">Số tiền giảm tối đa</label>
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="form.soTienGiamToiDa"
-          :min="0"
-          :disabled="isDetail"
-        />
-        <small class="text-muted">{{ showCurrency(form.soTienGiamToiDa) }}</small>
+        <div class="input-group">
+          <input
+            type="text"
+            class="form-control"
+            :value="showCurrency(form.soTienGiamToiDa)"
+            @input="onInputMoney($event, 'soTienGiamToiDa')"
+            :disabled="isDetail"
+          />
+          <span class="input-group-text">VND</span>
+        </div>
       </div>
 
       <div class="col-md-6">
@@ -103,7 +112,7 @@ import {
   addDotGiamGia,
   updateDotGiamGia,
 } from '@/service/dotgiamgia/DotGiamGiaService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -264,6 +273,13 @@ const save = async () => {
 }
 
 const back = () => router.push('/quan-li-giam-gia')
+
+const onInputMoney = (event, field) => {
+  const val = event.target.value
+  // Xóa tất cả ký tự không phải số
+  const number = Number(val.replace(/\D/g, ''))
+  form.value[field] = number
+}
 
 const showCurrency = (v) => {
   if (v === null || v === undefined) return ''

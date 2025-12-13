@@ -161,8 +161,8 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { findByDotGiamGiaId, deleteDotGiamGiaChiTiet, getSanPhamCombobox, getAvailableCtsp, addCtspToDotGiamGia } from '@/service/dotgiamgia/DotGiamGiaChiTietService'
 import { getDotGiamGiaById } from '@/service/dotgiamgia/DotGiamGiaService'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const route = useRoute()
 const router = useRouter()

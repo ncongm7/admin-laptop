@@ -4,16 +4,16 @@
             <div class="ticker-wrapper">
                 <div class="ticker-content" :class="{ 'paused': isPaused }" :key="marqueeKey">
                     <template v-for="(order, index) in pendingOrders" :key="order.id">
-                        <router-link :to="`/quan-li-hoa-don/chi-tiet/${order.ma}`" class="ticker-item" @click.stop>
+                        <button type="button" class="ticker-item" @click.stop="handleTickerClick(order)">
                             {{ formatOrderText(order) }}
-                        </router-link>
+                        </button>
                         <span v-if="index < pendingOrders.length - 1" class="ticker-separator"> • </span>
                     </template>
                     <!-- Duplicate để tạo vòng lặp liền mạch -->
                     <template v-for="(order, index) in pendingOrders" :key="`dup-${order.id}`">
-                        <router-link :to="`/quan-li-hoa-don/chi-tiet/${order.ma}`" class="ticker-item" @click.stop>
+                        <button type="button" class="ticker-item" @click.stop="handleTickerClick(order)">
                             {{ formatOrderText(order) }}
-                        </router-link>
+                        </button>
                         <span v-if="index < pendingOrders.length - 1" class="ticker-separator"> • </span>
                     </template>
                 </div>
@@ -24,8 +24,8 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getPendingOnlineOrders } from '@/service/hoaDonService'
-import socketService from '@/service/socketService'
+import { getPendingOnlineOrders } from '@/service/hoadon/hoaDonService'
+import socketService from '@/service/common/socketService'
 
 const pendingOrders = ref([])
 const isLoading = ref(false)
@@ -104,6 +104,24 @@ const formatOrderText = (order) => {
     const customerName = order.tenKhachHang || order.ten_khach_hang || 'Khách hàng'
     const orderCode = order.ma || order.orderCode || ''
     return `🔔 Khách hàng ${customerName} vừa đặt đơn #${orderCode}`
+}
+
+/**
+ * Dispatch event để mở modal chi tiết hóa đơn trong trang quản lý hóa đơn
+ */
+const handleTickerClick = (order) => {
+    if (!order?.id && !order?.ma) {
+        return
+    }
+
+    window.dispatchEvent(
+        new CustomEvent('open-invoice-detail', {
+            detail: {
+                orderId: order.id || null,
+                orderCode: order.ma || order.orderCode || null
+            }
+        })
+    )
 }
 
 /**
@@ -323,11 +341,17 @@ onUnmounted(() => {
     padding: 0 8px;
     transition: color 0.2s;
     cursor: pointer;
+    background: transparent;
+    border: none;
 }
 
 .ticker-item:hover {
     color: #533f03;
     text-decoration: underline;
+}
+
+.ticker-item:focus {
+    outline: none;
 }
 
 .ticker-separator {

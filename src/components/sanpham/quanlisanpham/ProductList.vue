@@ -1,4 +1,3 @@
-
 <template>
   <div class="product-list">
     <!-- Bulk Actions Bar -->
@@ -9,25 +8,18 @@
           <span>Đã chọn {{ selectedIds.length }} sản phẩm</span>
         </div>
         <div class="bulk-actions">
-          <button 
-            class="btn btn-outline-danger btn-sm me-2" 
-            @click="handleBulkDelete"
-            :disabled="loading"
-          >
+          <button class="btn btn-outline-danger btn-sm me-2" @click="handleBulkDelete" :disabled="loading">
             <i class="bi bi-trash"></i>
             Xóa đã chọn
           </button>
-          <button 
-            class="btn btn-outline-secondary btn-sm" 
-            @click="clearSelection"
-          >
+          <button class="btn btn-outline-secondary btn-sm" @click="clearSelection">
             <i class="bi bi-x"></i>
             Bỏ chọn
           </button>
         </div>
       </div>
     </div>
-    
+
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
@@ -66,18 +58,10 @@
           </tr>
 
           <!-- Product Rows -->
-          <tr
-            v-for="(product, index) in paginatedProducts"
-            :key="product.id"
-            @click="viewProduct(product)"
-            class="product-row"
-          >
+          <tr v-for="(product, index) in paginatedProducts" :key="product.id" @click="viewProduct(product)"
+            class="product-row">
             <td class="text-center" @click.stop>
-              <input
-                type="checkbox"
-                :checked="isSelected(product.id)"
-                @change="toggleOne(product.id, $event)"
-              />
+              <input type="checkbox" :checked="isSelected(product.id)" @change="toggleOne(product.id, $event)" />
             </td>
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>
@@ -86,20 +70,14 @@
             <td>
               <div class="d-flex align-items-center">
                 <div class="product-thumbnail me-3">
-                  <img
-                    :src="getProductThumbnail(product)"
-                    :alt="product.tenSanPham"
-                  />
+                  <img :src="getProductThumbnail(product)" :alt="product.tenSanPham" />
                 </div>
                 <div class="product-name">{{ product.tenSanPham }}</div>
               </div>
             </td>
             <td>
               <div class="product-price">
-                <span
-                  class="text-dark"
-                  v-if="product.variants && product.variants.length > 0"
-                >
+                <span class="text-dark" v-if="product.variants && product.variants.length > 0">
                   {{ formatCurrency(getMinPrice(product.variants)) }}
                 </span>
                 <span class="text-muted" v-else>Chưa có giá</span>
@@ -107,10 +85,7 @@
             </td>
             <td>
               <div class="product-price">
-                <span
-                  class="text-dark"
-                  v-if="product.variants && product.variants.length > 0"
-                >
+                <span class="text-dark" v-if="product.variants && product.variants.length > 0">
                   {{ formatCurrency(getMaxPrice(product.variants)) }}
                 </span>
                 <span class="text-muted" v-else>Chưa có giá</span>
@@ -132,21 +107,13 @@
             <td>{{ formatUpdateDateSafe(product) }}</td>
             <td @click.stop>
               <div class="btn-group btn-group-sm">
-                <button
-                  class="btn btn-outline-primary"
-                  @click="handleView(product)"
-                  title="Xem chi tiết"
-                >
+                <button class="btn btn-outline-primary" @click="handleView(product)" title="Xem chi tiết">
                   <i class="bi bi-eye"></i>
                 </button>
                 <button class="btn btn-outline-warning" @click="handleEdit(product)" title="Sửa">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button 
-                  class="btn btn-outline-success" 
-                  @click="handleAddVariant(product)" 
-                  title="Thêm biến thể"
-                >
+                <button class="btn btn-outline-success" @click="handleAddVariant(product)" title="Thêm biến thể">
                   <i class="bi bi-plus-circle"></i>
                 </button>
               </div>
@@ -167,12 +134,7 @@
             <li class="page-item" :class="{ disabled: currentPage === 1 }">
               <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)"> Trước </a>
             </li>
-            <li
-              v-for="page in totalPages"
-              :key="page"
-              class="page-item"
-              :class="{ active: page === currentPage }"
-            >
+            <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: page === currentPage }">
               <a class="page-link" href="#" @click.prevent="changePage(page)">
                 {{ page }}
               </a>
@@ -187,16 +149,12 @@
   </div>
 
   <!-- Add Variant Modal (using ProductFormModal component) -->
-  <ProductFormModal
-    v-if="showVariantModal"
-    :product="selectedProduct"
-    mode="add-variants-only"
-    @close="handleVariantModalClose"
-    @save="handleVariantModalSave"
-  />
+  <ProductFormModal v-if="showVariantModal" :product="selectedProduct" mode="add-variants-only"
+    @close="handleVariantModalClose" @save="handleVariantModalSave" />
 
   <!-- Old Add Variant Modal (deprecated, can be removed later) -->
-  <div class="modal fade" id="addVariantModal" tabindex="-1" aria-labelledby="addVariantModalLabel" aria-hidden="true" data-bs-backdrop="false" style="z-index: 1050;">
+  <div class="modal fade" id="addVariantModal" tabindex="-1" aria-labelledby="addVariantModalLabel" aria-hidden="true"
+    data-bs-backdrop="false" style="z-index: 1050;">
     <div class="modal-dialog modal-xl" style="margin-left: 250px; margin-right: 20px;">
       <div class="modal-content">
         <div class="modal-header">
@@ -243,8 +201,10 @@
                     <div class="col-md-3">
                       <label class="form-label">Màu sắc</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
-                          <span v-if="variantConfig.selectedMauSacIds.length === 0" class="text-muted">Chọn màu sắc...</span>
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
+                          <span v-if="variantConfig.selectedMauSacIds.length === 0" class="text-muted">Chọn màu
+                            sắc...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedColorNames(variantConfig.selectedMauSacIds).slice(0, 2).join(', ') }}
                             <span v-if="variantConfig.selectedMauSacIds.length > 2" class="badge bg-primary ms-1">
@@ -255,13 +215,10 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="color in colors" :key="color.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="color.id" 
-                                v-model="variantConfig.selectedMauSacIds"
-                                class="form-check-input me-2"
-                              >
-                              <span class="color-indicator" :style="{ backgroundColor: color.hexCode || '#ccc' }"></span>
+                              <input type="checkbox" :value="color.id" v-model="variantConfig.selectedMauSacIds"
+                                class="form-check-input me-2">
+                              <span class="color-indicator"
+                                :style="{ backgroundColor: color.hexCode || '#ccc' }"></span>
                               {{ color.tenMau }}
                             </label>
                           </li>
@@ -271,7 +228,8 @@
                     <div class="col-md-3">
                       <label class="form-label">CPU</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
                           <span v-if="variantConfig.selectedCpuIds.length === 0" class="text-muted">Chọn CPU...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedCpuNames(variantConfig.selectedCpuIds).slice(0, 1).join(', ') }}
@@ -283,12 +241,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="cpu in cpus" :key="cpu.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="cpu.id" 
-                                v-model="variantConfig.selectedCpuIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="cpu.id" v-model="variantConfig.selectedCpuIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-cpu me-2 text-primary"></i>
                               {{ cpu.tenCpu }}
                             </label>
@@ -299,7 +253,8 @@
                     <div class="col-md-3">
                       <label class="form-label">RAM</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
                           <span v-if="variantConfig.selectedRamIds.length === 0" class="text-muted">Chọn RAM...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedRamNames(variantConfig.selectedRamIds).slice(0, 1).join(', ') }}
@@ -311,12 +266,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="ram in rams" :key="ram.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="ram.id" 
-                                v-model="variantConfig.selectedRamIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="ram.id" v-model="variantConfig.selectedRamIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-memory me-2 text-success"></i>
                               {{ ram.tenRam }}
                             </label>
@@ -327,7 +278,8 @@
                     <div class="col-md-3">
                       <label class="form-label">GPU</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
                           <span v-if="variantConfig.selectedGpuIds.length === 0" class="text-muted">Chọn GPU...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedGpuNames(variantConfig.selectedGpuIds).slice(0, 1).join(', ') }}
@@ -339,12 +291,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="gpu in gpus" :key="gpu.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="gpu.id" 
-                                v-model="variantConfig.selectedGpuIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="gpu.id" v-model="variantConfig.selectedGpuIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-gpu-card me-2 text-warning"></i>
                               {{ gpu.tenGpu }}
                             </label>
@@ -359,8 +307,10 @@
                     <div class="col-md-4">
                       <label class="form-label">Ổ cứng</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
-                          <span v-if="variantConfig.selectedOCungIds.length === 0" class="text-muted">Chọn ổ cứng...</span>
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
+                          <span v-if="variantConfig.selectedOCungIds.length === 0" class="text-muted">Chọn ổ
+                            cứng...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedStorageNames(variantConfig.selectedOCungIds).slice(0, 1).join(', ') }}
                             <span v-if="variantConfig.selectedOCungIds.length > 1" class="badge bg-primary ms-1">
@@ -371,12 +321,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="storage in storages" :key="storage.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="storage.id" 
-                                v-model="variantConfig.selectedOCungIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="storage.id" v-model="variantConfig.selectedOCungIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-hdd me-2 text-info"></i>
                               {{ storage.dungLuong }}
                             </label>
@@ -387,8 +333,10 @@
                     <div class="col-md-4">
                       <label class="form-label">Màn hình</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
-                          <span v-if="variantConfig.selectedLoaiManHinhIds.length === 0" class="text-muted">Chọn màn hình...</span>
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
+                          <span v-if="variantConfig.selectedLoaiManHinhIds.length === 0" class="text-muted">Chọn màn
+                            hình...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedDisplayNames(variantConfig.selectedLoaiManHinhIds).slice(0, 1).join(', ') }}
                             <span v-if="variantConfig.selectedLoaiManHinhIds.length > 1" class="badge bg-primary ms-1">
@@ -399,12 +347,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="display in displays" :key="display.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="display.id" 
-                                v-model="variantConfig.selectedLoaiManHinhIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="display.id" v-model="variantConfig.selectedLoaiManHinhIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-display me-2 text-secondary"></i>
                               {{ display.kichThuoc }}
                             </label>
@@ -415,7 +359,8 @@
                     <div class="col-md-4">
                       <label class="form-label">Pin</label>
                       <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                          data-bs-toggle="dropdown">
                           <span v-if="variantConfig.selectedPinIds.length === 0" class="text-muted">Chọn pin...</span>
                           <span v-else class="selected-items">
                             {{ getSelectedBatteryNames(variantConfig.selectedPinIds).slice(0, 1).join(', ') }}
@@ -427,12 +372,8 @@
                         <ul class="dropdown-menu w-100 multi-select-dropdown">
                           <li v-for="battery in batteries" :key="battery.id" class="dropdown-item-checkbox">
                             <label class="dropdown-item mb-0">
-                              <input 
-                                type="checkbox" 
-                                :value="battery.id" 
-                                v-model="variantConfig.selectedPinIds"
-                                class="form-check-input me-2"
-                              >
+                              <input type="checkbox" :value="battery.id" v-model="variantConfig.selectedPinIds"
+                                class="form-check-input me-2">
                               <i class="bi bi-battery me-2 text-danger"></i>
                               {{ battery.dungLuongPin }}
                             </label>
@@ -446,7 +387,8 @@
                   <div class="d-flex justify-content-start mb-4">
                     <div class="alert alert-success d-flex align-items-center" v-if="calculateTotalCombinations > 0">
                       <i class="bi bi-check-circle me-2"></i>
-                      <span><strong>Sẽ tạo {{ calculateTotalCombinations }} biến thể</strong> từ các thuộc tính đã chọn.</span>
+                      <span><strong>Sẽ tạo {{ calculateTotalCombinations }} biến thể</strong> từ các thuộc tính đã
+                        chọn.</span>
                     </div>
                     <div class="alert alert-secondary d-flex align-items-center" v-else>
                       <i class="bi bi-lightbulb me-2"></i>
@@ -512,30 +454,17 @@
                             </div>
                           </td>
                           <td class="text-center align-middle">
-                            <input
-                              type="number"
-                              class="form-control form-control-sm text-center"
-                              v-model="variant.giaBan"
-                              placeholder="0"
-                              min="0"
-                            />
+                            <input type="number" class="form-control form-control-sm text-center"
+                              v-model="variant.giaBan" placeholder="0" min="0" />
                           </td>
                           <td class="text-center align-middle">
                             <div class="d-flex gap-1 justify-content-center">
-                              <button
-                                type="button"
-                                class="btn btn-sm btn-outline-secondary"
-                                @click="openSerialModal(index)"
-                                title="Quản lý serial"
-                              >
+                              <button type="button" class="btn btn-sm btn-outline-secondary"
+                                @click="openSerialModal(index)" title="Quản lý serial">
                                 <i class="bi bi-list-ul"></i>
                               </button>
-                              <button
-                                type="button"
-                                class="btn btn-sm btn-outline-danger"
-                                @click="removeVariantFromPreview(index)"
-                                title="Xóa biến thể"
-                              >
+                              <button type="button" class="btn btn-sm btn-outline-danger"
+                                @click="removeVariantFromPreview(index)" title="Xóa biến thể">
                                 <i class="bi bi-trash"></i>
                               </button>
                             </div>
@@ -554,12 +483,8 @@
           <button type="button" class="btn btn-outline-secondary" @click="closeModal">
             <i class="bi bi-x-lg me-2"></i>Hủy bỏ
           </button>
-          <button 
-            type="button" 
-            class="btn btn-success" 
-            @click="handleCreateVariants"
-            :disabled="variantLoading || calculateTotalCombinations === 0"
-          >
+          <button type="button" class="btn btn-success" @click="handleCreateVariants"
+            :disabled="variantLoading || calculateTotalCombinations === 0">
             <span v-if="variantLoading" class="spinner-border spinner-border-sm me-2"></span>
             <i v-else class="bi bi-plus-circle me-2"></i>
             {{ variantLoading ? 'Đang tạo...' : 'Thêm biến thể' }}
@@ -592,11 +517,8 @@
                   </div>
                   <div class="info-item">
                     <span class="info-label">Cấu hình:</span>
-                    <span
-                      class="info-value text-truncate"
-                      :title="getVariantConfig(currentVariantIndex)"
-                      >{{ getVariantConfig(currentVariantIndex) }}</span
-                    >
+                    <span class="info-value text-truncate" :title="getVariantConfig(currentVariantIndex)">{{
+                      getVariantConfig(currentVariantIndex) }}</span>
                   </div>
                   <div class="info-item">
                     <span class="info-label">Giá bán:</span>
@@ -609,18 +531,10 @@
               <div class="mb-3">
                 <label class="form-label fw-semibold">Thêm Serial Number:</label>
                 <div class="input-group">
-                  <input
-                    ref="serialInputField"
-                    type="text"
-                    class="form-control"
-                    v-model="serialInput"
-                    placeholder="Nhập serial (VD: ABC123, DEF456789)"
-                    maxlength="100"
-                    autocomplete="off"
-                    @focus="console.log('Serial input focused')"
-                    @blur="console.log('Serial input blurred')"
-                    @input="console.log('Serial input changed:', $event.target.value)"
-                  />
+                  <input ref="serialInputField" type="text" class="form-control" v-model="serialInput"
+                    placeholder="Nhập serial (VD: ABC123, DEF456789)" maxlength="100" autocomplete="off"
+                    @focus="console.log('Serial input focused')" @blur="console.log('Serial input blurred')"
+                    @input="console.log('Serial input changed:', $event.target.value)" />
                   <button type="button" class="btn btn-success" @click="addSerialNumbers">
                     <i class="bi bi-plus-lg"></i> Thêm
                   </button>
@@ -628,34 +542,20 @@
                 <div v-if="serialValidationError" class="text-warning small mt-1">
                   <i class="bi bi-exclamation-triangle"></i> {{ serialValidationError }}
                 </div>
-                <small class="text-muted"
-                  >Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;). Mỗi serial phải có 7 ký tự gồm cả chữ và số.</small
-                >
+                <small class="text-muted">Có thể nhập nhiều, cách nhau bằng dấu phẩy (,) hoặc chấm phẩy (;). Mỗi serial
+                  phải có 7 ký tự gồm cả chữ và số.</small>
               </div>
 
               <!-- Import from Excel -->
               <div class="mb-3">
                 <label class="form-label fw-semibold">Import từ Excel:</label>
                 <div class="d-flex gap-2">
-                  <input
-                    type="file"
-                    ref="excelFileInput"
-                    accept=".xlsx,.xls,.csv"
-                    class="d-none"
-                    @change="importFromExcel"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm"
-                    @click="$refs.excelFileInput.click()"
-                  >
+                  <input type="file" ref="excelFileInput" accept=".xlsx,.xls,.csv" class="d-none"
+                    @change="importFromExcel" />
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="$refs.excelFileInput.click()">
                     <i class="bi bi-file-earmark-arrow-up"></i> Chọn file
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-outline-info btn-sm"
-                    @click="downloadExcelTemplate"
-                  >
+                  <button type="button" class="btn btn-outline-info btn-sm" @click="downloadExcelTemplate">
                     <i class="bi bi-download"></i> Tải mẫu
                   </button>
                 </div>
@@ -666,18 +566,10 @@
               <div class="serial-list-section">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <h6 class="section-title mb-0">Danh sách Serial Numbers:</h6>
-                  <i
-                    class="bi bi-question-circle-fill text-info"
-                    style="cursor: pointer"
-                    title="Danh sách serial"
-                  ></i>
+                  <i class="bi bi-question-circle-fill text-info" style="cursor: pointer" title="Danh sách serial"></i>
                 </div>
 
-                <div
-                  v-if="currentVariant?.serials?.length > 0"
-                  class="table-responsive"
-                  style="max-height: 250px"
-                >
+                <div v-if="currentVariant?.serials?.length > 0" class="table-responsive" style="max-height: 250px">
                   <table class="table table-hover serial-table">
                     <thead>
                       <tr>
@@ -692,43 +584,25 @@
                         <td>{{ idx + 1 }}</td>
                         <td class="fw-medium">
                           {{ serial.soSerial }}
-                          <i 
-                            v-if="!serial.id" 
-                            class="bi bi-circle-fill text-warning ms-1" 
-                            title="Chưa lưu vào database"
-                            style="font-size: 6px;"
-                          ></i>
-                          <i 
-                            v-else 
-                            class="bi bi-check-circle-fill text-success ms-1" 
-                            title="Đã lưu vào database"
-                            style="font-size: 10px;"
-                          ></i>
+                          <i v-if="!serial.id" class="bi bi-circle-fill text-warning ms-1" title="Chưa lưu vào database"
+                            style="font-size: 6px;"></i>
+                          <i v-else class="bi bi-check-circle-fill text-success ms-1" title="Đã lưu vào database"
+                            style="font-size: 10px;"></i>
                         </td>
                         <td>
-                          <span 
-                            class="badge" 
-                            :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'"
-                          >
+                          <span class="badge" :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'">
                             {{ serial.trangThai === 1 ? 'Có sẵn' : 'Ẩn' }}
                           </span>
                         </td>
                         <td>
                           <div class="d-flex gap-1">
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-outline-primary"
+                            <button type="button" class="btn btn-sm btn-outline-primary"
                               @click="toggleSerialStatus(idx)"
-                              :title="serial.trangThai === 1 ? 'Chuyển sang Ẩn' : 'Chuyển sang Có sẵn'"
-                            >
+                              :title="serial.trangThai === 1 ? 'Chuyển sang Ẩn' : 'Chuyển sang Có sẵn'">
                               <i class="bi bi-pencil"></i>
                             </button>
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-outline-danger"
-                              @click="removeSerial(idx)"
-                              title="Xóa serial"
-                            >
+                            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeSerial(idx)"
+                              title="Xóa serial">
                               <i class="bi bi-trash"></i>
                             </button>
                           </div>
@@ -757,14 +631,9 @@
                 <button type="button" class="btn btn-secondary" @click="closeSerialModal">
                   <i class="bi bi-x-lg"></i> Hủy
                 </button>
-                <button 
-                  type="button" 
-                  class="btn btn-success" 
-                  @click="saveSerials"
-                  :disabled="loading"
-                >
+                <button type="button" class="btn btn-success" @click="saveSerials" :disabled="loading">
                   <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                  <i v-else class="bi bi-check-lg"></i> 
+                  <i v-else class="bi bi-check-lg"></i>
                   {{ loading ? 'Lưu...' : 'Lưu' }}
                 </button>
               </div>
@@ -929,12 +798,30 @@ const statusClass = (status) => {
 }
 
 const getProductThumbnail = (product) => {
-  // Return product thumbnail if exists
+  // Backend trả về: product.chiTietSanPhams[].hinhAnhs[] với cấu trúc {id, url, anhChinhDaiDien}
+  // Ưu tiên lấy hình ảnh từ chi tiết sản phẩm đầu tiên
+  if (product.chiTietSanPhams && product.chiTietSanPhams.length > 0) {
+    for (const ctsp of product.chiTietSanPhams) {
+      if (ctsp.hinhAnhs && Array.isArray(ctsp.hinhAnhs) && ctsp.hinhAnhs.length > 0) {
+        // Tìm hình ảnh chính đại diện (anhChinhDaiDien = true)
+        const defaultImage = ctsp.hinhAnhs.find(img => img.anhChinhDaiDien === true)
+        if (defaultImage && defaultImage.url) {
+          return defaultImage.url
+        }
+        // Nếu không có hình chính, lấy hình đầu tiên
+        if (ctsp.hinhAnhs[0] && ctsp.hinhAnhs[0].url) {
+          return ctsp.hinhAnhs[0].url
+        }
+      }
+    }
+  }
+
+  // Fallback: Thử các field khác (backward compatibility)
   if (product.anhDaiDien) {
     return product.anhDaiDien
   }
-  
-  // Otherwise try to get from first variant with images
+
+  // Fallback: Thử variants (cấu trúc cũ)
   if (product.variants && product.variants.length > 0) {
     for (const variant of product.variants) {
       if (variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
@@ -953,7 +840,7 @@ const getProductThumbnail = (product) => {
       }
     }
   }
-  
+
   // Fallback to placeholder
   return '/placeholder-product.jpg'
 }
@@ -975,14 +862,14 @@ const handleEdit = (product) => {
 
 const handleBulkDelete = () => {
   console.log('ProductList handleBulkDelete called with selectedIds:', selectedIds.value)
-  
+
   if (selectedIds.value.length === 0) {
     alert('Vui lòng chọn ít nhất một sản phẩm để xóa')
     return
   }
-  
+
   const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedIds.value.length} sản phẩm đã chọn?\n\nHành động này không thể hoàn tác!`
-  
+
   if (confirm(confirmMessage)) {
     console.log('ProductList emitting bulk-delete event with:', selectedIds.value)
     emit('bulk-delete', selectedIds.value)
@@ -1015,7 +902,7 @@ const calculateTotalCombinations = computed(() => {
     variantConfig.value.selectedLoaiManHinhIds.filter(id => id !== "").length,
     variantConfig.value.selectedPinIds.filter(id => id !== "").length
   ].filter(count => count > 0)
-  
+
   return selectedCounts.length > 0 ? selectedCounts.reduce((a, b) => a * b, 1) : 0
 })
 
@@ -1078,7 +965,7 @@ const loadAttributes = async () => {
   try {
     attributeLoading.value = true
     attributeError.value = ''
-    
+
     // Load all attributes in parallel
     const [colorsRes, cpusRes, ramsRes, gpusRes, storagesRes, displaysRes, batteriesRes] = await Promise.all([
       getMauSacList(),
@@ -1089,7 +976,7 @@ const loadAttributes = async () => {
       getLoaiManHinhList(),
       getPinList()
     ])
-    
+
     colors.value = colorsRes.data || []
     cpus.value = cpusRes.data || []
     rams.value = ramsRes.data || []
@@ -1097,7 +984,7 @@ const loadAttributes = async () => {
     storages.value = storagesRes.data || []
     displays.value = displaysRes.data || []
     batteries.value = batteriesRes.data || []
-    
+
     console.log('Loaded attributes:', {
       colors: colors.value.length,
       cpus: cpus.value.length,
@@ -1107,7 +994,7 @@ const loadAttributes = async () => {
       displays: displays.value.length,
       batteries: batteries.value.length
     })
-    
+
   } catch (error) {
     console.error('Error loading attributes:', error)
     attributeError.value = 'Lỗi khi tải dữ liệu thuộc tính: ' + error.message
@@ -1154,24 +1041,24 @@ const resetVariantConfig = () => {
 // Automatic variant generation function
 const generateVariantsAutomatically = () => {
   console.log('Auto-generating variants...')
-  
+
   // Check if we have loaded attributes
-  if (!colors.value.length && !cpus.value.length && !rams.value.length && 
-      !gpus.value.length && !storages.value.length && !displays.value.length && 
-      !batteries.value.length) {
+  if (!colors.value.length && !cpus.value.length && !rams.value.length &&
+    !gpus.value.length && !storages.value.length && !displays.value.length &&
+    !batteries.value.length) {
     console.log('Attributes not loaded yet, skipping variant generation')
     return
   }
-  
+
   // Don't require selectedProduct for automatic generation
   if (calculateTotalCombinations.value === 0) {
     console.log('No attributes selected, clearing variants')
     displayVariants.value = []
     return
   }
-  
+
   console.log('Auto-generating variants with combinations:', calculateTotalCombinations.value)
-  
+
   // Generate combinations for preview
   const combinations = []
   const selectedColors = variantConfig.value.selectedMauSacIds.filter(id => id !== "")
@@ -1181,7 +1068,7 @@ const generateVariantsAutomatically = () => {
   const selectedStorages = variantConfig.value.selectedOCungIds.filter(id => id !== "")
   const selectedDisplays = variantConfig.value.selectedLoaiManHinhIds.filter(id => id !== "")
   const selectedBatteries = variantConfig.value.selectedPinIds.filter(id => id !== "")
-  
+
   // Generate all combinations
   const generateCombinations = (arrays) => {
     if (arrays.length === 0) return [[]]
@@ -1189,7 +1076,7 @@ const generateVariantsAutomatically = () => {
     const restCombinations = generateCombinations(rest)
     return first.flatMap(item => restCombinations.map(combo => [item, ...combo]))
   }
-  
+
   const attributeArrays = [
     selectedColors.length > 0 ? selectedColors : [null],
     selectedCpus.length > 0 ? selectedCpus : [null],
@@ -1199,12 +1086,12 @@ const generateVariantsAutomatically = () => {
     selectedDisplays.length > 0 ? selectedDisplays : [null],
     selectedBatteries.length > 0 ? selectedBatteries : [null]
   ]
-  
+
   const allCombinations = generateCombinations(attributeArrays)
-  
+
   allCombinations.forEach(combo => {
     const [colorId, cpuId, ramId, gpuId, storageId, displayId, batteryId] = combo
-    
+
     const color = colors.value.find(c => c.id === colorId)
     const cpu = cpus.value.find(c => c.id === cpuId)
     const ram = rams.value.find(r => r.id === ramId)
@@ -1212,7 +1099,7 @@ const generateVariantsAutomatically = () => {
     const storage = storages.value.find(s => s.id === storageId)
     const display = displays.value.find(d => d.id === displayId)
     const battery = batteries.value.find(b => b.id === batteryId)
-    
+
     combinations.push({
       id: null, // Preview variant, no ID yet
       idMauSac: colorId || null,
@@ -1235,7 +1122,7 @@ const generateVariantsAutomatically = () => {
       serials: []
     })
   })
-  
+
   console.log(`Generated ${combinations.length} variant combinations`)
   displayVariants.value = combinations
 }
@@ -1252,15 +1139,15 @@ const saveVariants = async () => {
     alert('Không tìm thấy thông tin sản phẩm')
     return
   }
-  
+
   if (displayVariants.value.length === 0) {
     alert('Không có biến thể nào để lưu')
     return
   }
-  
+
   try {
     variantLoading.value = true
-    
+
     const variantData = {
       idSanPham: selectedProduct.value.id,
       variants: displayVariants.value.map(variant => ({
@@ -1276,28 +1163,28 @@ const saveVariants = async () => {
         trangThai: variant.trangThai
       }))
     }
-    
+
     console.log('Creating variants:', variantData)
-    
+
     const result = await taoBienTheSanPham(variantData)
-    
+
     console.log('Variant creation result:', result)
     alert(`Đã tạo thành công ${displayVariants.value.length} biến thể cho sản phẩm "${selectedProduct.value.tenSanPham}"!`)
-    
+
     // Close modal
     const modal = Modal.getInstance(document.getElementById('addVariantModal'))
     if (modal) {
       modal.hide()
     }
-    
+
     // Reset state
     resetVariantConfig()
     const productToRefresh = selectedProduct.value
     selectedProduct.value = null
-    
+
     // Emit event to refresh product list
     emit('variant-added', productToRefresh)
-    
+
   } catch (error) {
     console.error('Error creating variants:', error)
     alert('Lỗi khi tạo biến thể: ' + (error.response?.data?.message || error.message))
@@ -1312,15 +1199,15 @@ const createVariantsDirectly = async () => {
     alert('Không tìm thấy thông tin sản phẩm')
     return
   }
-  
+
   if (calculateTotalCombinations.value === 0) {
     alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
     return
   }
-  
+
   try {
     variantLoading.value = true
-    
+
     // Generate combinations
     const combinations = []
     const selectedColors = variantConfig.value.selectedMauSacIds.filter(id => id !== "")
@@ -1330,7 +1217,7 @@ const createVariantsDirectly = async () => {
     const selectedStorages = variantConfig.value.selectedOCungIds.filter(id => id !== "")
     const selectedDisplays = variantConfig.value.selectedLoaiManHinhIds.filter(id => id !== "")
     const selectedBatteries = variantConfig.value.selectedPinIds.filter(id => id !== "")
-    
+
     // Generate all combinations
     const generateCombinations = (arrays) => {
       if (arrays.length === 0) return [[]]
@@ -1338,7 +1225,7 @@ const createVariantsDirectly = async () => {
       const restCombinations = generateCombinations(rest)
       return first.flatMap(item => restCombinations.map(combo => [item, ...combo]))
     }
-    
+
     const attributeArrays = [
       selectedColors.length > 0 ? selectedColors : [null],
       selectedCpus.length > 0 ? selectedCpus : [null],
@@ -1348,12 +1235,12 @@ const createVariantsDirectly = async () => {
       selectedDisplays.length > 0 ? selectedDisplays : [null],
       selectedBatteries.length > 0 ? selectedBatteries : [null]
     ]
-    
+
     const allCombinations = generateCombinations(attributeArrays)
-    
+
     allCombinations.forEach(combo => {
       const [colorId, cpuId, ramId, gpuId, storageId, displayId, batteryId] = combo
-      
+
       combinations.push({
         idMauSac: colorId || null,
         idCpu: cpuId || null,
@@ -1367,33 +1254,33 @@ const createVariantsDirectly = async () => {
         trangThai: variantConfig.value.trangThai
       })
     })
-    
+
     const variantData = {
       idSanPham: selectedProduct.value.id,
       variants: combinations
     }
-    
+
     console.log('Creating variants:', variantData)
-    
+
     const result = await taoBienTheSanPham(variantData)
-    
+
     console.log('Direct variant creation result:', result)
     alert(`Đã tạo thành công ${combinations.length} biến thể cho sản phẩm "${selectedProduct.value.tenSanPham}"!`)
-    
+
     // Close modal
     const modal = Modal.getInstance(document.getElementById('addVariantModal'))
     if (modal) {
       modal.hide()
     }
-    
+
     // Reset state
     resetVariantConfig()
     const productToRefresh = selectedProduct.value
     selectedProduct.value = null
-    
+
     // Emit event to refresh product list
     emit('variant-added', productToRefresh)
-    
+
   } catch (error) {
     console.error('Error creating variants:', error)
     alert('Lỗi khi tạo biến thể: ' + (error.response?.data?.message || error.message))
@@ -1432,41 +1319,41 @@ const openSerialModal = (index) => {
   console.log('Opening serial modal for variant index:', index)
   console.log('Display variants:', displayVariants.value)
   console.log('Variant at index:', displayVariants.value[index])
-  
+
   if (!displayVariants.value[index]) {
     alert('Không tìm thấy biến thể')
     return
   }
-  
+
   currentVariantIndex.value = index
-  
+
   // Initialize serials array if it doesn't exist
   if (!displayVariants.value[index].serials) {
     displayVariants.value[index].serials = []
     console.log('Initialized serials array for variant')
   }
-  
+
   // Reset serial input state
   serialInput.value = ''
   serialValidationError.value = ''
   serialValidationSuccess.value = false
-  
+
   console.log('Current variant after opening modal:', currentVariant.value)
   console.log('Current variant serials:', currentVariant.value?.serials)
-  
+
   showSerialModal.value = true
-  
+
   // Force Vue to update the DOM and focus input
   nextTick(() => {
     console.log('Modal should be visible now')
     console.log('serialInput reactive value:', serialInput.value)
-    
+
     // Try to focus the serial input field using ref
     const serialInputElement = document.querySelector('.serial-modal-overlay input[type="text"]')
     if (serialInputElement) {
       serialInputElement.focus()
       console.log('Focused serial input field via querySelector')
-      
+
       // Test if we can set value directly
       serialInputElement.value = ''
       console.log('Reset input field value')
@@ -1486,10 +1373,10 @@ const closeSerialModal = () => {
 
 const getVariantConfig = (index) => {
   if (index < 0 || !displayVariants.value[index]) return ''
-  
+
   const variant = displayVariants.value[index]
   const specs = []
-  
+
   if (variant.tenMauSac) specs.push(variant.tenMauSac)
   if (variant.tenCpu) specs.push(variant.tenCpu)
   if (variant.tenRam) specs.push(variant.tenRam)
@@ -1497,7 +1384,7 @@ const getVariantConfig = (index) => {
   if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
   if (variant.kichThuocManHinh) specs.push(variant.kichThuocManHinh)
   if (variant.dungLuongPin) specs.push(variant.dungLuongPin)
-  
+
   return specs.join(' | ')
 }
 
@@ -1510,7 +1397,7 @@ const onSerialInput = (event) => {
   console.log('Serial input event:', event)
   console.log('Input value:', event.target.value)
   console.log('serialInput.value:', serialInput.value)
-  
+
   // Call validation
   validateSerialInput()
 }
@@ -1518,31 +1405,31 @@ const onSerialInput = (event) => {
 const validateSerialInput = () => {
   const input = serialInput.value.trim()
   console.log('Validating serial input:', input)
-  
+
   serialValidationError.value = ''
   serialValidationSuccess.value = false
-  
+
   if (!input) {
     console.log('No input to validate')
     return
   }
-  
+
   const serials = input.split(/[,;]/).map(s => s.trim()).filter(s => s)
   console.log('Parsed serials for validation:', serials)
-  
+
   for (const serial of serials) {
     if (serial.length < 3 || serial.length > 20) {
       serialValidationError.value = 'Mỗi serial phải có từ 3-20 ký tự'
       console.log('Validation failed: length check')
       return
     }
-    
+
     if (!/^[A-Za-z0-9]+$/.test(serial)) {
       serialValidationError.value = 'Serial chỉ được chứa chữ cái và số'
       console.log('Validation failed: format check')
       return
     }
-    
+
     // Check for duplicates in current variant
     if (currentVariant.value?.serials?.some(s => s.soSerial === serial)) {
       serialValidationError.value = `Serial "${serial}" đã tồn tại`
@@ -1550,7 +1437,7 @@ const validateSerialInput = () => {
       return
     }
   }
-  
+
   serialValidationSuccess.value = true
   console.log('Validation passed')
 }
@@ -1561,44 +1448,44 @@ const addSerialNumbers = () => {
   console.log('serialInput.value:', serialInput.value)
   console.log('currentVariant.value:', currentVariant.value)
   console.log('currentVariantIndex.value:', currentVariantIndex.value)
-  
+
   const input = serialInput.value.trim()
   if (!input) {
     alert('Vui lòng nhập serial number')
     return
   }
-  
+
   if (!currentVariant.value) {
     alert('Không tìm thấy biến thể hiện tại. Vui lòng thử lại.')
     console.error('currentVariant.value is null or undefined')
     return
   }
-  
+
   // Simple validation - just check if not empty and reasonable length
   const serials = input.split(/[,;]/).map(s => s.trim()).filter(s => s)
   console.log('Parsed serials:', serials)
-  
+
   if (serials.length === 0) {
     alert('Không có serial hợp lệ')
     return
   }
-  
+
   // Initialize serials array if it doesn't exist
   if (!currentVariant.value.serials) {
     currentVariant.value.serials = []
     console.log('Initialized serials array')
   }
-  
+
   let addedCount = 0
   let invalidCount = 0
   let duplicateCount = 0
-  
+
   serials.forEach(serialNumber => {
     // Validate serial format: exactly 7 characters, alphanumeric, contains both letters and numbers
     if (serialNumber.length === 7 && /^[A-Za-z0-9]+$/.test(serialNumber)) {
       const hasLetter = /[A-Za-z]/.test(serialNumber)
       const hasNumber = /[0-9]/.test(serialNumber)
-      
+
       if (hasLetter && hasNumber) {
         // Check for duplicates
         if (!currentVariant.value.serials.some(s => s.soSerial === serialNumber)) {
@@ -1622,9 +1509,9 @@ const addSerialNumbers = () => {
       console.log(`Invalid serial length or format: ${serialNumber}`)
     }
   })
-  
+
   console.log(`Total serials after adding: ${currentVariant.value.serials.length}`)
-  
+
   // Show detailed feedback
   let message = ''
   if (addedCount > 0) {
@@ -1636,7 +1523,7 @@ const addSerialNumbers = () => {
   if (invalidCount > 0) {
     message += `\n❌ ${invalidCount} serial không hợp lệ (phải có đúng 7 ký tự gồm cả chữ và số)`
   }
-  
+
   if (addedCount > 0) {
     alert(message)
     // Clear input after successful addition
@@ -1646,7 +1533,7 @@ const addSerialNumbers = () => {
 
 const toggleSerialStatus = (index) => {
   if (currentVariant.value?.serials?.[index]) {
-    currentVariant.value.serials[index].trangThai = 
+    currentVariant.value.serials[index].trangThai =
       currentVariant.value.serials[index].trangThai === 1 ? 0 : 1
   }
 }
@@ -1668,13 +1555,13 @@ const getUnsavedSerialsCount = () => {
 const importFromExcel = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-  
+
   console.log('Importing from Excel file:', file.name)
-  
+
   try {
     const text = await readFileAsText(file)
     let serials = []
-    
+
     if (file.name.endsWith('.csv')) {
       // Parse CSV - skip header row
       const lines = text.split('\n').filter(line => line.trim())
@@ -1683,29 +1570,29 @@ const importFromExcel = async (event) => {
       // For other formats, treat as simple text
       serials = text.split(/[\n,;]/).map(s => s.trim()).filter(s => s)
     }
-    
+
     console.log('Parsed serials from file:', serials)
-    
+
     if (serials.length === 0) {
       alert('Không tìm thấy serial nào trong file')
       return
     }
-    
+
     // Add serials using the same validation logic
     if (!currentVariant.value.serials) {
       currentVariant.value.serials = []
     }
-    
+
     let addedCount = 0
     let invalidCount = 0
     let duplicateCount = 0
-    
+
     serials.forEach(serialNumber => {
       // Validate serial format: exactly 7 characters, alphanumeric, contains both letters and numbers
       if (serialNumber.length === 7 && /^[A-Za-z0-9]+$/.test(serialNumber)) {
         const hasLetter = /[A-Za-z]/.test(serialNumber)
         const hasNumber = /[0-9]/.test(serialNumber)
-        
+
         if (hasLetter && hasNumber) {
           if (!currentVariant.value.serials.some(s => s.soSerial === serialNumber)) {
             currentVariant.value.serials.push({
@@ -1724,19 +1611,19 @@ const importFromExcel = async (event) => {
         invalidCount++
       }
     })
-    
+
     let message = `📁 Import từ file "${file.name}":\n`
     if (addedCount > 0) message += `✅ Đã thêm ${addedCount} serial\n`
     if (duplicateCount > 0) message += `⚠️ ${duplicateCount} serial bị trùng lặp\n`
     if (invalidCount > 0) message += `❌ ${invalidCount} serial không hợp lệ (phải có đúng 7 ký tự gồm cả chữ và số)`
-    
+
     alert(message)
-    
+
   } catch (error) {
     console.error('Error importing from Excel:', error)
     alert('Lỗi khi đọc file. Vui lòng kiểm tra định dạng file.')
   }
-  
+
   // Reset file input
   event.target.value = ''
 }
@@ -1764,11 +1651,11 @@ const downloadExcelTemplate = () => {
     'YZA1029',
     'BCD3847'
   ]
-  
+
   const csvContent = 'Serial Number\n' + sampleSerials.join('\n')
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
@@ -1777,7 +1664,7 @@ const downloadExcelTemplate = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     console.log('Downloaded serial template')
     alert('✅ Đã tải xuống file mẫu serial_template.csv')
   }
@@ -1788,36 +1675,36 @@ const saveSerials = async () => {
     alert('Không tìm thấy thông tin biến thể hoặc sản phẩm')
     return
   }
-  
+
   const unsavedSerials = currentVariant.value.serials?.filter(s => !s.id) || []
   if (unsavedSerials.length === 0) {
     alert('Không có serial nào cần lưu')
     return
   }
-  
+
   try {
     loading.value = true
     console.log('Saving serials to database:', unsavedSerials)
-    
+
     // TODO: Replace with actual API call
     // const result = await saveVariantSerials(selectedProduct.value.id, currentVariant.value.id, unsavedSerials)
-    
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // Mark serials as saved (simulate getting IDs from server)
     unsavedSerials.forEach((serial, index) => {
       serial.id = Date.now() + index // Simulate server-generated ID
     })
-    
+
     // Update stock count based on serials
     currentVariant.value.soLuongTon = currentVariant.value.serials.length
-    
+
     alert(`✅ Đã lưu ${unsavedSerials.length} serial thành công!`)
     console.log('Serials saved successfully')
-    
+
     // Don't close modal automatically - let user continue adding serials if needed
-    
+
   } catch (error) {
     console.error('Error saving serials:', error)
     alert('❌ Lỗi khi lưu serial. Vui lòng thử lại.')
@@ -1838,7 +1725,7 @@ const closeModal = () => {
   if (modal) {
     modal.hide()
   }
-  
+
   // Reset state
   resetVariantConfig()
   selectedProduct.value = null
@@ -1850,7 +1737,7 @@ const handleCreateVariants = async () => {
     alert('Không tìm thấy thông tin sản phẩm')
     return
   }
-  
+
   if (calculateTotalCombinations.value === 0) {
     alert('Vui lòng chọn ít nhất một thuộc tính để tạo biến thể')
     return
@@ -1869,477 +1756,167 @@ onMounted(() => {
 <style scoped>
 .product-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-}
-input[type='checkbox'] {
-  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.product-thumbnail {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f8fafc;
+.table-responsive {
+  padding: 0;
 }
 
-.product-thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.product-name {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.product-specs div {
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-
-.product-specs strong {
-  color: #64748b;
-}
-
-.pagination-wrapper {
-  padding: 16px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.product-row {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.product-row:hover {
-  background-color: #f8fafc !important;
-}
-
-.product-row td {
-  border-bottom: 1px solid #f1f5f9;
+.table {
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table th {
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.5px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
 }
 
 .table td {
+  padding: 16px 24px;
   vertical-align: middle;
-}
-
-.bulk-actions-bar {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  animation: slideDown 0.3s ease-out;
-}
-
-.selected-info {
-  font-weight: 500;
-  color: #059669;
-}
-
-.bulk-actions .btn {
-  font-size: 13px;
-  padding: 6px 12px;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.variant-count {
-  text-align: center;
-}
-
-.variant-count span {
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
   font-size: 14px;
-  font-weight: normal;
 }
 
-/* ===== VARIANT CREATION MODAL STYLES ===== */
-.variant-creation-section {
-  padding: 1rem 0;
+.product-row {
+  transition: all 0.2s ease;
 }
 
-.variant-subtitle {
-  color: #495057;
-  font-weight: 600;
-}
-
-.variant-selectors .form-label {
-  font-weight: 500;
-  color: #495057;
-  margin-bottom: 0.5rem;
-}
-
-.multi-select-dropdown {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.dropdown-item-checkbox {
-  padding: 0;
-}
-
-.dropdown-item-checkbox .dropdown-item {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.dropdown-item-checkbox .dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.color-indicator {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  margin-right: 8px;
-  border: 1px solid #dee2e6;
-}
-
-.selected-items {
-  color: #495057;
-}
-
-.badge {
-  font-size: 0.75em;
-}
-
-.variant-config-vertical {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.spec-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.spec-item i {
-  width: 16px;
-  text-align: center;
-}
-
-.spec-item span {
-  color: #495057;
-}
-
-/* Serial Modal Styles */
-.serial-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.serial-modal-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.serial-modal-dialog {
-  width: 100%;
-  max-width: 800px;
-  max-height: 90vh;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-}
-
-.serial-modal-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.serial-modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
-  display: flex;
-  align-items: center;
-  justify-content: between;
-  background-color: #f8f9fa;
-}
-
-.serial-modal-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #495057;
-  flex: 1;
-}
-
-.serial-modal-body {
-  padding: 1.5rem;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.serial-modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #dee2e6;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f8f9fa;
-}
-
-.section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.5rem;
-}
-
-.variant-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.info-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6c757d;
-}
-
-.info-value {
-  font-size: 0.875rem;
-  color: #495057;
-  font-weight: 500;
-}
-
-.serial-table {
-  font-size: 0.875rem;
-}
-
-.serial-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  border-bottom: 2px solid #dee2e6;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #6c757d;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.variants-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #dee2e6;
-  border-radius: 0.375rem;
-}
-
-.variants-table {
-  margin-bottom: 0;
-}
-
-/* Modal positioning fixes */
-#addVariantModal {
-  z-index: 1050 !important;
-}
-
-#addVariantModal .modal-dialog {
-  margin-left: 250px !important;
-  margin-right: 20px !important;
-  max-width: calc(100vw - 270px) !important;
-  height: 100vh !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-#addVariantModal .modal-content {
-  height: 100% !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-}
-
-#addVariantModal .modal-body {
-  flex: 1 !important;
-  overflow-y: auto !important;
-}
-
-.variants-table th {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
+.product-row:hover {
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  position: relative;
   z-index: 10;
 }
 
-.variant-config-vertical {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.spec-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.spec-item i {
-  width: 16px;
-  flex-shrink: 0;
-}
-
-.variant-image-cell {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.variant-image-upload {
-  width: 100%;
-  height: 100%;
-  border: 2px dashed #dee2e6;
-  border-radius: 0.375rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #6c757d;
-}
-
-.variant-image-upload:hover {
-  border-color: #0d6efd;
-  color: #0d6efd;
-}
-
-.variant-image-upload i {
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.variant-image-upload span {
-  font-size: 0.75rem;
-}
-
-.variant-image-preview {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  border-radius: 0.375rem;
+.product-thumbnail {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   overflow: hidden;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
 }
 
-.variant-image-preview img {
+.product-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-.image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.product-row:hover .product-thumbnail img {
+  transform: scale(1.1);
+}
+
+.product-name {
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.bg-success {
+  background-color: #dcfce7 !important;
+  color: #16a34a;
+}
+
+.bg-secondary {
+  background-color: #f1f5f9 !important;
+  color: #64748b;
+}
+
+.btn-group-sm > .btn {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  margin: 0 2px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.btn-group-sm > .btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-outline-primary:hover { background: #e0f2fe; color: #0284c7; }
+.btn-outline-warning:hover { background: #fef9c3; color: #ca8a04; }
+.btn-outline-success:hover { background: #dcfce7; color: #16a34a; }
+
+/* Pagination */
+.pagination-wrapper {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: white;
+}
+
+.page-link {
+  border: none;
+  color: #64748b;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.2s;
+  border-radius: 8px;
+  margin: 0 4px;
+  font-weight: 500;
 }
 
-.variant-image-preview:hover .image-overlay {
-  opacity: 1;
+.page-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
-.stock-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.page-item.active .page-link {
+  background: #16a34a;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3);
 }
 
-.stock-number {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #495057;
+/* Checkbox style */
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
 }
 
-.action-buttons {
-  gap: 0.25rem;
+input[type="checkbox"]:checked {
+  background-color: #16a34a;
+  border-color: #16a34a;
 }
 
-.created-variants {
-  margin-top: 1.5rem;
+/* Bulk Actions */
+.bulk-actions-bar {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px 24px;
+  margin-bottom: 20px;
 }
 
-.alert {
-  border: none;
-  border-radius: 0.5rem;
-}
-
-.alert-info {
-  background-color: #e7f3ff;
-  color: #0c5460;
-}
-
-.alert-secondary {
-  background-color: #f8f9fa;
-  color: #495057;
-}
 </style>

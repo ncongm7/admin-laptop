@@ -707,12 +707,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useProductStore } from '@/stores/productStore'
-import { uploadImageToCloudinary } from '@/service/uploadImageToCloud'
+import { useProductStore } from '@/stores/sanpham/productStore'
+import { uploadImageToCloudinary } from '@/service/common/uploadImageToCloud'
 import { createSanPham, updateSanPham, taoBienTheSanPham, createSerialsBatch, importSerialsFromExcel, getSerialsByCtspId, getAllSerial, createHinhAnhBatch, getHinhAnhByCtspId, deleteCTSP, createProductWithVariantsAndSerials, updateChiTietSanPham, getCTSPBySanPham } from '@/service/sanpham/SanPhamService'
 import { useRouter } from 'vue-router'
 import NotificationToast from '@/components/common/NotificationToast.vue'
-import { useConfirm } from '@/composables/useConfirm'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const productStore = useProductStore()
 const router = useRouter()

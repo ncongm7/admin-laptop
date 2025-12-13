@@ -14,8 +14,8 @@
         </select>
         <select v-model="active" class="form-select" style="max-width: 140px">
           <option value="">Tất cả hoạt động</option>
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
+          <option :value="1">ON</option>
+          <option :value="0">OFF</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
@@ -69,16 +69,22 @@
 
           <!-- Hoạt động (công tắc quản trị: 1=Bật, khác=Tắt) -->
           <td>
-            <span v-if="it.trangThai === 1">Bật</span>
-            <span v-else >Tắt</span>
+            <span v-if="it.trangThai === 1">ON</span>
+            <span v-else >OFF</span>
           </td>
           <td class="d-flex gap-2">
             <button class="btn btn-info btn-sm" @click="viewDetail(it.id)">Chi tiết</button>
             <button class="btn btn-warning btn-sm" @click="edit(it.id)">Sửa</button>
-            <button class="btn btn-danger btn-sm" @click="remove(it.id)">Xóa</button>
-            <button 
-              v-if="it.riengTu" 
-              class="btn btn-secondary btn-sm" 
+            <button
+              :class="it.trangThai === 1 ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'"
+              @click="toggleStatus(it.id)"
+              :title="it.trangThai === 1 ? 'OFF' : 'ON'"
+            >
+              {{ it.trangThai === 1 ? 'OFF' : 'ON' }}
+            </button>
+            <button
+              v-if="it.riengTu"
+              class="btn btn-secondary btn-sm"
               @click="goToKhachHang(it.id)"
               title="Quản lý khách hàng"
             >
@@ -111,9 +117,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getVouchers, deleteVoucher } from '@/service/phieugiamgia/PhieuGiamGiaService'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { getVouchers, toggleVoucherStatus } from '@/service/phieugiamgia/PhieuGiamGiaService'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const { success: showSuccess, error: showError } = useToast()
 const { showConfirm } = useConfirm()
@@ -210,32 +216,20 @@ const viewDetail = (id) => router.push(`/phieu-giam-gia2/detail/${id}`)
 const edit = (id) => router.push(`/phieu-giam-gia2/edit/${id}`)
 const goToKhachHang = (id) => router.push(`/quan-li-phieu-giam-gia/${id}/khach-hang`)
 
-// Xóa
-const remove = async (id) => {
-  const confirmed = await showConfirm({
-    title: 'Xác nhận xóa phiếu giảm giá',
-    message: 'Bạn có chắc chắn muốn xóa phiếu giảm giá này?',
-    confirmText: 'Xóa',
-    cancelText: 'Hủy',
-    type: 'warning'
-  })
-  
-  if (!confirmed) return
-  
+// Chuyển trạng thái
+const toggleStatus = async (id) => {
   try {
-    const resp = await deleteVoucher(id)
-    showSuccess(resp?.message || 'Xóa thành công!')
+    const resp = await toggleVoucherStatus(id)
+    showSuccess(resp?.message || 'Chuyển trạng thái thành công!')
     await fetchList()
-    // nếu trang hiện tại > tổng trang mới -> kéo về trang cuối
-    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (e) {
     console.error(e)
-    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi xóa phiếu giảm giá'
+    const errorMessage = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra khi chuyển trạng thái'
     showError(errorMessage)
   }
 }
 
-// 
+//
 
 // Helpers hiển thị
 const showCurrency = (v) => {

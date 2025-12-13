@@ -82,83 +82,7 @@
         <h5 class="mb-0">Gán phiếu cho khách hàng</h5>
       </div>
       <div class="card-body">
-        <div class="row mb-3">
-          <div class="col-md-8">
-            <input
-              v-model="searchKhachHang"
-              type="text"
-              class="form-control"
-              placeholder="Tìm khách theo tên, email, số điện thoại…"
-              @keyup.enter="timKhachHang"
-            />
-          </div>
-          <div class="col-md-4">
-            <button class="btn btn-primary w-100" @click="timKhachHang" :disabled="loading">
-              <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-              Tìm
-            </button>
-          </div>
-        </div>
-
-        <div v-if="ketQuaTimKiem.length > 0" class="mb-3">
-          <table class="table table-sm table-hover">
-            <thead class="table-light">
-              <tr>
-                <th width="50">
-                  <input
-                    type="checkbox"
-                    :checked="allSelected"
-                    @change="toggleSelectAll"
-                  />
-                </th>
-                <th>Mã KH</th>
-                <th>Tên</th>
-                <th>Email</th>
-                <th>SĐT</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="kh in ketQuaTimKiem" :key="kh.id">
-                <td>
-                  <input
-                    type="checkbox"
-                    :value="kh.id"
-                    v-model="selectedKhachHangIds"
-                  />
-                </td>
-                <td>{{ kh.maKhachHang }}</td>
-                <td>{{ kh.hoTen }}</td>
-                <td>{{ kh.email || '-' }}</td>
-                <td>{{ kh.soDienThoai || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="d-flex align-items-center justify-content-between">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="sendEmailCheck"
-                v-model="sendEmailAfterAssign"
-              />
-              <label class="form-check-label" for="sendEmailCheck">
-                Gửi email ngay sau khi gán
-              </label>
-            </div>
-            <button
-              class="btn btn-success"
-              @click="ganPhieuChoKhachHang"
-              :disabled="selectedKhachHangIds.length === 0 || loading"
-            >
-              <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-              Gán phiếu cho khách đã chọn ({{ selectedKhachHangIds.length }})
-            </button>
-          </div>
-        </div>
-        <div v-else-if="hasSearched" class="text-muted text-center py-3">
-          Không tìm thấy khách hàng
-        </div>
+        <CustomerSearchInput @customer-selected="handleCustomerSelected" />
       </div>
     </div>
 
@@ -232,8 +156,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getVoucherById } from '@/service/phieugiamgia/PhieuGiamGiaService'
 import * as phieuGiamGiaKhachHangService from '@/service/phieugiamgia/PhieuGiamGiaKhachHangService'
-import KhachHangService from '@/service/taikhoan/khachHangService'
-import { useToast } from '@/composables/useToast'
+import CustomerSearchInput from '@/components/common/CustomerSearchInput.vue'
+import { useToast } from '@/composables/common/useToast'
 
 const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 const route = useRoute()
@@ -245,18 +169,8 @@ const loading = ref(false)
 const loadingEmail = ref(null)
 const loadingDelete = ref(null)
 
-const searchKhachHang = ref('')
-const ketQuaTimKiem = ref([])
-const hasSearched = ref(false)
-const selectedKhachHangIds = ref([])
-const sendEmailAfterAssign = ref(false)
 const filterKhachHang = ref('')
 const khachHangDaGan = ref([])
-
-const allSelected = computed(() => {
-  return ketQuaTimKiem.value.length > 0 && 
-         selectedKhachHangIds.value.length === ketQuaTimKiem.value.length
-})
 
 const filteredKhachHangDaGan = computed(() => {
   const filter = filterKhachHang.value.trim().toLowerCase()
@@ -288,90 +202,34 @@ const fetchKhachHangDaGan = async () => {
   }
 }
 
-const timKhachHang = async () => {
-  if (!searchKhachHang.value.trim()) {
-    showError('Vui lòng nhập từ khóa tìm kiếm')
+const handleCustomerSelected = async (customer) => {
+  if (!customer || !customer.id) {
+    showWarning('Không có thông tin khách hàng được chọn.')
     return
   }
 
-  loading.value = true
-  hasSearched.value = true
-  selectedKhachHangIds.value = []
-
-  try {
-    const res = await KhachHangService.search(searchKhachHang.value.trim(), null)
-    const data = res?.data?.data || res?.data || []
-    
-    const khachHangDaGanIds = new Set(khachHangDaGan.value.map(kh => kh.id))
-    ketQuaTimKiem.value = data.filter(kh => !khachHangDaGanIds.has(kh.id))
-  } catch (e) {
-    console.error(e)
-    showError('Lỗi khi tìm kiếm khách hàng')
-    ketQuaTimKiem.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-const toggleSelectAll = (e) => {
-  if (e.target.checked) {
-    selectedKhachHangIds.value = ketQuaTimKiem.value.map(kh => kh.id)
-  } else {
-    selectedKhachHangIds.value = []
-  }
-}
-
-const ganPhieuChoKhachHang = async () => {
-  if (selectedKhachHangIds.value.length === 0) {
-    showError('Vui lòng chọn ít nhất một khách hàng')
+  // Check if customer is already assigned
+  const isAssigned = khachHangDaGan.value.some(kh => kh.id === customer.id)
+  if (isAssigned) {
+    showWarning(`Khách hàng "${customer.hoTen}" đã được gán phiếu này rồi.`)
     return
   }
-
-  loading.value = true
-  try {
-    await phieuGiamGiaKhachHangService.ganPhieuGiamGiaChoKhachHang(
-      phieuGiamGiaId,
-      selectedKhachHangIds.value
-    )
-    
-    showSuccess('Gán phiếu giảm giá thành công')
-    
-    if (sendEmailAfterAssign.value) {
-      let successCount = 0
-      let failCount = 0
-      const errors = []
-      
-      for (const customerId of selectedKhachHangIds.value) {
-        try {
-          await phieuGiamGiaKhachHangService.sendEmailPhieuGiamGia(phieuGiamGiaId, customerId)
-          successCount++
-        } catch (e) {
-          failCount++
-          const errorMsg = e?.message || e?.data?.message || 'Lỗi không xác định'
-          errors.push(errorMsg)
-          console.error(`Lỗi gửi email cho khách hàng ${customerId}:`, e)
-        }
-      }
-      
-      if (failCount === 0) {
-        showSuccess(`Đã gửi email thành công cho ${successCount} khách hàng`)
-      } else if (successCount > 0) {
-        showWarning(`Đã gửi email cho ${successCount} khách hàng, ${failCount} khách hàng gặp lỗi. ${errors[0]}`)
-      } else {
-        showError(`Không thể gửi email cho bất kỳ khách hàng nào. ${errors[0] || 'Vui lòng kiểm tra cấu hình email.'}`)
-      }
+  
+  if (confirm(`Bạn có chắc chắn muốn gán phiếu này cho khách hàng "${customer.hoTen}"?`)) {
+    loading.value = true
+    try {
+      await phieuGiamGiaKhachHangService.ganPhieuGiamGiaChoKhachHang(
+        phieuGiamGiaId,
+        [customer.id] // Service expects an array
+      )
+      showSuccess('Gán phiếu giảm giá thành công!')
+      await fetchKhachHangDaGan() // Refresh the list
+    } catch (e) {
+      console.error(e)
+      showError(e?.message || 'Lỗi khi gán phiếu giảm giá')
+    } finally {
+      loading.value = false
     }
-    
-    selectedKhachHangIds.value = []
-    searchKhachHang.value = ''
-    ketQuaTimKiem.value = []
-    hasSearched.value = false
-    await fetchKhachHangDaGan()
-  } catch (e) {
-    console.error(e)
-    showError(e?.message || 'Lỗi khi gán phiếu giảm giá')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -386,7 +244,6 @@ const sendEmailToKhachHang = async (customerId) => {
     }
   } catch (e) {
     console.error('Lỗi khi gửi email:', e)
-    // Hiển thị message từ backend nếu có
     const errorMessage = e?.message || e?.data?.message || 'Lỗi khi gửi email. Vui lòng kiểm tra cấu hình email.'
     showError(errorMessage)
   } finally {
@@ -418,14 +275,14 @@ const xoaKhachHangKhoiPhieuGiamGia = async (customerId) => {
 }
 
 const goBack = () => {
-  router.push('/quan-li-phieu-giam-gia')
+  router.push('/phieu-giam-gia2')
 }
 
 const formatCurrency = (v) => {
   if (v === null || v === undefined) return '-'
   const number = parseFloat(v)
   if (isNaN(number)) return String(v)
-  return new Intl.NumberFormat('vi-VN').format(number) + ' VND'
+  return new Intl.NumberFormat('vi-VN').format(number)
 }
 
 const formatDate = (v) => {
@@ -447,4 +304,3 @@ onMounted(async () => {
   margin-bottom: 0.5rem;
 }
 </style>
-

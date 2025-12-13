@@ -88,7 +88,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useProductStore } from '@/stores/productStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 import { formatCurrency } from '@/utils/helpers'
 import { advancedSearch, advancedSearchPage } from '@/service/sanpham/SanPhamService'
 
@@ -302,18 +302,18 @@ const resetFilters = async () => {
 <style scoped>
 .product-filter {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Softer shadow */
+  border: 1px solid #f1f5f9;
 }
 
 .filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 24px;
+  background: white;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s ease;
@@ -325,209 +325,123 @@ const resetFilters = async () => {
 
 .filter-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   color: #1e293b;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .filter-title i {
   color: #16a34a;
-  font-size: 18px;
+  background: #dcfce7;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 16px;
 }
 
 .collapse-toggle-btn {
-  background: none;
+  background: #f1f5f9;
   border: none;
-  padding: 4px 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   cursor: pointer;
   color: #64748b;
-  font-size: 18px;
-  transition: color 0.2s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .collapse-toggle-btn:hover {
-  color: #16a34a;
-}
-
-.collapse-toggle-btn i {
-  transition: transform 0.3s ease;
-}
-
-.filter-body {
-  overflow: hidden;
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .filter-content {
-  padding: 16px 20px;
-}
-
-.price-range {
-  position: relative;
-  margin-top: 8px;
-}
-
-.price-range .range-inputs {
-  position: relative;
-  height: 6px;
-  margin-bottom: 8px;
-}
-
-.price-range .range-inputs input[type='range'] {
-  position: absolute;
-  top: 0;
-  left: 0;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  background: transparent;
-  pointer-events: none;
-}
-
-.price-range .range-inputs input[type='range']::-webkit-slider-thumb {
-  pointer-events: auto;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #16a34a;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
-  transition: transform 0.2s ease;
-}
-
-.price-range .range-inputs input[type='range']::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
-
-.price-range .range-inputs::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 6px;
-  background: #e2f5ea;
-  border-radius: 999px;
-}
-
-.form-group {
-  margin-bottom: 0;
+  padding: 0 24px 24px;
 }
 
 .form-label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: #64748b;
   margin-bottom: 8px;
-  display: block;
 }
 
 .form-control,
 .form-select {
-  height: 38px;
-  padding: 8px 12px;
+  height: 42px;
+  padding: 8px 16px;
   font-size: 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
   transition: all 0.2s ease;
 }
 
 .form-control:focus,
 .form-select:focus {
+  background-color: white;
   border-color: #16a34a;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-  outline: none;
-}
-
-.btn-success {
-  background: #fff;
-  color: #16a34a;
-  border: 1px solid #16a34a;
-  transition: all 0.2s ease;
-}
-
-.btn-success:hover {
-  background: #16a34a;
-  color: #fff;
-  border-color: #16a34a;
-}
-
-.btn-outline-success {
-  background: #fff;
-  color: #16a34a;
-  border: 1px solid #16a34a;
-  transition: all 0.2s ease;
-}
-
-.btn-outline-success:hover {
-  background: #16a34a;
-  color: #fff;
-  border-color: #16a34a;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .filter-footer {
-  padding: 14px 20px;
+  padding: 16px 24px;
+  background: #f8fafc;
   border-top: 1px solid #f1f5f9;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
-/* Collapse transition */
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.3s ease;
-  max-height: 1000px;
-  opacity: 1;
+/* Rest of the styles remain similar but cleaner */
+.price-range .range-inputs input[type='range']::-webkit-slider-thumb {
+  background: #16a34a;
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
 }
 
-.collapse-enter-from,
-.collapse-leave-to {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
+.btn-success {
+  background: #16a34a;
+  color: white;
+  border: none;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 10px;
 }
 
-/* Thêm style cho lỗi nếu cần */
-.error-message {
-  color: #dc3545;
-  font-size: 12px;
-  margin-top: 5px;
+.btn-success:hover {
+  background: #15803d;
+  color: white;
+  transform: translateY(-1px);
 }
 
-/* Responsive */
+.btn-outline-success {
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 10px;
+}
+
+.btn-outline-success:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* Animations and Responsive */
+.collapse-enter-active, .collapse-leave-active { transition: all 0.3s ease; max-height: 500px; opacity: 1; }
+.collapse-enter-from, .collapse-leave-to { max-height: 0; opacity: 0; }
+
 @media (max-width: 768px) {
-  .filter-header {
-    padding: 12px 16px;
-  }
-
-  .filter-content {
-    padding: 12px 16px;
-  }
-
-  .filter-footer {
-    padding: 12px 16px;
-  }
-
-  .row .col-md-6 {
-    margin-bottom: 12px;
-  }
+  .product-filter { border-radius: 12px; }
+  .filter-header, .filter-content, .filter-footer { padding: 16px; }
 }
 </style>

@@ -29,23 +29,13 @@
       </ul>
     </nav>
 
-    <div class="sidebar-footer p-3 mt-auto d-flex align-items-center gap-2">
-      <img
-        class="sidebar-avatar"
-        src="https://randomuser.me/api/portraits/men/32.jpg"
-        alt="avatar"
-      />
-      <div v-if="!collapsed">
-        <span class="fw-semibold">{{ authStore.user?.hoTen || 'Admin' }}</span>
-        <div class="sidebar-role">{{ authStore.user?.role || 'Quản trị viên' }}</div>
-      </div>
-    </div>
+    
   </aside>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import MenuItem from './MenuItem.vue'
 
 const authStore = useAuthStore()
@@ -104,12 +94,12 @@ const menuItems = ref([
     label: 'Quản lý bảo hành',
     to: '/quan-li-bao-hanh'
   },
-  { 
-    id: 'returns',
-    icon: 'bi-arrow-counterclockwise',
-    label: 'Quản lý trả hàng',
-    to: '/quan-li-tra-hang'
-  },
+  // { 
+  //   id: 'returns',
+  //   icon: 'bi-arrow-counterclockwise',
+  //   label: 'Quản lý trả hàng',
+  //   to: '/quan-li-tra-hang'
+  // },
   { 
     id: 'chat',
     icon: 'bi-chat-dots',

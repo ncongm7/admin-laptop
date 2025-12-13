@@ -1,4 +1,4 @@
-import axiosInstance from '../axiosInstance'
+import axiosInstance from '../common/axiosInstance'
 
 const API_BASE = '/api/v1/ban-hang'
 
@@ -60,6 +60,40 @@ export const thanhToanHoaDon = async (idHoaDon, payload) => {
 }
 
 /**
+ * Kiểm tra và cập nhật giá sản phẩm trước khi thanh toán
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @returns {Promise} { coThayDoi, soSanPhamThayDoi, danhSachThayDoi, hoaDon }
+ */
+export const kiemTraVaCapNhatGia = async (idHoaDon) => {
+  try {
+    console.log('🔍 [ThanhToanService] Kiểm tra và cập nhật giá sản phẩm...')
+    const response = await axiosInstance.post(`${API_BASE}/hoa-don/${idHoaDon}/kiem-tra-cap-nhat-gia`)
+    console.log('✅ [ThanhToanService] Đã kiểm tra giá:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ [ThanhToanService] Lỗi khi kiểm tra giá:', error)
+    throw error
+  }
+}
+
+/**
+ * Kiểm tra toàn bộ (giá, voucher, điểm) trước khi xác nhận thanh toán
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @returns {Promise} { coThayDoi, message, thayDoiGia, thayDoiVoucher, thayDoiDiem, hoaDonMoi }
+ */
+export const kiemTraTruocThanhToan = async (idHoaDon) => {
+  try {
+    console.log('🔍 [ThanhToanService] Kiểm tra toàn bộ trước khi xác nhận thanh toán...')
+    const response = await axiosInstance.post(`${API_BASE}/hoa-don/${idHoaDon}/kiem-tra-truoc-thanh-toan`)
+    console.log('✅ [ThanhToanService] Đã kiểm tra:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ [ThanhToanService] Lỗi khi kiểm tra trước thanh toán:', error)
+    throw error
+  }
+}
+
+/**
  * Lấy danh sách nhân viên (để lấy UUID nhân viên đầu tiên)
  * @returns {Promise}
  */
@@ -69,6 +103,26 @@ export const layDanhSachNhanVien = async () => {
     return response.data
   } catch (error) {
     console.error('Lỗi khi lấy danh sách nhân viên:', error)
+    throw error
+  }
+}
+
+/**
+ * Thanh toán COD (Cash on Delivery) khi giao hàng thành công
+ * @param {String} idHoaDon - UUID của hóa đơn
+ * @param {Number} tienKhachDua - Số tiền khách đưa khi nhận hàng
+ * @returns {Promise}
+ */
+export const thanhToanCOD = async (idHoaDon, tienKhachDua) => {
+  try {
+    console.log('💰 [ThanhToanService] Thanh toán COD:', { idHoaDon, tienKhachDua })
+    const response = await axiosInstance.post(`${API_BASE}/hoa-don/${idHoaDon}/thanh-toan-cod`, {
+      tienKhachDua
+    })
+    console.log('✅ [ThanhToanService] Thanh toán COD thành công')
+    return response.data
+  } catch (error) {
+    console.error('❌ [ThanhToanService] Lỗi khi thanh toán COD:', error)
     throw error
   }
 }

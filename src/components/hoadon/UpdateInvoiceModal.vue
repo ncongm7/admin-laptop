@@ -96,8 +96,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { capNhatHoaDon } from '@/service/hoaDonService'
-import { useToast } from '@/composables/useToast'
+import { capNhatHoaDon } from '@/service/hoadon/hoaDonService'
+import { useToast } from '@/composables/common/useToast'
 
 const props = defineProps({
   invoice: {

@@ -215,7 +215,7 @@
 import { ref, computed, watch } from 'vue'
 import { getSerialsByCtspId, getAllSerial, createSerialsBatch, importSerialsFromExcel, updateSerial, updateSerialStatus, deleteSerial, updateChiTietSanPham } from '@/service/sanpham/SanPhamService'
 import NotificationToast from '@/components/common/NotificationToast.vue'
-import { useConfirm } from '@/composables/useConfirm'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const props = defineProps({
   modelValue: {

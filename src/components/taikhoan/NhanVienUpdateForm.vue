@@ -101,7 +101,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { nhanVienApi } from '@/service/ApiNhanVien'
+import { nhanVienApi } from '@/service/taikhoan/ApiNhanVien'
 
 const route = useRoute()
 const router = useRouter()

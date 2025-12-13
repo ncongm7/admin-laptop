@@ -39,7 +39,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { usePhieuGiamGiaStore } from '@/stores/phieuGiamGiaStore';
+import { usePhieuGiamGiaStore } from '@/stores/giamgia/phieuGiamGiaStore';
 
 const props = defineProps({
   khachHangId: {

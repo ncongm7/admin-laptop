@@ -15,7 +15,7 @@ export function useChart() {
     const Chart = window.Chart
     if (!Chart) {
       // Nếu chưa có Chart.js thì báo lỗi
-      // eslint-disable-next-line no-console
+       
       console.error('Chart.js chưa được import vào project!')
       return
     }

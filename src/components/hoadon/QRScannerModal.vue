@@ -72,8 +72,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { StreamQrcodeBarcodeReader } from 'vue3-barcode-qrcode-reader'
-import { getHoaDonDetailByCode } from '@/service/hoaDonService'
-import { useToast } from '@/composables/useToast'
+import { getHoaDonDetailByCode } from '@/service/hoadon/hoaDonService'
+import { useToast } from '@/composables/common/useToast'
 
 const emit = defineEmits(['close', 'invoice-found'])
 

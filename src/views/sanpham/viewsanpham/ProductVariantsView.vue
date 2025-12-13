@@ -349,7 +349,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { formatCurrency } from '@/utils/helpers'
 import { formatDate } from '@/utils/dateUtils'
-import { useProductStore } from '@/stores/productStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 import { getHinhAnhByCtspId } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'
 import SerialManagementModal from '@/components/sanpham/quanlisanpham/SerialManagementModal.vue'

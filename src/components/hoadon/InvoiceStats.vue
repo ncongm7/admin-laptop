@@ -118,7 +118,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
-import { getInvoiceStats } from '@/service/hoaDonService'
+import { getInvoiceStats } from '@/service/hoadon/hoaDonService'
 
 Chart.register(...registerables)
 
