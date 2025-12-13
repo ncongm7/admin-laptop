@@ -24,8 +24,8 @@
       <div class="col-md-3">
         <label class="form-label">Hoạt động</label>
         <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
+          <option :value="1">ON</option>
+          <option :value="0">OFF</option>
         </select>
       </div>
 

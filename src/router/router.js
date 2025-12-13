@@ -255,11 +255,11 @@ router.beforeEach(async (to, from, next) => {
   })
 
   // Nếu route yêu cầu xác thực và user chưa đăng nhập
-  // if (requiresAuth && !isAuthenticated) {
-  //   console.log('→ Chuyển hướng đến /login (chưa đăng nhập)')
-  //   next('/login')
-  //   return
-  // }
+  if (requiresAuth && !isAuthenticated) {
+    console.log('→ Chuyển hướng đến /login (chưa đăng nhập)')
+    next('/login')
+    return
+  }
 
   // Nếu user đã đăng nhập và cố vào trang login
   if (hideForAuth && isAuthenticated) {

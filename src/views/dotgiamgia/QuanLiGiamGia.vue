@@ -14,8 +14,8 @@
         </select>
         <select v-model="active" class="form-select" style="max-width: 140px">
           <option value="">Tất cả hoạt động</option>
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
+          <option :value="1">ON</option>
+          <option :value="0">OFF</option>
         </select>
       </div>
       <button class="btn btn-success" @click="goToAdd">+ Thêm mới</button>
@@ -73,18 +73,18 @@
 
           <!-- Hoạt động (công tắc quản trị: 1=Bật, khác=Tắt) -->
           <td>
-            <span v-if="it.trangThai === 1">Bật</span>
-            <span v-else >Tắt</span>
+            <span v-if="it.trangThai === 1">ON</span>
+            <span v-else >OFF</span>
           </td>
           <td class="d-flex gap-2">
             <button class="btn btn-info btn-sm" @click="viewProducts(it.id)">Chi tiết</button>
             <button class="btn btn-warning btn-sm" @click="edit(it.id)">Sửa</button>
-            <button 
-              :class="it.trangThai === 1 ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'" 
+            <button
+              :class="it.trangThai === 1 ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'"
               @click="toggleStatus(it.id)"
-              :title="it.trangThai === 1 ? 'Tắt' : 'Bật'"
+              :title="it.trangThai === 1 ? 'OFF' : 'ON'"
             >
-              {{ it.trangThai === 1 ? 'Tắt' : 'Bật' }}
+              {{ it.trangThai === 1 ? 'OFF' : 'ON' }}
             </button>
           </td>
         </tr>

@@ -28,8 +28,8 @@
       <div class="col-md-4">
         <label class="form-label">Hoạt động</label>
         <select class="form-select" v-model.number="form.trangThai" :disabled="isDetail">
-          <option :value="1">Bật</option>
-          <option :value="0">Tắt</option>
+          <option :value="1">ON</option>
+          <option :value="0">OFF</option>
         </select>
       </div>
 
@@ -129,7 +129,7 @@
           min="1"
           class="form-control"
           v-model.number="form.soLuongDung"
-          :disabled="isDetail"
+          :disabled="isDetail || form.riengTu"
         />
       </div>
 
@@ -255,6 +255,15 @@ watch(
   (v) => {
     if (Number(form.value.loaiPhieuGiamGia) === 1) {
       form.value.soTienGiamToiDa = v || 0
+    }
+  },
+)
+
+watch(
+  () => form.value.riengTu,
+  (isRiengTu) => {
+    if (isRiengTu) {
+      form.value.soLuongDung = 1
     }
   },
 )
