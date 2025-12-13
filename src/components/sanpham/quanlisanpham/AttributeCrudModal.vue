@@ -172,7 +172,7 @@ import {
   getPinList, createPin, updatePin, deletePin,
 } from '@/service/sanpham/SanPhamService'
 import NotificationToast from '@/components/common/NotificationToast.vue'
-import { useConfirm } from '@/composables/useConfirm'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const props = defineProps({
   type: { type: String, required: true },

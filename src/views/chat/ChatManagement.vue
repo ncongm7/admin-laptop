@@ -292,8 +292,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { chatService } from '@/service/chat/chatService'
-import { useToast } from '@/composables/useToast'
-import { useAuthStore } from '@/stores/authStore'
+import { useToast } from '@/composables/common/useToast'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 import MessageTemplates from '@/components/chat/MessageTemplates.vue'

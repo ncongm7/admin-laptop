@@ -29,23 +29,13 @@
       </ul>
     </nav>
 
-    <div class="sidebar-footer p-3 mt-auto d-flex align-items-center gap-2">
-      <img
-        class="sidebar-avatar"
-        src="https://randomuser.me/api/portraits/men/32.jpg"
-        alt="avatar"
-      />
-      <div v-if="!collapsed">
-        <span class="fw-semibold">{{ authStore.user?.hoTen || 'Admin' }}</span>
-        <div class="sidebar-role">{{ authStore.user?.role || 'Quản trị viên' }}</div>
-      </div>
-    </div>
+    
   </aside>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import MenuItem from './MenuItem.vue'
 
 const authStore = useAuthStore()

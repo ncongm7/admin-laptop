@@ -87,7 +87,7 @@
 </template>
 
 <script setup>
-import { useSalesStore } from '@/stores/salesStore'
+import { useSalesStore } from '@/stores/banhang/salesStore'
 import CustomerInfo from '@/components/sales/CustomerInfo.vue'
 import CartSidebar from '@/components/sales/CartSidebar.vue'
 import BillInfo from '@/components/sales/BillInfo.vue'

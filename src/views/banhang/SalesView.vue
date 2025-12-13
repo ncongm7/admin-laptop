@@ -134,7 +134,7 @@
     <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
       :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
-    
+
 
     <!-- Modal tạo khách hàng mới -->
     <template v-if="showCustomerFormModal">
@@ -168,27 +168,27 @@
 
 <script setup>
 import { onMounted, computed, ref, nextTick } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-import TransactionTabs from '@/components/banhang/TransactionTabs.vue'
-import ProductSearch from '@/components/banhang/ProductSearch.vue'
-import InvoiceDetails from '@/components/banhang/InvoiceDetails.vue'
-import CustomerInfo from '@/components/banhang/CustomerInfo.vue'
-import ModalThanhToan from '@/components/banhang/ModalThanhToan.vue'
-import VoucherSuggestionModal from '@/components/banhang/VoucherSuggestionModal.vue'
-import InvoicePrint from '@/components/banhang/InvoicePrint.vue'
-import SalesQuickStats from '@/components/banhang/SalesQuickStats.vue'
-import RecentTransactions from '@/components/banhang/RecentTransactions.vue'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
+import TransactionTabs from '@/components/banhang/thong-ke/TransactionTabs.vue'
+import ProductSearch from '@/components/banhang/san-pham/ProductSearch.vue'
+import InvoiceDetails from '@/components/banhang/hoadon/InvoiceDetails.vue'
+import CustomerInfo from '@/components/banhang/khach-hang/CustomerInfo.vue'
+import ModalThanhToan from '@/components/banhang/thanh-toan/ModalThanhToan.vue'
+import VoucherSuggestionModal from '@/components/banhang/thanh-toan/VoucherSuggestionModal.vue'
+import InvoicePrint from '@/components/banhang/hoadon/InvoicePrint.vue'
+import SalesQuickStats from '@/components/banhang/thong-ke/SalesQuickStats.vue'
+import RecentTransactions from '@/components/banhang/thong-ke/RecentTransactions.vue'
 import KhachHangFormDN from '@/components/taikhoan/khachhang/KhachHangFormDN.vue'
 import './SalesView.css'
 
 // Import composables
-import { useBillManagement } from '@/composables/useBillManagement'
-import { useProductManagement } from '@/composables/useProductManagement'
-import { useCustomerManagement } from '@/composables/useCustomerManagement'
-import { usePayment } from '@/composables/usePayment'
-import { useVoucherPoints } from '@/composables/useVoucherPoints'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useBillManagement } from '@/composables/hoadon/useBillManagement'
+import { useProductManagement } from '@/composables/sanpham/useProductManagement'
+import { useCustomerManagement } from '@/composables/customers/useCustomerManagement'
+import { usePayment } from '@/composables/banhang/usePayment'
+import { useVoucherPoints } from '@/composables/giamgia/useVoucherPoints'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const authStore = useAuthStore()
 

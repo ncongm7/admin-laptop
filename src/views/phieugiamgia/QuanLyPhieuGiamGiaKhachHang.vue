@@ -233,7 +233,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getVoucherById } from '@/service/phieugiamgia/PhieuGiamGiaService'
 import * as phieuGiamGiaKhachHangService from '@/service/phieugiamgia/PhieuGiamGiaKhachHangService'
 import KhachHangService from '@/service/taikhoan/khachHangService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 const route = useRoute()

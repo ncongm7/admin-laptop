@@ -271,9 +271,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getHoaDons, getHoaDonDetail } from '@/service/hoaDonService'
+import { getHoaDons, getHoaDonDetail } from '@/service/hoadon/hoaDonService'
 import { taoYeuCauBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const emit = defineEmits(['close', 'created'])
 

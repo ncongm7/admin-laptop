@@ -31,7 +31,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useConfirm } from '@/composables/useConfirm'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const { confirmState } = useConfirm()
 

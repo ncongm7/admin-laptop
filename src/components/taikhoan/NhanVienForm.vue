@@ -94,7 +94,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { nhanVienApi } from '@/service/ApiNhanVien'
+import { nhanVienApi } from '@/service/taikhoan/ApiNhanVien'
 const router = useRouter()
 const form = ref({
   maNhanVien: '',

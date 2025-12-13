@@ -61,7 +61,7 @@
 <script setup>
 import { ref } from 'vue'
 import baohanhService from '@/service/baohanh/baohanhService'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 
 const props = defineProps({
   warranty: {

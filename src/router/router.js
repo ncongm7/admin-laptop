@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 
 const routes = [
   // Route đăng nhập - KHÔNG yêu cầu xác thực
@@ -14,7 +14,7 @@ const routes = [
   {
     path: '/',
     name: 'DashBoardView',
-    component: () => import('@/views/DashboardView.vue'),
+    component: () => import('@/views/thongke/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -27,7 +27,7 @@ const routes = [
   {
     path: '/quan-li-hoa-don',
     name: 'QuanLiHoaDon',
-    component: () => import('@/views/QuanLiHoaDon.vue'),
+    component: () => import('@/views/hoadon/QuanLiHoaDon.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -38,7 +38,7 @@ const routes = [
   {
     path: '/quan-li-tai-khoan',
     name: 'QuanLiTaiKhoan',
-    component: () => import('@/views/QuanLiTaiKhoan.vue'),
+    component: () => import('@/views/taikhoan/QuanLiTaiKhoan.vue'),
   },
   {
     path: '/quan-li-giam-gia',
@@ -48,18 +48,18 @@ const routes = [
   {
     path: '/quan-li-giam-gia/add',
     name: 'AddDiscountCampaign',
-    component: () => import('@/views/AddDiscountCampaign.vue'),
+    component: () => import('@/views/dotgiamgia/AddDiscountCampaign.vue'),
   },
   {
     path: '/quan-li-giam-gia/edit/:id',
     name: 'EditDiscountCampaign',
-    component: () => import('@/views/AddDiscountCampaign.vue'),
+    component: () => import('@/views/dotgiamgia/AddDiscountCampaign.vue'),
   },
-  { path: '/thong-ke', name: 'ThongKe', component: () => import('@/views/ThongKe.vue') },
+  { path: '/thong-ke', name: 'ThongKe', component: () => import('@/views/thongke/ThongKe.vue') },
   {
     path: '/quan-li-tra-hang',
     name: 'QuanLiTraHang',
-    component: () => import('@/views/QuanLiTraHang.vue'),
+    component: () => import('@/views/trahang/QuanLiTraHang.vue'),
   },
   {
     path: '/quan-li-bao-hanh',
@@ -70,7 +70,7 @@ const routes = [
   {
     path: '/quan-li-thong-bao',
     name: 'QuanLiThongBao',
-    component: () => import('@/views/QuanLiThongBao.vue'),
+    component: () => import('@/views/hethong/QuanLiThongBao.vue'),
   },
   {
     path: '/quan-li-chat',
@@ -80,22 +80,22 @@ const routes = [
   {
     path: '/quan-li-he-thong',
     name: 'QuanLiHeThong',
-    component: () => import('@/views/QuanLiHeThong.vue'),
+    component: () => import('@/views/hethong/QuanLiHeThong.vue'),
   },
   {
     path: '/quan-li-san-pham',
     name: 'QuanLiSanPham',
-    component: () => import('@/views/QuanLiSanPham.vue'),
+    component: () => import('@/views/sanpham/QuanLiSanPham.vue'),
   },
   {
     path: '/quan-li-bien-the',
     name: 'QuanLiBienThe',
-    component: () => import('@/views/QuanLiBienThe.vue'),
+    component: () => import('@/views/sanpham/QuanLiBienThe.vue'),
   },
   {
     path: '/thuoc-tinh-san-pham',
     name: 'ThuocTinhSanPham',
-    component: () => import('@/views/ThuocTinhSanPham.vue'),
+    component: () => import('@/views/sanpham/ThuocTinhSanPham.vue'),
   },
   {
     path: '/quan-li-phieu-giam-gia',
@@ -105,17 +105,17 @@ const routes = [
   {
     path: '/quan-li-phieu-giam-gia/add',
     name: 'AddPhieuGiamGia',
-    component: () => import('@/views/AddPhieuGiamGia.vue'),
+    component: () => import('@/views/phieugiamgia/AddPhieuGiamGia.vue'),
   },
   {
     path: '/quan-li-phieu-giam-gia/:id',
     name: 'DetailPhieuGiamGia',
-    component: () => import('@/views/DetailPhieuGiamGia.vue'),
+    component: () => import('@/views/phieugiamgia/DetailPhieuGiamGia.vue'),
   },
   {
     path: '/quan-li-phieu-giam-gia/edit/:id',
     name: 'EditPhieuGiamGia',
-    component: () => import('@/views/AddPhieuGiamGia.vue'),
+    component: () => import('@/views/phieugiamgia/AddPhieuGiamGia.vue'),
     props: true,
   },
   {

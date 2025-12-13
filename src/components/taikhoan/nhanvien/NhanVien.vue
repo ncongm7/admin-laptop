@@ -265,9 +265,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { nhanVienApi, mapDtoToUi, mapEntityToRequest } from '@/service/ApiNhanVien'
-import { useAuthStore } from '@/stores/authStore'
-import { useUserStore } from '@/stores/pinastorge'
+import { nhanVienApi, mapDtoToUi, mapEntityToRequest } from '@/service/taikhoan/ApiNhanVien'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
+import { useUserStore } from '@/stores/taikhoan/userStore'
 
 const router = useRouter()
 const authStore = useAuthStore()

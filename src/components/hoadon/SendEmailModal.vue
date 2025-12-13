@@ -93,8 +93,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { sendInvoiceEmail } from '@/service/hoaDonService'
-import { useToast } from '@/composables/useToast'
+import { sendInvoiceEmail } from '@/service/hoadon/hoaDonService'
+import { useToast } from '@/composables/common/useToast'
 
 const props = defineProps({
   invoice: {

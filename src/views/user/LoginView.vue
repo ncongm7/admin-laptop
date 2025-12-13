@@ -49,7 +49,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/taikhoan/userStore'
 
 const username = ref('')
 const password = ref('')

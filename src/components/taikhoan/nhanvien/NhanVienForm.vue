@@ -349,8 +349,8 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { nhanVienApi } from '@/service/ApiNhanVien'
-import vaiTroService from '@/service/vaiTroService'
+import { nhanVienApi } from '@/service/taikhoan/ApiNhanVien'
+import vaiTroService from '@/service/taikhoan/vaiTroService'
 import ImageUploader from '@/components/common/ImageUploader.vue'
 import LoginInfoModal from './LoginInfoModal.vue'
 import VietnamAddressService from '@/service/taikhoan/vietnamAddressService'

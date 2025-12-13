@@ -146,7 +146,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { nhanVienApi } from '@/service/ApiNhanVien'
+import { nhanVienApi } from '@/service/taikhoan/ApiNhanVien'
 const router = useRouter()
 const showSuggestions = ref(false)
 const existingCodes = ref([])

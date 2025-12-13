@@ -156,7 +156,7 @@ input[type='checkbox'] {
 <script>
 import CustomerDetail from './KhachHangForrm.vue'
 import KhachHangService from '../../../service/taikhoan/khachHangService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 export default {
   components: { CustomerDetail },

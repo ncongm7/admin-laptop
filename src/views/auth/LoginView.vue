@@ -73,7 +73,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import { getPlaceholderImage } from '@/utils/imagePlaceholder'
 
 const router = useRouter()

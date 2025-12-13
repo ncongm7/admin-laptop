@@ -179,8 +179,8 @@
 import khachHangService from '@/service/taikhoan/khachHangService'
 import DiaChiService from '@/service/taikhoan/diaChiService'
 import DiaChiForm from './DiaChiForm.vue'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 export default {
   name: 'KhachHangForm',

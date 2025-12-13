@@ -108,8 +108,8 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import vaiTroService from '@/service/vaiTroService.js'
-import { useToast } from '@/composables/useToast'
+import vaiTroService from '@/service/taikhoan/vaiTroService.js'
+import { useToast } from '@/composables/common/useToast'
 
 const props = defineProps({
   user: {

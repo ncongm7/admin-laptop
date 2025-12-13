@@ -254,11 +254,11 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getHoaDonDetail, getHoaDonDetailByCode, capNhatTrangThai } from '@/service/hoaDonService'
-import { useInvoiceStore } from '@/stores/invoiceStore'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
-import { useErrorHandler } from '@/composables/useErrorHandler'
+import { getHoaDonDetail, getHoaDonDetailByCode, capNhatTrangThai } from '@/service/hoadon/hoaDonService'
+import { useInvoiceStore } from '@/stores/hoadon/invoiceStore'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
+import { useErrorHandler } from '@/composables/common/useErrorHandler'
 import UpdateInvoiceModal from './UpdateInvoiceModal.vue'
 import InvoiceHistoryTimeline from './InvoiceHistoryTimeline.vue'
 

@@ -1,4 +1,4 @@
-import axios from '../axiosInstance'
+import axios from '../common/axiosInstance'
 
 const API_URL = '/api/tai-khoan'
 

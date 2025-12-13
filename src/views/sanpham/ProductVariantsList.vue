@@ -353,9 +353,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProductDetailStore } from '@/stores/productDetailStore'
-import { useProductStore } from '@/stores/productStore'
-import { useAttributeStore } from '@/stores/attributeStore'
+import { useProductDetailStore } from '@/stores/sanpham/productDetailStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
+import { useAttributeStore } from '@/stores/sanpham/attributeStore'
 import ProductVariantCard from '@/components/chitietsanpham/ProductVariantCard.vue'
 import ProductDetailFormModal from '@/components/chitietsanpham/ProductDetailFormModal.vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'

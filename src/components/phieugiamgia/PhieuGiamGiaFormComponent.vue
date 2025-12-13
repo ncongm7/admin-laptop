@@ -169,7 +169,7 @@ import {
   addVoucher,
   updateVoucher,
 } from '@/service/phieugiamgia/PhieuGiamGiaService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const { success: showSuccess, error: showError, warning: showWarning } = useToast()
 

@@ -264,8 +264,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useProductDetailStore } from '@/stores/productDetailStore'
-import { useProductStore } from '@/stores/productStore'
+import { useProductDetailStore } from '@/stores/sanpham/productDetailStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 import { formatCurrency } from '@/utils/formatters'
 import { getCTSPBySanPham, getHinhAnhByCtspId, deleteCTSPWithCascade, getSanPhamById } from '@/service/sanpham/SanPhamService'
 import VariantEditModal from '@/components/sanpham/quanlisanpham/VariantEditModal.vue'

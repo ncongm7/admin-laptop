@@ -22,12 +22,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import Header from './layout/Header.vue'
 import SideBar from './layout/SideBar.vue'
 import ToastContainer from './components/common/ToastContainer.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
-import socketService from '@/service/socketService'
+import socketService from '@/service/common/socketService'
 
 const sidebarCollapsed = ref(false)
 const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value)

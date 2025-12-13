@@ -94,9 +94,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useWarrantyStore } from '@/stores/warrantyStore'
-import { useCustomerStore } from '@/stores/customerStore'
-import { useProductStore } from '@/stores/productStore'
+import { useWarrantyStore } from '@/stores/baohanh/warrantyStore'
+import { useCustomerStore } from '@/stores/taikhoan/customerStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 import { formatDateInput, addMonthsToDate } from '@/utils/dateUtils'
 
 const props = defineProps({

@@ -84,11 +84,11 @@
 
 <script setup>
 import { ref, provide, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import { useRouter, useRoute } from 'vue-router'
 import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 import PendingOrderTicker from '@/components/common/PendingOrderTicker.vue'
-import socketService from '@/service/socketService'
+import socketService from '@/service/common/socketService'
 
 const emit = defineEmits(['toggle-sidebar'])
 const router = useRouter()

@@ -284,9 +284,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
 import taiKhoanService from '@/service/taikhoan/taiKhoanService.js'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const props = defineProps({
   user: {

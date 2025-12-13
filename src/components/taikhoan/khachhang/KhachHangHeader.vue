@@ -25,7 +25,7 @@
 import KhachHangFormDN from './KhachHangFormDN.vue'
 import KhachHangService from '@/service/taikhoan/khachHangService'
 import ExcelExporter from '@/utils/excelExport.js'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 export default {
   components: { KhachHangFormDN },

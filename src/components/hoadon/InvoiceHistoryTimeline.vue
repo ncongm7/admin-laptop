@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getHoaDonHistory } from '@/service/hoaDonService'
+import { getHoaDonHistory } from '@/service/hoadon/hoaDonService'
 
 const props = defineProps({
   invoiceId: {

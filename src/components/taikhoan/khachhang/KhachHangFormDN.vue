@@ -426,11 +426,11 @@
 <script>
 import khachHangService from '@/service/taikhoan/khachHangService'
 import DiaChiService from '@/service/taikhoan/diaChiService'
-import vaiTroService from '@/service/vaiTroService'
+import vaiTroService from '@/service/taikhoan/vaiTroService'
 import DiaChiForm from './DiaChiForm.vue'
 import LoginInfoModal from '../nhanvien/LoginInfoModal.vue'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 export default {
   name: 'KhachHangForm',

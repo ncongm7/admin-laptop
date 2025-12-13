@@ -185,7 +185,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { useProductStore } from '@/stores/productStore'
+import { useProductStore } from '@/stores/sanpham/productStore'
 
 const productStore = useProductStore()
 

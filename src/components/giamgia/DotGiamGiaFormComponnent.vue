@@ -103,7 +103,7 @@ import {
   addDotGiamGia,
   updateDotGiamGia,
 } from '@/service/dotgiamgia/DotGiamGiaService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const route = useRoute()
 const router = useRouter()

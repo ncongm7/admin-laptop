@@ -124,10 +124,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { nhanVienApi } from '@/service/ApiNhanVien'
+import { nhanVienApi } from '@/service/taikhoan/ApiNhanVien'
 import ImageUploader from '@/components/common/ImageUploader.vue'
-import { useAuthStore } from '@/stores/authStore'
-import { useUserStore } from '@/stores/pinastorge'
+import { useAuthStore } from '@/stores/taikhoan/authStore'
+import { useUserStore } from '@/stores/taikhoan/userStore'
 
 const route = useRoute()
 const router = useRouter()

@@ -1,4 +1,4 @@
-import axiosInstance from '../axiosInstance'
+import axiosInstance from '../common/axiosInstance'
 
 const API_BASE = '/api/v1/ban-hang'
 

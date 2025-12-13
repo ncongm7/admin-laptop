@@ -1,4 +1,4 @@
-import axiosInstance from '../axiosInstance'
+import axiosInstance from '../common/axiosInstance'
 
 /**
  * Service xử lý hoàn tiền cho đơn hàng

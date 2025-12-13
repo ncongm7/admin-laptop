@@ -24,8 +24,8 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getPendingOnlineOrders } from '@/service/hoaDonService'
-import socketService from '@/service/socketService'
+import { getPendingOnlineOrders } from '@/service/hoadon/hoaDonService'
+import socketService from '@/service/common/socketService'
 
 const pendingOrders = ref([])
 const isLoading = ref(false)

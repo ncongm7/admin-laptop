@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 const { toasts, removeToast } = useToast()
 

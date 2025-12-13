@@ -114,7 +114,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDotGiamGias, toggleDotGiamGiaStatus } from '@/service/dotgiamgia/DotGiamGiaService'
-import { useToast } from '@/composables/useToast'
+import { useToast } from '@/composables/common/useToast'
 
 // === Hiệu lực theo thời gian (0=Sắp diễn ra, 1=Đang hiệu lực, 2=Hết hạn) ===
 const calcTrangThaiTinh = (startIso, endIso, nowMs = Date.now()) => {

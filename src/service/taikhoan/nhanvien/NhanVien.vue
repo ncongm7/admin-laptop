@@ -251,7 +251,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { nhanVienApi, mapDtoToUi, mapEntityToRequest } from '@/service/ApiNhanVien'
+import { nhanVienApi, mapDtoToUi, mapEntityToRequest } from '@/service/taikhoan/ApiNhanVien'
 
 const router = useRouter()
 

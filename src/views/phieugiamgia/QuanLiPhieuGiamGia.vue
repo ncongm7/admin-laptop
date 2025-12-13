@@ -118,8 +118,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVouchers, toggleVoucherStatus } from '@/service/phieugiamgia/PhieuGiamGiaService'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 const { success: showSuccess, error: showError } = useToast()
 const { showConfirm } = useConfirm()

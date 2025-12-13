@@ -443,7 +443,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useWarrantyStore } from '@/stores/warrantyStore'
+import { useWarrantyStore } from '@/stores/baohanh/warrantyStore'
 import WarrantyTimeline from './WarrantyTimeline.vue'
 import CreateAppointmentModal from './CreateAppointmentModal.vue'
 import ReceiveProductModal from './ReceiveProductModal.vue'

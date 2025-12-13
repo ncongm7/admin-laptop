@@ -194,8 +194,8 @@ import DiaChiService from '@/service/taikhoan/diaChiService'
 import VietnamAddressService from '@/service/taikhoan/vietnamAddressService'
 // Import service để gọi API khách hàng
 import KhachHangService from '@/service/taikhoan/khachHangService'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/common/useToast'
+import { useConfirm } from '@/composables/common/useConfirm'
 
 export default {
   // Tên component
