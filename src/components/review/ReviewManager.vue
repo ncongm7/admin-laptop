@@ -42,7 +42,7 @@
                     </div>
                     <div class="stats-info">
                         <h3>{{ stats.averageRating?.toFixed(1) || '0.0' }}</h3>
-                        <p>Rating trung bình</p>
+                        <p>Đánh giá trung bình</p>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                                     </th>
                                     <th>Khách hàng</th>
                                     <th>Sản phẩm</th>
-                                    <th>Rating</th>
+                                    <th>Đánh giá</th>
                                     <th>Nội dung</th>
                                     <th>Trạng thái</th>
                                     <th>Ngày đánh giá</th>

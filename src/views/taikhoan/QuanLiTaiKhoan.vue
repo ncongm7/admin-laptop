@@ -135,7 +135,7 @@
             <nav class="mt-4">
               <ul class="pagination justify-content-center">
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                  <a class="page-link" href="#" @click.prevent="prevPage">Previous</a>
+                  <a class="page-link" href="#" @click.prevent="prevPage">Trang trước</a>
                 </li>
                 <li
                   v-for="page in totalPages"
@@ -146,7 +146,7 @@
                   <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page }}</a>
                 </li>
                 <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                  <a class="page-link" href="#" @click.prevent="nextPage">Next</a>
+                  <a class="page-link" href="#" @click.prevent="nextPage">Trang sau</a>
                 </li>
               </ul>
             </nav>
@@ -279,7 +279,7 @@
             <nav class="mt-4">
               <ul class="pagination justify-content-center">
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                  <a class="page-link" href="#" @click.prevent="prevPage">Previous</a>
+                  <a class="page-link" href="#" @click.prevent="prevPage">Trang trước</a>
                 </li>
                 <li
                   v-for="page in totalPages"
@@ -290,7 +290,7 @@
                   <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page }}</a>
                 </li>
                 <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                  <a class="page-link" href="#" @click.prevent="nextPage">Next</a>
+                  <a class="page-link" href="#" @click.prevent="nextPage">Trang sau</a>
                 </li>
               </ul>
             </nav>
@@ -404,7 +404,7 @@ const accountTabs = computed(() => {
 // Computed
 const filteredUsers = computed(() => {
   console.log('filteredUsers computed - hasActiveFilters:', hasActiveFilters.value, 'users.length:', users.value.length, 'activeTab:', activeTab.value)
-  
+
   // Nếu đã filter ở backend (có active filters), chỉ filter theo tab
   if (hasActiveFilters.value) {
     const filtered = users.value.filter((user) => {
@@ -423,16 +423,16 @@ const filteredUsers = computed(() => {
     console.log('After tab filter:', filtered.length, 'users')
     return filtered
   }
-  
+
   // Nếu không có filter ở backend, filter ở frontend
   return users.value.filter((user) => {
     // Tìm kiếm theo tên đăng nhập
-    const matchesSearch = !searchQuery.value || 
+    const matchesSearch = !searchQuery.value ||
       user.tenDangNhap?.toLowerCase().includes(searchQuery.value.toLowerCase())
 
     // Filter theo vai trò: so sánh với cả mã và tên đầy đủ
-    const matchesRole = !roleFilter.value || 
-      user.role === roleFilter.value || 
+    const matchesRole = !roleFilter.value ||
+      user.role === roleFilter.value ||
       user.role === mapRoleToTenVaiTro(roleFilter.value)
 
     // Filter theo trạng thái
@@ -476,7 +476,7 @@ const fetchUsers = async (searchParams = null) => {
     let response
     const hasFilters = searchParams && (searchParams.tenDangNhap || searchParams.tenVaiTro || searchParams.trangThai !== undefined)
     hasActiveFilters.value = !!hasFilters
-    
+
     if (hasFilters) {
       // Nếu có điều kiện tìm kiếm, gọi API search advanced
       console.log('Calling search API with params:', searchParams)
@@ -486,27 +486,27 @@ const fetchUsers = async (searchParams = null) => {
       console.log('Calling getAllTaiKhoan API')
       response = await taiKhoanService.getAllTaiKhoan()
     }
-    
+
     console.log('API Response:', response)
-    
+
     // Xử lý response format: { isSuccess, data, message }
     const taiKhoanList = response?.data || []
     console.log('Tai khoan list from API:', taiKhoanList)
-    
+
     users.value = taiKhoanList.map((tk) => {
       // Map từ TaiKhoanDto sang format hiển thị
       const tenVaiTro = tk.tenVaiTro || ''
       // Xác định isStaff dựa trên tên vai trò
-      const isStaffRole = tenVaiTro === 'ADMIN' || 
-                         tenVaiTro === 'NHAN_VIEN' || 
-                         tenVaiTro === 'Quản trị viên' || 
+      const isStaffRole = tenVaiTro === 'ADMIN' ||
+                         tenVaiTro === 'NHAN_VIEN' ||
+                         tenVaiTro === 'Quản trị viên' ||
                          tenVaiTro === 'Nhân viên bán hàng' ||
                          tenVaiTro === 'Quản lý' ||
                          tenVaiTro === 'Thu ngân' ||
                          tenVaiTro === 'STAFF' ||
                          tenVaiTro === 'MANAGER' ||
                          tenVaiTro === 'CASHIER'
-      
+
       return {
         id: tk.id,
         tenDangNhap: tk.tenDangNhap,
@@ -522,11 +522,11 @@ const fetchUsers = async (searchParams = null) => {
         position: null,
       }
     })
-    
+
     console.log('Mapped users:', users.value)
     console.log('Total users after mapping:', users.value.length)
     console.log('hasActiveFilters:', hasActiveFilters.value)
-    
+
     // Reset về trang đầu khi search
     currentPage.value = 1
   } catch (error) {
@@ -553,19 +553,19 @@ const handleSearch = () => {
           trangThaiValue = trangThaiNum
         }
       }
-      
+
       // Map giá trị vai trò từ combobox sang tên vai trò đầy đủ
       let tenVaiTroValue = null
       if (roleFilter.value) {
         tenVaiTroValue = mapRoleToTenVaiTro(roleFilter.value)
       }
-      
+
       const searchParams = {
         tenDangNhap: searchQuery.value || null,
         tenVaiTro: tenVaiTroValue,
         trangThai: trangThaiValue,
       }
-      
+
       console.log('Search params:', searchParams) // Debug log
       fetchUsers(searchParams).catch((error) => {
         console.error('Error in handleSearch fetchUsers:', error)
@@ -599,20 +599,20 @@ const handleFilterChange = () => {
         trangThaiValue = trangThaiNum
       }
     }
-    
+
     // Map giá trị vai trò từ combobox sang tên vai trò đầy đủ
     let tenVaiTroValue = null
     if (roleFilter.value) {
       tenVaiTroValue = mapRoleToTenVaiTro(roleFilter.value)
       console.log('Role filter value:', roleFilter.value, 'Mapped to:', tenVaiTroValue)
     }
-    
+
     const searchParams = {
       tenDangNhap: searchQuery.value || null,
       tenVaiTro: tenVaiTroValue,
       trangThai: trangThaiValue,
     }
-    
+
     console.log('Filter changed, search params:', searchParams) // Debug log
     fetchUsers(searchParams).catch((error) => {
       console.error('Error in handleFilterChange fetchUsers:', error)

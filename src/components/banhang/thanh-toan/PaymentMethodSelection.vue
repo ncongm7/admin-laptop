@@ -16,7 +16,7 @@
         :disabled="isProcessing || filteredPaymentMethods.length === 0">
         <option value="">-- Chọn phương thức --</option>
         <option v-for="method in filteredPaymentMethods" :key="method.id" :value="method.id">
-          {{ method.tenPhuongThuc }}
+          {{ getDisplayName(method) }}
         </option>
       </select>
     </div>
@@ -175,6 +175,24 @@ const paymentMethodCashComputed = computed({
 const formatCurrency = (value) => {
     if (props.formatCurrencyFn) return props.formatCurrencyFn(value)
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+}
+
+const getDisplayName = (method) => {
+    if (!method || !method.tenPhuongThuc) return ''
+    const name = method.tenPhuongThuc.toLowerCase()
+
+    // Chuẩn hóa tên phương thức
+    if (name === 'tien mat' || name === 'cash' || name === 'tiền mặt') {
+        return 'Tiền mặt'
+    }
+    if (name === 'chuyen khoan' || name === 'transfer' || name === 'chuyển khoản') {
+        return 'Chuyển khoản'
+    }
+    if (name.includes('qr') && (name.includes('code') || name.includes('payment'))) {
+        return 'Thanh toán QR'
+    }
+
+    return method.tenPhuongThuc
 }
 
 </script>

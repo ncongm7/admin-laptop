@@ -1,14 +1,14 @@
 <template>
   <div class="message-templates">
-    <button class="btn btn-sm btn-outline-secondary" @click="showTemplates = !showTemplates" title="Templates">
+    <button class="btn btn-sm btn-outline-secondary" @click="showTemplates = !showTemplates" title="Mẫu tin nhắn">
       <i class="bi bi-chat-quote"></i>
-      <span class="d-none d-md-inline">Templates</span>
+      <span class="d-none d-md-inline">Mẫu tin nhắn</span>
     </button>
 
     <!-- Templates Dropdown -->
     <div v-if="showTemplates" class="templates-dropdown">
       <div class="templates-header">
-        <h6 class="mb-0">Message Templates</h6>
+        <h6 class="mb-0">Danh sách mẫu tin nhắn</h6>
         <button class="btn btn-sm btn-link" @click="showTemplates = false">
           <i class="bi bi-x"></i>
         </button>

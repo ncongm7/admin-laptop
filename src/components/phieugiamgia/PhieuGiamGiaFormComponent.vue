@@ -367,6 +367,7 @@ function precheck() {
 }
 
 const save = async () => {
+  if (!confirm('Bạn có chắc chắn muốn lưu thông tin phiếu giảm giá này?')) return
   try {
     if (!precheck()) return
     const payload = normalizedPayload()

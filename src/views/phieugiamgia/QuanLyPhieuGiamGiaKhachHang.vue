@@ -215,7 +215,7 @@ const handleCustomerSelected = async (customer) => {
     return
   }
   
-  if (confirm(`Bạn có chắc chắn muốn gán phiếu này cho khách hàng "${customer.hoTen}"?`)) {
+  if (confirm('bạn có muốn thực hiện chức năng này')) {
     loading.value = true
     try {
       await phieuGiamGiaKhachHangService.ganPhieuGiamGiaChoKhachHang(
@@ -234,6 +234,9 @@ const handleCustomerSelected = async (customer) => {
 }
 
 const sendEmailToKhachHang = async (customerId) => {
+  if (!confirm('bạn có muốn thực hiện chức năng này')) {
+    return
+  }
   loadingEmail.value = customerId
   try {
     const response = await phieuGiamGiaKhachHangService.sendEmailPhieuGiamGia(phieuGiamGiaId, customerId)
@@ -252,7 +255,7 @@ const sendEmailToKhachHang = async (customerId) => {
 }
 
 const xoaKhachHangKhoiPhieuGiamGia = async (customerId) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này khỏi phiếu giảm giá? Hệ thống sẽ tự động gửi email xin lỗi cho khách hàng.')) {
+  if (!confirm('bạn có muốn thực hiện chức năng này')) {
     return
   }
   

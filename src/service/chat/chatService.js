@@ -59,6 +59,12 @@ export const chatService = {
       params: { khachHangId, nhanVienId }
     })
     return res.data
+  },
+
+  // Bật lại AI Bot
+  turnBotOn: async (conversationId) => {
+    const res = await axios.post(`${API_URL}/turn-bot-on/${conversationId}`)
+    return res.data
   }
 }
 

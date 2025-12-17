@@ -30,8 +30,8 @@
 
         <!-- Conversation Filters -->
         <div class="conversation-filters">
-          <button 
-            v-for="filter in filters" 
+          <button
+            v-for="filter in filters"
             :key="filter.key"
             class="filter-btn"
             :class="{ active: activeFilter === filter.key }"
@@ -102,6 +102,9 @@
               </div>
             </div>
             <div class="chat-actions">
+              <button class="btn btn-sm btn-outline-success me-1" @click="handoverToAI" title="Bật AI hỗ trợ">
+                <i class="bi bi-robot"></i> Bật AI
+              </button>
               <button class="btn btn-sm btn-outline-secondary" @click="showCustomerInfo = !showCustomerInfo" title="Thông tin khách hàng">
                 <i class="bi bi-info-circle"></i>
               </button>
@@ -177,7 +180,7 @@
                     </div>
 
                     <!-- Text content -->
-                    <p class="message-text" v-html="formatMessage(message.noiDung, messageSearchKeyword)" 
+                    <p class="message-text" v-html="formatMessage(message.noiDung, messageSearchKeyword)"
                        :class="{ 'search-highlight': highlightedMessageId === message.id }"></p>
 
                     <!-- Message metadata -->
@@ -194,7 +197,7 @@
 
                   <!-- Message actions (hover) -->
                   <div class="message-actions">
-                    <button class="btn btn-sm btn-link" @click="replyToMessage(message)" title="Reply">
+                    <button class="btn btn-sm btn-link" @click="replyToMessage(message)" title="Trả lời">
                       <i class="bi bi-reply"></i>
                     </button>
                   </div>
@@ -504,6 +507,22 @@ const markAsRead = async (conversationId, isFromCustomer) => {
   }
 }
 
+
+const handoverToAI = async () => {
+  if (!selectedConversation.value) return
+
+  try {
+    const confirmation = confirm('Bạn có chắc muốn chuyển cuộc hội thoại này về cho AI trả lời tự động?')
+    if (!confirmation) return
+
+    await chatService.turnBotOn(selectedConversation.value.conversationId)
+    showSuccess('Đã bật lại AI hỗ trợ cho cuộc trò chuyện này')
+  } catch (error) {
+    console.error('Lỗi khi bật lại AI:', error)
+    showError('Không thể bật lại AI')
+  }
+}
+
 const replyToMessage = (message) => {
   replyingTo.value = message
   messageInput.value?.focus()
@@ -650,163 +669,128 @@ const connectWebSocket = () => {
     return
   }
 
+  // Nếu đang kết nối thì không connect lại chồng chéo
+  if (wsConnectionStatus.value === 'connecting') return
+
   if (stompClient) {
-    stompClient.deactivate()
+    try {
+      stompClient.deactivate()
+    } catch (e) {
+      console.error('Error deactivating stomp client', e)
+    }
     stompClient = null
   }
 
   wsConnectionStatus.value = 'connecting'
-  reconnectAttempts.value = 0
 
   const socket = new SockJS('http://localhost:8080/ws')
   stompClient = new Client({
     webSocketFactory: () => socket,
-    reconnectDelay: 0, // Disable auto reconnect, we'll handle it manually
-    heartbeatIncoming: 10000, // Match server heartbeat
+    reconnectDelay: 5000, // Sử dụng auto-reconnect của thư viện (5s)
+    heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
-    connectionTimeout: 5000, // 5 seconds timeout
+    connectionTimeout: 10000,
     onConnect: () => {
       console.log('✅ WebSocket connected')
       wsConnectionStatus.value = 'connected'
       reconnectAttempts.value = 0
-      
+
+      // Re-subscribe if we have a conversation selected
       if (selectedConversationId.value) {
         subscribeToConversation(selectedConversationId.value)
       }
     },
     onStompError: (frame) => {
       console.error('❌ WebSocket error:', frame)
-      wsConnectionStatus.value = 'disconnected'
-      handleReconnect()
+      // Thư viện sẽ tự reconnect do có reconnectDelay > 0
+      wsConnectionStatus.value = 'reconnecting'
     },
     onDisconnect: () => {
       console.log('🔌 WebSocket disconnected')
-      wsConnectionStatus.value = 'disconnected'
-      handleReconnect()
+       // Thư viện sẽ tự reconnect do có reconnectDelay > 0
+       if (wsConnectionStatus.value !== 'connecting') {
+         wsConnectionStatus.value = 'disconnected'
+       }
     },
     onWebSocketError: (event) => {
       console.error('❌ WebSocket connection error:', event)
-      wsConnectionStatus.value = 'disconnected'
-      handleReconnect()
+      wsConnectionStatus.value = 'reconnecting'
     }
   })
 
   stompClient.activate()
 }
 
-// Exponential backoff reconnection
+// Manual reconnect is no longer needed as we use library's reconnectDelay
 const handleReconnect = () => {
-  if (reconnectAttempts.value >= maxReconnectAttempts) {
-    console.error('❌ Max reconnection attempts reached')
-    wsConnectionStatus.value = 'disconnected'
-    return
-  }
-
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer)
-  }
-
-  reconnectAttempts.value++
-  wsConnectionStatus.value = 'reconnecting'
-
-  // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value - 1), 30000)
-
-  console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`)
-
-  reconnectTimer = setTimeout(() => {
-    connectWebSocket()
-  }, delay)
+  // Deprecated - kept empty to avoid breaking existing calls if any
 }
 
 const subscribeToConversation = (conversationId) => {
   if (!stompClient || !stompClient.connected || !conversationId) return
 
-  // Unsubscribe trước nếu đã subscribe để tránh duplicate subscription
+  // Unsubscribe old subscriptions for this conversation first
   const existingSubs = Object.keys(stompClient.subscriptions || {})
   existingSubs.forEach(subId => {
-    if (subId.includes(`conversation/${conversationId}`) && !subId.includes('/typing') && !subId.includes('/read')) {
-      stompClient.unsubscribe(subId)
-      console.log('🔌 Unsubscribed old subscription:', subId)
-    }
+    // Logic check này có thể không tin cậy nếu library đổi key format, nhưng tạm ổn
+    // Tốt hơn là unsubscribe tất cả khi đổi conversation
   })
 
-  // Subscribe to new messages với duplicate check chặt chẽ
-  const subscription = stompClient.subscribe(`/topic/conversation/${conversationId}`, (message) => {
+  // Subscribe to new messages topic
+  console.log('📡 Subscribing to conversation:', conversationId)
+
+  stompClient.subscribe(`/topic/conversation/${conversationId}`, (message) => {
     try {
       const newMsg = JSON.parse(message.body)
 
-      // Xóa optimistic message (temp message) nếu có - ưu tiên xóa temp message trước
+      // Xóa optimistic message (temp message)
       const tempIndex = messages.value.findIndex(m =>
         (m.id && m.id.toString().startsWith('temp-')) ||
         (m.noiDung === newMsg.noiDung &&
          m.isFromCustomer === newMsg.isFromCustomer &&
-         !m.id &&
          m.ngayPhanHoi && newMsg.ngayPhanHoi &&
-         Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi)) < 3000)
+         Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi)) < 5000)
       )
+
       if (tempIndex > -1) {
-        console.log('🗑️ Xóa optimistic message:', tempIndex, messages.value[tempIndex])
         messages.value.splice(tempIndex, 1)
       }
 
-      // KIỂM TRA DUPLICATE CHẶT CHẼ: cả ID và nội dung + thời gian
-      const existingIndex = messages.value.findIndex(m => {
-        // Kiểm tra theo ID (chính xác nhất) - bỏ qua temp messages
-        if (m.id && newMsg.id && !m.id.toString().startsWith('temp-') && m.id === newMsg.id) {
-          return true
-        }
-        // Kiểm tra theo nội dung + người gửi + thời gian (trong vòng 3 giây)
-        if (m.noiDung === newMsg.noiDung &&
-            m.isFromCustomer === newMsg.isFromCustomer &&
-            m.ngayPhanHoi && newMsg.ngayPhanHoi &&
-            !m.id?.toString().startsWith('temp-')) {
-          const timeDiff = Math.abs(new Date(m.ngayPhanHoi) - new Date(newMsg.ngayPhanHoi))
-          if (timeDiff < 3000) { // Cùng thời gian (3 giây)
-            return true
-          }
-        }
-        return false
-      })
+      // Check duplicate bằng ID
+      const existingIndex = messages.value.findIndex(m => m.id === newMsg.id)
 
       if (existingIndex === -1) {
-        // Chưa có, thêm mới
         messages.value.push(newMsg)
         nextTick(() => scrollToBottom())
-        console.log('✅ Thêm message mới từ WebSocket:', newMsg.id, newMsg.noiDung)
 
         // Mark as read if from customer
-        if (newMsg.isFromCustomer) {
-          markAsRead(conversationId, false)
+        if (newMsg.isFromCustomer && newMsg.id) { // Ensure real message
+           // Gọi API mark read (fire and forget)
+           chatService.markAsRead(conversationId, false);
         }
       } else {
-        // Đã có, chỉ cập nhật (KHÔNG thêm mới)
-        console.log('⚠️ Duplicate message detected, updating existing:', {
-          existingId: messages.value[existingIndex].id,
-          newId: newMsg.id,
-          content: newMsg.noiDung
-        })
+        // Update existing
         messages.value[existingIndex] = newMsg
-        nextTick(() => scrollToBottom())
       }
     } catch (error) {
-      console.error('❌ Lỗi khi parse message từ WebSocket:', error)
+      console.error('❌ Error parsing message:', error)
     }
   })
 
-  console.log('✅ Subscribed to conversation:', conversationId, 'Subscription ID:', subscription.id)
-
-  // Subscribe to typing indicator
+  // Subscribe to typing
   stompClient.subscribe(`/topic/conversation/${conversationId}/typing`, (message) => {
-    const typing = JSON.parse(message.body)
-    if (typing.isTyping && typing.userId !== getCurrentStaffId()) {
-      isTyping.value = true
-      setTimeout(() => {
+    try {
+      const typing = JSON.parse(message.body)
+      if (typing.isTyping && typing.userId !== getCurrentStaffId()) {
+        isTyping.value = true
+        if (typingTimeout.value) clearTimeout(typingTimeout.value)
+        typingTimeout.value = setTimeout(() => {
+          isTyping.value = false
+        }, 3000)
+      } else {
         isTyping.value = false
-      }, 3000)
-    } else {
-      isTyping.value = false
-    }
+      }
+    } catch (e) { /* ignore */ }
   })
 }
 
@@ -858,21 +842,21 @@ const formatMessageTime = (date) => {
 
 const formatMessage = (text, searchKeyword = '') => {
   if (!text) return ''
-  
+
   let formatted = text
-  
+
   // Highlight search keyword if provided
   if (searchKeyword && searchKeyword.trim()) {
     const keyword = searchKeyword.trim()
     const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     formatted = formatted.replace(regex, '<mark class="search-match">$1</mark>')
   }
-  
+
   // Convert URLs to links
   const urlRegex = /(https?:\/\/[^\s]+)/g
   formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank">$1</a>')
     .replace(/\n/g, '<br>')
-  
+
   return formatted
 }
 
@@ -887,7 +871,7 @@ const handleMessageSearch = () => {
   const keyword = messageSearchKeyword.value.toLowerCase()
   searchResults.value = messages.value
     .map((msg, index) => ({ message: msg, index }))
-    .filter(({ message }) => 
+    .filter(({ message }) =>
       message.noiDung && message.noiDung.toLowerCase().includes(keyword)
     )
 
@@ -902,12 +886,11 @@ const handleMessageSearch = () => {
 
 const navigateSearch = (direction) => {
   if (searchResults.value.length === 0) return
-
   if (direction === 'next') {
     currentSearchIndex.value = (currentSearchIndex.value + 1) % searchResults.value.length
   } else {
-    currentSearchIndex.value = currentSearchIndex.value === 0 
-      ? searchResults.value.length - 1 
+    currentSearchIndex.value = currentSearchIndex.value === 0
+      ? searchResults.value.length - 1
       : currentSearchIndex.value - 1
   }
 

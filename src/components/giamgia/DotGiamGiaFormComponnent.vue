@@ -252,6 +252,7 @@ function precheck() {
 }
 
 const save = async () => {
+  if (!confirm('bạn có muốn thực hiện chức năng này')) return
   try {
     if (!precheck()) return
     const payload = normalizedPayload()

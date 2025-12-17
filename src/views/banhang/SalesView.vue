@@ -127,10 +127,7 @@
     <ModalThanhToan v-if="showPaymentModal" :hoaDon="hoaDonHienTai" @close="closePaymentModal"
       @payment-confirmed="handlePaymentConfirmedWrapper" @hoa-don-updated="handleHoaDonUpdated" />
 
-    <!-- Modal gợi ý voucher -->
-    <<<<<<< HEAD <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
-      @close="closeVoucherModal" @voucher-selected="handleVoucherSelected" />
-    =======
+    <!-- Modal gợi ý khuyến mãi -->
     <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
       :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
@@ -428,7 +425,7 @@ const checkAndRemoveInvalidVoucher = async (hoaDon) => {
 
   // Kiểm tra điều kiện hóa đơn tối thiểu
   if (hoaDonToiThieu > 0 && tongTien < hoaDonToiThieu) {
-    console.log('⚠️ [SalesView] Voucher không đủ điều kiện, tự động xóa:', {
+    console.log('⚠️ [SalesView] Khuyến mãi không đủ điều kiện, tự động xóa:', {
       voucher: voucher.tenPhieuGiamGia || voucher.ma,
       tongTien,
       hoaDonToiThieu,
@@ -440,7 +437,7 @@ const checkAndRemoveInvalidVoucher = async (hoaDon) => {
       if (response && response.data) {
         capNhatHoaDon(response.data)
         showWarning(
-          `Voucher "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
+          `Khuyến mãi "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
         )
       }
     } catch (error) {

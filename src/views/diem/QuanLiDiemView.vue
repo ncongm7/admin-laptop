@@ -125,13 +125,13 @@ export default {
         alert('Vui lòng nhập từ khóa tìm kiếm')
         return
       }
-      
+
       try {
         this.loading = true
         // Search customers
         const searchResponse = await khachHangService.search(this.searchQuery, this.searchQuery)
         const customers = searchResponse.data?.data || searchResponse.data || []
-        
+
         // Load points for each customer
         const khachHangWithPoints = []
         for (const customer of customers) {
@@ -159,7 +159,7 @@ export default {
             })
           }
         }
-        
+
         this.khachHangList = khachHangWithPoints
       } catch (error) {
         console.error('Lỗi khi tìm kiếm:', error)

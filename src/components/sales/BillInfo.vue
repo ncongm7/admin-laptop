@@ -12,7 +12,7 @@
             <div class="voucher-input mb-3">
                 <label class="form-label">Mã giảm giá</label>
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Nhập mã voucher" v-model="voucherCode">
+                    <input type="text" class="form-control" placeholder="Nhập mã khuyến mãi" v-model="voucherCode">
                     <button class="btn btn-primary" @click="applyVoucher">
                         Áp dụng
                     </button>

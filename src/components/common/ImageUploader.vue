@@ -11,7 +11,7 @@
 
             <div v-else-if="hasError" class="upload-overlay error-overlay">
                 <i class="bi bi-exclamation-triangle-fill error-icon"></i>
-                <p class="upload-text error-text">{{ errorMessage || 'Lỗi upload' }}</p>
+                <p class="upload-text error-text">{{ errorMessage || 'Lỗi tải lên' }}</p>
                 <button class="btn-retry" @click.stop="retryUpload">
                     <i class="bi bi-arrow-clockwise"></i> Thử lại
                 </button>
@@ -42,7 +42,7 @@
         <!-- Success Message -->
         <div v-if="showSuccess" class="success-message">
             <i class="bi bi-check-circle-fill"></i>
-            <span>Upload thành công!</span>
+            <span>Tải lên thành công!</span>
         </div>
     </div>
 </template>
@@ -228,7 +228,7 @@ const uploadFile = async (file) => {
         }
     } catch (error) {
         console.error('Upload error:', error)
-        const errorMsg = error?.response?.data?.message || error?.message || 'Upload thất bại. Vui lòng thử lại.'
+        const errorMsg = error?.response?.data?.message || error?.message || 'Tải lên thất bại. Vui lòng thử lại.'
         showError(errorMsg)
         emit('upload-error', error)
 

@@ -84,7 +84,7 @@
                             </div>
 
                             <div class="item-total-action">
-                                <!-- 
+                                <!--
                                     TODO: Backend nên trả về thanhTien trong hoaDonChiTiet
                                     Hiện tại FE tính = donGia * soLuong (DB không có cột thanh_tien)
                                 -->
@@ -155,7 +155,7 @@
                             </small>
                         </div>
                         <button class="btn btn-sm btn-outline-danger ms-2" @click="handleRemoveVoucher"
-                            title="Xóa voucher">
+                            title="Xóa khuyến mãi">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -374,7 +374,7 @@ const getVoucherName = () => {
     if (props.hoaDon?.phieuGiamGia?.ma) {
         return props.hoaDon.phieuGiamGia.ma
     }
-    return 'Voucher đã áp dụng'
+    return 'Khuyến mãi đã áp dụng'
 }
 
 const toggleUsePoints = () => {
@@ -559,10 +559,10 @@ const handleImageError = (event) => {
 
 /**
  * Lấy serial numbers cho item (nếu có)
- * 
+ *
  * TODO: Backend cần trả về serialNumbers trong hoaDonChiTiet khi load hóa đơn đã thanh toán
  * Serial được lưu trong bảng serial_da_ban với id_hoa_don_chi_tiet
- * 
+ *
  * @param {Object} item - hoa_don_chi_tiet item
  * @returns {Array|null} - Danh sách serial numbers hoặc null
  */
@@ -692,7 +692,7 @@ const checkAndRemoveInvalidVoucher = async (hoaDon) => {
 
     // Kiểm tra điều kiện hóa đơn tối thiểu
     if (hoaDonToiThieu > 0 && tongTien < hoaDonToiThieu) {
-        console.log('⚠️ [InvoiceDetails] Voucher không đủ điều kiện, tự động xóa:', {
+        console.log('⚠️ [InvoiceDetails] Khuyến mãi không đủ điều kiện, tự động xóa:', {
             voucher: voucher.tenPhieuGiamGia || voucher.ma,
             tongTien,
             hoaDonToiThieu,
@@ -704,7 +704,7 @@ const checkAndRemoveInvalidVoucher = async (hoaDon) => {
                 // Emit event để parent component cập nhật hóa đơn
                 emit('update-item', response.data)
                 showWarning(
-                    `Voucher "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
+                    `Khuyến mãi "${voucher.tenPhieuGiamGia || voucher.ma}" đã bị xóa vì không đủ điều kiện (tối thiểu: ${formatCurrency(hoaDonToiThieu)})`,
                 )
             }
         } catch (error) {

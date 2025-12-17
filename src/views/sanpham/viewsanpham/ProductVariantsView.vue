@@ -6,8 +6,8 @@
     <!-- Debug Info (remove in production) -->
     <div class="debug-info mb-2" v-if="showDebug">
       <small class="text-muted">
-        Debug: CPUs({{ productStore.cpus.length }}), RAMs({{ productStore.rams.length }}), 
-        GPUs({{ productStore.gpus.length }}), Colors({{ productStore.colors.length }}), 
+        Debug: CPUs({{ productStore.cpus.length }}), RAMs({{ productStore.rams.length }}),
+        GPUs({{ productStore.gpus.length }}), Colors({{ productStore.colors.length }}),
         Storages({{ productStore.storages.length }}), Screens({{ productStore.screens.length }})
       </small>
     </div>
@@ -77,9 +77,9 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Giá từ</label>
-            <input 
-              type="number" 
-              class="form-control" 
+            <input
+              type="number"
+              class="form-control"
               placeholder="Giá tối thiểu"
               v-model.number="filters.minPrice"
               :min="0"
@@ -88,9 +88,9 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Giá đến</label>
-            <input 
-              type="number" 
-              class="form-control" 
+            <input
+              type="number"
+              class="form-control"
               placeholder="Giá tối đa"
               v-model.number="filters.maxPrice"
               :min="filters.minPrice || 0"
@@ -110,11 +110,11 @@
         </div>
         <div class="search-box">
           <div class="input-group">
-            <input 
-              type="text" 
-              class="form-control" 
+            <input
+              type="text"
+              class="form-control"
               placeholder="Tìm theo sku, tên sản phẩm, CPU, RAM, GPU..."
-              v-model="searchQuery" 
+              v-model="searchQuery"
             />
             <button class="btn btn-outline-secondary" type="button" @click="clearSearch">
               <i class="bi bi-x-circle"></i>
@@ -170,7 +170,7 @@
               <td>{{ (currentPage * pageSize) + index + 1 }}</td>
               <td>
                 <div class="variant-image-cell">
-                  <img 
+                  <img
                     v-if="getVariantImageUrl(variant)"
                     :src="getVariantImageUrl(variant)"
                     :alt="variant.maCtsp || 'Variant image'"
@@ -194,9 +194,9 @@
               <td>
                 <div class="color-display" v-if="variant.mauSac">
                   <div class="d-flex align-items-center">
-                    <span 
-                      v-if="variant.mauSac.hexCode" 
-                      class="color-preview me-2" 
+                    <span
+                      v-if="variant.mauSac.hexCode"
+                      class="color-preview me-2"
                       :style="{ backgroundColor: variant.mauSac.hexCode }"
                       :title="variant.mauSac.hexCode"
                     ></span>
@@ -232,26 +232,26 @@
               <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
               <td class="text-center actions-column">
                 <div class="btn-group btn-group-sm" role="group">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-info btn-sm" 
-                    @click="openSerialModal(variant)" 
+                  <button
+                    type="button"
+                    class="btn btn-outline-info btn-sm"
+                    @click="openSerialModal(variant)"
                     title="Quản lý serial"
                   >
                     <i class="bi bi-list-ol"></i>
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary btn-sm" 
-                    @click="editVariant(variant)" 
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    @click="editVariant(variant)"
                     title="Chỉnh sửa"
                   >
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-danger btn-sm" 
-                    @click="deleteVariant(variant)" 
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    @click="deleteVariant(variant)"
                     title="Xóa biến thể"
                   >
                     <i class="bi bi-trash"></i>
@@ -279,17 +279,17 @@
       <div class="d-flex justify-content-between align-items-center">
         <div class="pagination-info">
           <span class="text-muted">
-            Hiển thị {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} 
+            Hiển thị {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }}
             trong tổng số {{ totalElements }} biến thể
           </span>
         </div>
         <nav aria-label="Page navigation">
           <ul class="pagination justify-content-center mb-0">
             <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)" 
+              <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)"
                  :tabindex="currentPage === 0 ? -1 : 0">Trước</a>
             </li>
-            <li v-for="page in visiblePages" :key="page" 
+            <li v-for="page in visiblePages" :key="page"
                 class="page-item" :class="{ active: page === currentPage }">
               <a class="page-link green-pagination" href="#" @click.prevent="goToPage(page)">{{ page + 1 }}</a>
             </li>
@@ -312,13 +312,13 @@
   </div>
 
   <!-- Edit Variant Modal -->
-  <VariantEditModal 
+  <VariantEditModal
     ref="editModal"
     @updated="handleVariantUpdated"
   />
 
   <!-- Serial Management Modal -->
-  <SerialManagementModal 
+  <SerialManagementModal
     v-model="showSerialModal"
     :variant="currentVariant"
     @save="handleSerialSaved"
@@ -338,7 +338,7 @@
           <p>Variant Code: {{ selectedVariantForEdit?.maCtsp }}</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
         </div>
       </div>
     </div>
@@ -408,7 +408,7 @@ const triggerFetch = () => {
           minPrice: filters.value.minPrice || null,
           maxPrice: filters.value.maxPrice || null,
         }, currentPage.value, pageSize.value)
-        
+
         // Update pagination info if response contains pagination data
         if (response && typeof response === 'object' && response.totalElements !== undefined) {
           totalElements.value = response.totalElements
@@ -441,10 +441,10 @@ onMounted(async () => {
       console.log('Storages:', productStore.storages.length)
       console.log('Screens:', productStore.screens.length)
     }
-    
+
     // Then fetch variants
     await triggerFetch()
-    
+
     // Calculate and set max price after data is loaded
     nextTick(() => {
       maxPrice.value = calculateMaxPrice()
@@ -459,13 +459,13 @@ onMounted(async () => {
 
 // watch changes to auto-fetch
 watch([
-  searchQuery, 
-  () => filters.value.cpu, 
-  () => filters.value.ram, 
-  () => filters.value.gpu, 
-  () => filters.value.color, 
-  () => filters.value.storage, 
-  () => filters.value.screen, 
+  searchQuery,
+  () => filters.value.cpu,
+  () => filters.value.ram,
+  () => filters.value.gpu,
+  () => filters.value.color,
+  () => filters.value.storage,
+  () => filters.value.screen,
   () => filters.value.minPrice,
   () => filters.value.maxPrice
 ], () => {
@@ -483,7 +483,7 @@ const calculateMaxPrice = () => {
       .filter(v => v && v.trangThai === 1 && v.giaBan) // Only active variants with price
       .map(v => Number(v.giaBan))
       .filter(price => !isNaN(price) && price > 0) // Filter out invalid prices
-    
+
     if (prices.length === 0) return 100000000
     const calculatedMax = Math.max(...prices)
     return Math.ceil(calculatedMax / 1000000) * 1000000 // Round up to nearest million
@@ -507,7 +507,7 @@ watch(variantsList, () => {
 // Computed for client-side pagination (fallback)
 const paginatedVariants = computed(() => {
   if (!variantsList.value.length) return []
-  
+
   // If server-side pagination is working, return all variants
   // Otherwise, do client-side pagination
   const start = currentPage.value * pageSize.value
@@ -521,12 +521,12 @@ const visiblePages = computed(() => {
   const maxVisible = 5
   let start = Math.max(0, currentPage.value - Math.floor(maxVisible / 2))
   let end = Math.min(totalPages.value - 1, start + maxVisible - 1)
-  
+
   // Adjust start if we're near the end
   if (end - start < maxVisible - 1) {
     start = Math.max(0, end - maxVisible + 1)
   }
-  
+
   for (let i = start; i <= end; i++) {
     pages.push(i)
   }
@@ -604,20 +604,20 @@ const statusClass = (status) => {
 
 const editVariant = async (variant) => {
   console.log('Edit variant:', variant)
-  
+
   try {
     // Ensure attributes are loaded
     await productStore.loadAttributes()
-    
+
     // Wait for next tick to ensure modal is rendered
     await nextTick()
-    
+
     // Load variant data into modal
     if (editModal.value) {
       editModal.value.resetForm()
       editModal.value.loadVariantData(variant)
     }
-    
+
     // Show modal
     const modalElement = document.getElementById('variantEditModal')
     if (modalElement) {
@@ -628,19 +628,19 @@ const editVariant = async (variant) => {
         if (existingModal) {
           existingModal.dispose()
         }
-        
+
         // Create new instance and show
         const modal = new bootstrap.Modal(modalElement, {
           backdrop: true,
           keyboard: true,
           focus: true
         })
-        
+
         // Remove aria-hidden after modal is shown
         modalElement.addEventListener('shown.bs.modal', () => {
           modalElement.removeAttribute('aria-hidden')
         }, { once: true })
-        
+
         modal.show()
       } else {
         // Manual show as fallback
@@ -650,7 +650,7 @@ const editVariant = async (variant) => {
         modalElement.setAttribute('aria-modal', 'true')
         modalElement.setAttribute('role', 'dialog')
         document.body.classList.add('modal-open')
-        
+
         // Add backdrop
         const backdrop = document.createElement('div')
         backdrop.className = 'modal-backdrop fade show'
@@ -668,30 +668,30 @@ const editVariant = async (variant) => {
 const deleteVariant = async (variant) => {
   // Enhanced confirmation dialog
   const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể "${variant.maCtsp}"?\n\nThông tin biến thể:\n- CPU: ${variant.tenCpu || 'N/A'}\n- RAM: ${variant.tenRam || 'N/A'}\n- Màu sắc: ${variant.mauSac?.tenMau || 'N/A'}\n- Giá bán: ${formatCurrency(variant.giaBan)}\n\nLưu ý: Hệ thống sẽ tự động xóa tất cả dữ liệu liên quan (serial, hình ảnh) trước khi xóa biến thể.\nHành động này không thể hoàn tác!`
-  
+
   if (confirm(confirmMessage)) {
     try {
       console.log('Deleting variant:', variant)
       console.log('Variant ID:', variant.id)
-      
+
       // Call API to delete variant
       await productStore.removeVariant(variant.id)
-      
+
       // Clear selection if this variant was selected
       selectedVariants.value = selectedVariants.value.filter(id => id !== variant.id)
-      
+
       // Reload the variants list
       await triggerFetch()
-      
+
       // Show success message
       alert('Xóa biến thể thành công!')
       console.log('Variant deleted successfully')
     } catch (error) {
       console.error('Error deleting variant:', error)
-      
+
       // Handle specific error types
       let errorMessage = 'Có lỗi khi xóa biến thể: '
-      
+
       if (error.message && error.message.includes('REFERENCE constraint')) {
         errorMessage = 'Không thể xóa biến thể mặc dù hệ thống đã thử xóa dữ liệu liên quan.\n\nCó thể do:\n1. Biến thể đang được sử dụng trong đơn hàng\n2. Có dữ liệu liên quan khác chưa được xóa\n3. Lỗi quyền truy cập\n\nVui lòng liên hệ quản trị viên.'
       } else if (error.response?.status === 404) {
@@ -703,9 +703,9 @@ const deleteVariant = async (variant) => {
       } else {
         errorMessage += error.message || 'Vui lòng thử lại'
       }
-      
+
       alert(errorMessage)
-      
+
       // Reload to refresh state
       await triggerFetch()
     }
@@ -717,25 +717,25 @@ const bulkDelete = async () => {
     alert('Vui lòng chọn ít nhất một biến thể để xóa')
     return
   }
-  
+
   // Get selected variant details for confirmation
   const selectedVariantDetails = variantsList.value
     .filter(v => selectedVariants.value.includes(v.id))
     .map(v => `- ${v.maCtsp} (${v.tenCpu || 'N/A'}, ${v.tenRam || 'N/A'}, ${v.mauSac?.tenMau || 'N/A'})`)
     .slice(0, 5) // Show only first 5 for readability
-  
+
   const moreCount = selectedVariants.value.length - selectedVariantDetails.length
   const confirmMessage = `Bạn có chắc chắn muốn xóa ${selectedVariants.value.length} biến thể đã chọn?\n\nDanh sách biến thể sẽ bị xóa:\n${selectedVariantDetails.join('\n')}${moreCount > 0 ? `\n... và ${moreCount} biến thể khác` : ''}\n\nLưu ý: Các biến thể có serial liên quan sẽ không thể xóa được.\nHành động này không thể hoàn tác!`
-  
+
   if (confirm(confirmMessage)) {
     try {
       console.log('Bulk deleting variants:', selectedVariants.value)
-      
+
       // Track success and failures
       const results = []
       let successCount = 0
       let failureCount = 0
-      
+
       // Delete variants one by one to handle individual errors
       for (const id of selectedVariants.value) {
         try {
@@ -748,12 +748,12 @@ const bulkDelete = async () => {
           failureCount++
         }
       }
-      
+
       // Clear selection and reload
       selectedVariants.value = []
       selectAll.value = false
       await triggerFetch()
-      
+
       // Show detailed results
       if (failureCount === 0) {
         alert(`Xóa thành công tất cả ${successCount} biến thể!`)
@@ -762,11 +762,11 @@ const bulkDelete = async () => {
       } else {
         alert(`Kết quả xóa:\n- Thành công: ${successCount} biến thể\n- Thất bại: ${failureCount} biến thể\n\nCác biến thể thất bại có thể do có serial liên quan.`)
       }
-      
+
     } catch (error) {
       console.error('Error in bulk delete process:', error)
       alert('Có lỗi trong quá trình xóa hàng loạt: ' + (error.message || 'Vui lòng thử lại'))
-      
+
       // Clear selection and reload
       selectedVariants.value = []
       selectAll.value = false
@@ -777,7 +777,7 @@ const bulkDelete = async () => {
 
 const handleVariantUpdated = async () => {
   console.log('ProductVariantsView: Handling variant updated event')
-  
+
   try {
     // Reload variants list after successful update
     await triggerFetch()
@@ -814,19 +814,19 @@ const getVariantImageUrl = (variant) => {
   if (!variant || !variant.id) {
     return null
   }
-  
+
   // Check if we already have the image URL cached
   if (variantImages.value.has(variant.id)) {
     return variantImages.value.get(variant.id)
   }
-  
+
   // Check multiple possible image fields in the variant data
   // 1. Check anhDaiDien field (main image)
   if (variant.anhDaiDien) {
     variantImages.value.set(variant.id, variant.anhDaiDien)
     return variant.anhDaiDien
   }
-  
+
   // 2. Check images array
   if (variant.images && variant.images.length > 0) {
     const firstImage = variant.images[0]
@@ -845,7 +845,7 @@ const getVariantImageUrl = (variant) => {
       return imageUrl
     }
   }
-  
+
   // 3. Check anhSanPhams array (product images)
   if (variant.anhSanPhams && variant.anhSanPhams.length > 0) {
     const firstImage = variant.anhSanPhams[0]
@@ -862,7 +862,7 @@ const getVariantImageUrl = (variant) => {
       return imageUrl
     }
   }
-  
+
   // 4. Check hinhAnhs array (images)
   if (variant.hinhAnhs && variant.hinhAnhs.length > 0) {
     const firstImage = variant.hinhAnhs[0]
@@ -879,10 +879,10 @@ const getVariantImageUrl = (variant) => {
       return imageUrl
     }
   }
-  
+
   // If no image found in variant data, try to fetch from API
   loadVariantImage(variant.id)
-  
+
   return null
 }
 
@@ -891,12 +891,12 @@ const loadVariantImage = async (variantId) => {
   try {
     const response = await getHinhAnhByCtspId(variantId)
     const images = response.data || []
-    
+
     if (images.length > 0) {
       // Find the main image (anhChinhDaiDien = true) or use the first image
       const mainImage = images.find(img => img.anhChinhDaiDien) || images[0]
       const imageUrl = mainImage.url || mainImage.uri || mainImage.src
-      
+
       if (imageUrl) {
         variantImages.value.set(variantId, imageUrl)
         // Force reactivity update
@@ -917,14 +917,14 @@ const loadVariantImage = async (variantId) => {
 // Batch load images for all visible variants
 const loadVisibleVariantImages = async () => {
   if (!paginatedVariants.value || paginatedVariants.value.length === 0) return
-  
+
   const variantsNeedingImages = paginatedVariants.value.filter(variant => {
-    return variant.id && !variantImages.value.has(variant.id) && 
+    return variant.id && !variantImages.value.has(variant.id) &&
            !variant.anhDaiDien && !variant.images && !variant.anhSanPhams && !variant.hinhAnhs
   })
-  
+
   if (variantsNeedingImages.length === 0) return
-  
+
   // Load images in parallel but limit concurrent requests
   const batchSize = 5
   for (let i = 0; i < variantsNeedingImages.length; i += batchSize) {
@@ -938,23 +938,23 @@ const loadVisibleVariantImages = async () => {
 const handleImageError = (event) => {
   const target = event.target
   const currentSrc = target.src
-  
+
   // Kiểm tra xem đã là fallback image chưa để tránh vòng lặp vô hạn
   if (currentSrc.includes('via.placeholder.com') || currentSrc.includes('data:image') || target.dataset.fallbackSet === 'true') {
     // Đã là fallback, không làm gì nữa để tránh vòng lặp
     return
   }
-  
+
   console.log('🔴 Image failed to load:', currentSrc)
-  
+
   // Sử dụng data URI thay vì external URL để tránh bị block
   // Tạo một SVG placeholder đơn giản
   const svgPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAiIHk9IjUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
-  
+
   // Đánh dấu đã set fallback để tránh vòng lặp
   target.dataset.fallbackSet = 'true'
   target.src = svgPlaceholder
-  
+
   // Nếu data URI cũng fail, ẩn image và hiển thị placeholder
   target.onerror = () => {
     target.style.display = 'none'
@@ -997,17 +997,17 @@ const openSerialModal = async (variant) => {
 
 const handleSerialSaved = async ({ variantId, serials }) => {
   console.log('🔵 handleSerialSaved called:', { variantId, serials })
-  
+
   // ✅ FIX: Handle case where serials might be undefined or null
   const serialsArray = serials || []
-  
+
   // Count only active serials (trangThai = 1)
   const activeSerialCount = serialsArray.filter(s => s.trangThai === 1).length
   console.log('Serials saved for variant:', variantId, 'Total:', serialsArray.length, 'Active:', activeSerialCount)
-  
+
   showSerialModal.value = false
   currentVariant.value = null
-  
+
   // Reload variants list to reflect updated stock (backend should return updated soLuongTon)
   await triggerFetch()
 }

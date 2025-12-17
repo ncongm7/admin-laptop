@@ -83,10 +83,13 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('token', jwtToken)
         localStorage.setItem('user', JSON.stringify(userData))
 
-        // Lưu userId để dùng cho bán hàng
-        if (userData.userId || userData.user_id) {
-          localStorage.setItem('userId', userData.userId || userData.user_id)
-          localStorage.setItem('currentNhanVienId', userData.userId || userData.user_id)
+        // Lưu userId để dùng cho bán hàng và chat
+        const userId = userData.userId || userData.user_id || userData.id;
+        if (userId) {
+          localStorage.setItem('userId', userId)
+          localStorage.setItem('currentNhanVienId', userId)
+        } else {
+            console.warn('⚠️ Login thành công nhưng không tìm thấy userId trong response');
         }
 
         // Set Authorization header cho các request sau
@@ -180,16 +183,17 @@ export const useAuthStore = defineStore('auth', {
         }
 
         if (userData) {
-        this.user = userData
-        localStorage.setItem('user', JSON.stringify(userData))
+          this.user = userData
+          localStorage.setItem('user', JSON.stringify(userData))
 
-        // Cập nhật userId
-        if (userData.userId || userData.user_id) {
-          localStorage.setItem('userId', userData.userId || userData.user_id)
-          localStorage.setItem('currentNhanVienId', userData.userId || userData.user_id)
-        }
+          // Cập nhật userId
+          const userId = userData.userId || userData.user_id || userData.id;
+          if (userId) {
+            localStorage.setItem('userId', userId)
+            localStorage.setItem('currentNhanVienId', userId)
+          }
 
-        console.log('Đã cập nhật thông tin user mới nhất từ server:', userData)
+          console.log('Đã cập nhật thông tin user mới nhất từ server:', userData)
         }
       } catch (error) {
         // Không log warning để tránh spam console khi token không hợp lệ (server restart)

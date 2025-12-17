@@ -221,7 +221,7 @@
         <nav class="mt-4" v-if="totalPages > 1">
           <ul class="pagination justify-content-center">
             <li class="page-item" :class="{ disabled: currentPage === 1 }">
-              <a class="page-link" href="#" @click.prevent="prevPage">Trước</a>
+              <a class="page-link" href="#" @click.prevent="prevPage">Trang trước</a>
             </li>
             <li
               v-for="page in visiblePages"
@@ -232,7 +232,7 @@
               <a class="page-link" href="#" @click.prevent="goToPage(page)">{{ page }}</a>
             </li>
             <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-              <a class="page-link" href="#" @click.prevent="nextPage">Sau</a>
+              <a class="page-link" href="#" @click.prevent="nextPage">Trang sau</a>
             </li>
           </ul>
         </nav>

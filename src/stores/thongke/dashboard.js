@@ -41,8 +41,9 @@ export const useDashboardStore = defineStore('dashboard', {
     /**
      * Fetch dữ liệu Dashboard từ API
      * @param {Object} dateRange - { start: Date, end: Date }
+     * @param {String} groupBy - 'day', 'week', 'month', 'quarter', 'year'
      */
-    async fetchDashboardData(dateRange) {
+    async fetchDashboardData(dateRange, groupBy = 'day') {
       this.isLoading = true
       this.error = null
 
@@ -53,12 +54,12 @@ export const useDashboardStore = defineStore('dashboard', {
         const startDate = this.formatDate(dateRange.start)
         const endDate = this.formatDate(dateRange.end)
 
-        console.log('📅 [DashboardStore] Khoảng thời gian:', { startDate, endDate })
+        console.log('📅 [DashboardStore] Khoảng thời gian:', { startDate, endDate, groupBy })
 
         // Fetch tất cả dữ liệu song song
         const [tongQuanData, bieuDoData, sanPhamData, giaoDichData, hoatDongData] = await Promise.all([
           fetchThongKeTongQuan(startDate, endDate),
-          fetchBieuDoData(startDate, endDate, 'day'),
+          fetchBieuDoData(startDate, endDate, groupBy),
           fetchSanPhamBanChay(startDate, endDate, 5),
           fetchGiaoDichGanDay(10),
           fetchHoatDongKhachHang(10),
@@ -160,19 +161,19 @@ export const useDashboardStore = defineStore('dashboard', {
      */
     formatRelativeTime(timestamp) {
       if (!timestamp) return 'Vừa xong'
-      
+
       const now = new Date()
       const time = new Date(timestamp)
       const diffMs = now - time
       const diffMins = Math.floor(diffMs / 60000)
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
-      
+
       if (diffMins < 1) return 'Vừa xong'
       if (diffMins < 60) return `${diffMins} phút trước`
       if (diffHours < 24) return `${diffHours} giờ trước`
       if (diffDays < 7) return `${diffDays} ngày trước`
-      
+
       // Format ngày tháng nếu quá lâu
       return time.toLocaleDateString('vi-VN', {
         day: '2-digit',

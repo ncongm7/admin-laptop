@@ -13,7 +13,7 @@
       <button class="btn btn-secondary w-100" @click="handleSearch">Tìm kiếm</button>
     </div>
     <div class="col-md-1">
-      <button class="btn btn-outline-secondary w-100" @click="resetSearch">Reset</button>
+      <button class="btn btn-outline-secondary w-100" @click="resetSearch">Làm mới</button>
     </div>
     <div class="col-4"></div>
     <div class="d-flex align-items-center gap-2">
@@ -106,7 +106,7 @@ export default {
   created() {
     // Khởi tạo toast composable
     const { error: showError } = useToast()
-    
+
     // Lưu vào this để sử dụng trong methods
     this.showError = showError
   },
@@ -127,7 +127,7 @@ export default {
         this.showError(errorMessage)
       }
     },
-    
+
     handleFilterChange() {
       // Emit event khi filter thay đổi
       this.$emit('search', {

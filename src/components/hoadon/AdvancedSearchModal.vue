@@ -1,7 +1,7 @@
 <template>
   <!-- Backdrop -->
   <div class="modal-backdrop fade show" @click="close"></div>
-  
+
   <!-- Modal -->
   <div class="modal fade show d-block" tabindex="-1" style="z-index: 9999;" @click.self="close">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -64,7 +64,7 @@
               </select>
             </div>
 
-            <!-- Voucher đã sử dụng -->
+            <!-- Khuyến mãi đã sử dụng -->
             <div class="mb-3">
               <label class="form-label">
                 <input
@@ -72,7 +72,7 @@
                   class="form-check-input me-2"
                   v-model="filters.coVoucher"
                 />
-                Chỉ hiển thị hóa đơn có sử dụng voucher
+                Chỉ hiển thị hóa đơn có sử dụng khuyến mãi
               </label>
             </div>
 

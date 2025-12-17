@@ -15,8 +15,13 @@
     <div v-if="!error" class="stats-grid">
       <SalesOverview :total="stats.totalSales" :growth="stats.salesGrowth" :loading="loading" />
       <RevenueStats :revenue="stats.revenue" :profit="stats.profit" :loading="loading" />
-      <CustomerStats :count="stats.customerCount" :growth="stats.customerGrowth" :loading="loading"
-        :moiThangNay="stats.customerMoiThangNay" :hoatDong="stats.customerHoatDong" />
+      <CustomerStats
+        :count="stats.customerCount"
+        :growth="stats.customerGrowth"
+        :loading="loading"
+        :moiThangNay="stats.customerMoiThangNay"
+        :hoatDong="stats.customerHoatDong"
+      />
       <InventoryAlert :low-stock="lowStockItems" :critical="criticalItems" :loading="loading" />
     </div>
 
@@ -29,14 +34,27 @@
     <div v-if="!error" class="dashboard-content">
       <!-- Left Column -->
       <div class="content-left">
-        <SalesChart :data="chartData" :loading="loading" class="chart-card" />
-        <RecentTransactions :transactions="recentTransactions" :loading="loading" class="transactions-card" />
+        <SalesChart
+          :data="chartData"
+          :loading="loading"
+          @period-change="handlePeriodChange"
+          class="chart-card"
+        />
+        <RecentTransactions
+          :transactions="recentTransactions"
+          :loading="loading"
+          class="transactions-card"
+        />
       </div>
 
       <!-- Right Column -->
       <div class="content-right">
         <TopProducts :products="topProducts" :loading="loading" class="products-card" />
-        <CustomerActivity :activities="customerActivities" :loading="loading" class="activity-card" />
+        <CustomerActivity
+          :activities="customerActivities"
+          :loading="loading"
+          class="activity-card"
+        />
       </div>
     </div>
   </div>
@@ -61,16 +79,34 @@ import CustomerActivity from '@/dashboardview/CustomerActivity.vue'
 const dashboardStore = useDashboardStore()
 
 // Sử dụng storeToRefs để reactive với store state (optional, hoặc dùng trực tiếp từ store)
-const { isLoading: loading, stats, chartData, topProducts, recentTransactions, customerActivities, error } = storeToRefs(dashboardStore)
+const {
+  isLoading: loading,
+  stats,
+  chartData,
+  topProducts,
+  recentTransactions,
+  customerActivities,
+  error,
+} = storeToRefs(dashboardStore)
 
 const dateRange = ref({
   start: new Date(new Date().setDate(new Date().getDate() - 30)),
-  end: new Date()
+  end: new Date(),
 })
 
-const fetchData = async () => {
+const activePeriod = ref('month')
+
+const fetchData = async (period = activePeriod.value) => {
   try {
-    await dashboardStore.fetchDashboardData(dateRange.value)
+    // Map frontend period to backend groupBy
+    const groupByMap = {
+      week: 'week',
+      month: 'month',
+      quarter: 'quarter',
+      year: 'year',
+    }
+    const groupBy = groupByMap[period] || 'month'
+    await dashboardStore.fetchDashboardData(dateRange.value, groupBy)
   } catch (err) {
     console.error('❌ [DashboardView] Lỗi khi fetch dữ liệu:', err)
   }
@@ -81,7 +117,7 @@ const handleDateChange = (range) => {
   if (range && Array.isArray(range) && range.length === 2) {
     dateRange.value = {
       start: new Date(range[0]),
-      end: new Date(range[1])
+      end: new Date(range[1]),
     }
     fetchData()
   }
@@ -89,6 +125,30 @@ const handleDateChange = (range) => {
 
 const refreshData = () => {
   fetchData()
+}
+
+const handlePeriodChange = (period) => {
+  console.log('📊 [DashboardView] Period changed to:', period)
+  activePeriod.value = period
+
+  // Adjust date range based on period
+  const ranges = {
+    week: 7,
+    month: 30,
+    quarter: 90,
+    year: 365,
+  }
+
+  const days = ranges[period] || 30
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+
+  dateRange.value = {
+    start: startDate,
+    end: new Date(),
+  }
+
+  fetchData(period)
 }
 
 // Tồn kho từ API thống kê

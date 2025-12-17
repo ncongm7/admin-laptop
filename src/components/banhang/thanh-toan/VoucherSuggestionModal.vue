@@ -28,7 +28,7 @@
                         <small class="text-muted">
                             Có thể do:<br />
                             - Chưa đủ điều kiện về giá trị đơn hàng<br />
-                            - Voucher đã hết hạn hoặc hết lượt sử dụng
+                            - Khuyến mãi đã hết hạn hoặc hết lượt sử dụng
                         </small>
                     </div>
 
@@ -212,8 +212,8 @@ const handleApplyVoucher = async (voucher) => {
     if (isApplying.value) return
 
     const confirmed = await showConfirm({
-        title: 'Xác nhận áp dụng voucher',
-        message: `Bạn có chắc chắn muốn áp dụng voucher "${voucher.tenPhieuGiamGia}"?\n\nGiảm: ${formatCurrency(voucher.tienGiamDuKien)}`,
+        title: 'Xác nhận áp dụng khuyến mãi',
+        message: `Bạn có chắc chắn muốn áp dụng khuyến mãi "${voucher.tenPhieuGiamGia}"?\n\nGiảm: ${formatCurrency(voucher.tienGiamDuKien)}`,
         confirmText: 'Áp dụng',
         cancelText: 'Hủy',
         type: 'info'
