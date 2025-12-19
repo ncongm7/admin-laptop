@@ -245,6 +245,11 @@ const handleWarrantyUpdated = (updated) => {
     const idx = warranties.value.findIndex((w) => w.id === updated.id)
     if (idx !== -1) {
         warranties.value[idx] = { ...warranties.value[idx], ...updated }
+
+        // Cập nhật selectedWarranty nếu đang mở chi tiết phiếu đó
+        if (selectedWarranty.value && selectedWarranty.value.id === updated.id) {
+            selectedWarranty.value = warranties.value[idx]
+        }
     }
 }
 

@@ -70,15 +70,19 @@ const props = defineProps({
 
 const timelineSteps = computed(() => {
     if (!props.warranty) return []
-    
+
+    // Nếu đã hủy (5), chỉ hiện step đầu hoàn thành, còn lại pending/cancelled
+    const isCancelled = props.warranty.trangThai === 5
+    const currentStatus = isCancelled ? -1 : props.warranty.trangThai // Nếu hủy thì không matching logic >= thông thường
+
     const steps = [
         {
             title: 'Đăng ký bảo hành',
             description: 'Yêu cầu bảo hành đã được gửi và đang chờ xử lý',
             icon: 'bi bi-file-earmark-text',
-            status: props.warranty.trangThai >= 0 ? 'completed' : 'pending',
-            statusText: props.warranty.trangThai >= 0 ? 'Hoàn thành' : 'Chờ xử lý',
-            badgeClass: props.warranty.trangThai >= 0 ? 'bg-success' : 'bg-secondary',
+            status: 'completed', // Luôn completed vì đã có warranty
+            statusText: 'Hoàn thành',
+            badgeClass: 'bg-success',
             date: props.warranty.ngayTao,
             employee: null,
             details: []
@@ -87,26 +91,26 @@ const timelineSteps = computed(() => {
             title: 'Xác nhận yêu cầu',
             description: 'Hệ thống đã xác nhận yêu cầu bảo hành',
             icon: 'bi bi-check-circle',
-            status: props.warranty.trangThai >= 1 ? 'completed' : 'pending',
-            statusText: props.warranty.trangThai >= 1 ? 'Hoàn thành' : 'Chờ xử lý',
-            badgeClass: props.warranty.trangThai >= 1 ? 'bg-success' : 'bg-secondary',
-            date: props.warranty.trangThai >= 1 ? props.warranty.ngayTao : null,
+            status: currentStatus >= 1 ? 'completed' : (isCancelled ? 'pending' : 'pending'),
+            statusText: currentStatus >= 1 ? 'Hoàn thành' : 'Chờ xử lý',
+            badgeClass: currentStatus >= 1 ? 'bg-success' : 'bg-secondary',
+            date: currentStatus >= 1 ? props.warranty.ngayTao : null,
             employee: null,
             details: []
         },
         {
             title: 'Phiếu hẹn',
-            description: props.phieuHenList.length > 0 
+            description: props.phieuHenList.length > 0
                 ? `Đã tạo phiếu hẹn ${props.phieuHenList[0].maPhieuHen}`
                 : 'Chưa tạo phiếu hẹn',
             icon: 'bi bi-calendar-check',
-            status: props.phieuHenList.length > 0 
+            status: props.phieuHenList.length > 0
                 ? (props.phieuHenList[0].trangThai === 1 ? 'completed' : 'active')
                 : 'pending',
-            statusText: props.phieuHenList.length > 0 
+            statusText: props.phieuHenList.length > 0
                 ? (props.phieuHenList[0].trangThai === 1 ? 'Đã xác nhận' : 'Chờ xác nhận')
                 : 'Chưa tạo',
-            badgeClass: props.phieuHenList.length > 0 
+            badgeClass: props.phieuHenList.length > 0
                 ? (props.phieuHenList[0].trangThai === 1 ? 'bg-success' : 'bg-warning')
                 : 'bg-secondary',
             date: props.phieuHenList.length > 0 ? props.phieuHenList[0].ngayHen : null,
@@ -120,9 +124,9 @@ const timelineSteps = computed(() => {
             title: 'Tiếp nhận sản phẩm',
             description: 'Sản phẩm đã được tiếp nhận tại trung tâm bảo hành',
             icon: 'bi bi-box-seam',
-            status: props.warranty.trangThai >= 2 ? 'completed' : 'pending',
-            statusText: props.warranty.trangThai >= 2 ? 'Hoàn thành' : 'Chờ xử lý',
-            badgeClass: props.warranty.trangThai >= 2 ? 'bg-success' : 'bg-secondary',
+            status: currentStatus >= 2 ? 'completed' : 'pending',
+            statusText: currentStatus >= 2 ? 'Hoàn thành' : 'Chờ xử lý',
+            badgeClass: currentStatus >= 2 ? 'bg-success' : 'bg-secondary',
             date: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].ngayNhanHang : null,
             employee: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].tenNhanVienTiepNhan : null,
             details: []
@@ -131,9 +135,9 @@ const timelineSteps = computed(() => {
             title: 'Sửa chữa',
             description: 'Sản phẩm đang được kiểm tra và sửa chữa',
             icon: 'bi bi-tools',
-            status: props.warranty.trangThai >= 3 ? 'completed' : (props.warranty.trangThai === 2 ? 'active' : 'pending'),
-            statusText: props.warranty.trangThai >= 3 ? 'Hoàn thành' : (props.warranty.trangThai === 2 ? 'Đang xử lý' : 'Chờ xử lý'),
-            badgeClass: props.warranty.trangThai >= 3 ? 'bg-success' : (props.warranty.trangThai === 2 ? 'bg-primary' : 'bg-secondary'),
+            status: currentStatus >= 3 ? 'completed' : (currentStatus === 2 ? 'active' : 'pending'),
+            statusText: currentStatus >= 3 ? 'Hoàn thành' : (currentStatus === 2 ? 'Đang xử lý' : 'Chờ xử lý'),
+            badgeClass: currentStatus >= 3 ? 'bg-success' : (currentStatus === 2 ? 'bg-primary' : 'bg-secondary'),
             date: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].ngayTiepNhan : null,
             employee: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].tenNhanVienSuaChua : null,
             details: props.lichSuBaoHanh.length > 0 && props.lichSuBaoHanh[0].moTaLoi ? [
@@ -144,26 +148,26 @@ const timelineSteps = computed(() => {
             title: 'Bàn giao',
             description: 'Sản phẩm đã sửa xong, sẵn sàng bàn giao',
             icon: 'bi bi-box-arrow-right',
-            status: props.warranty.trangThai >= 4 ? 'completed' : 'pending',
-            statusText: props.warranty.trangThai >= 4 ? 'Hoàn thành' : 'Chờ xử lý',
-            badgeClass: props.warranty.trangThai >= 4 ? 'bg-success' : 'bg-secondary',
+            status: currentStatus >= 4 ? 'completed' : 'pending',
+            statusText: currentStatus >= 4 ? 'Hoàn thành' : 'Chờ xử lý',
+            badgeClass: currentStatus >= 4 ? 'bg-success' : 'bg-secondary',
             date: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].ngayBanGiao : null,
             employee: props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].tenNhanVienSuaChua : null,
             details: []
         },
         {
             title: 'Hoàn thành',
-            description: 'Bảo hành đã hoàn tất',
-            icon: 'bi bi-check-circle-fill',
-            status: props.warranty.trangThai >= 4 ? 'completed' : 'pending',
-            statusText: props.warranty.trangThai >= 4 ? 'Hoàn thành' : 'Chưa hoàn thành',
-            badgeClass: props.warranty.trangThai >= 4 ? 'bg-success' : 'bg-secondary',
-            date: props.warranty.trangThai >= 4 && props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].ngayHoanThanh : null,
+            description: isCancelled ? 'Bảo hành đã bị hủy' : 'Bảo hành đã hoàn tất',
+            icon: isCancelled ? 'bi bi-x-circle-fill' : 'bi bi-check-circle-fill',
+            status: (currentStatus >= 4 || isCancelled) ? 'completed' : 'pending',
+            statusText: isCancelled ? 'Đã hủy' : (currentStatus >= 4 ? 'Hoàn thành' : 'Chưa hoàn thành'),
+            badgeClass: isCancelled ? 'bg-danger' : (currentStatus >= 4 ? 'bg-success' : 'bg-secondary'),
+            date: isCancelled ? props.warranty.ngayCapNhat : (currentStatus >= 4 && props.lichSuBaoHanh.length > 0 ? props.lichSuBaoHanh[0].ngayHoanThanh : null),
             employee: null,
             details: []
         }
     ]
-    
+
     return steps
 })
 

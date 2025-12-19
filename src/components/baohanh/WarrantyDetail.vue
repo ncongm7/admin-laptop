@@ -208,7 +208,7 @@
                                                 Có thể chuyển sang hoàn thành sau khi sửa chữa xong
                                             </div>
                                             <button class="btn btn-primary w-100 mb-3" @click="handleUpdateStatus"
-                                                :disabled="!selectedStatus || selectedStatus === (warranty.trangThai || warranty.status) || updatingStatus">
+                                                :disabled="!selectedStatus && selectedStatus !== 0 || selectedStatus === (warranty.trangThai || warranty.status) || updatingStatus">
                                                 <span v-if="updatingStatus"
                                                     class="spinner-border spinner-border-sm me-2"></span>
                                                 <i v-else class="bi bi-check-circle me-2"></i>
@@ -225,15 +225,7 @@
                                                     {{ phieuHenList.length > 0 ? 'Tạo phiếu hẹn mới' : 'Tạo phiếu hẹn'
                                                     }}
                                                 </button>
-                                                <button class="btn btn-info" @click="openReceiveModal">
-                                                    <i class="bi bi-box-seam me-1"></i>Tiếp nhận sản phẩm
-                                                </button>
-                                                <button class="btn btn-warning" @click="openAddCostModal">
-                                                    <i class="bi bi-cash-coin me-1"></i>Thêm chi phí phát sinh
-                                                </button>
-                                                <button class="btn btn-success" @click="openHandoverModal">
-                                                    <i class="bi bi-box-arrow-right me-1"></i>Bàn giao sản phẩm
-                                                </button>
+
                                             </div>
                                         </div>
                                     </div>
@@ -612,6 +604,29 @@ const getRemainingDaysClass = (days) => {
     return 'text-danger'
 }
 
+const isValidNextStatus = (current, next) => {
+    // Nếu chưa có status hiện tại (null/undefined), coi như là status 0 (Chờ xử lý)
+    const currentStatus = current ?? 0
+
+    // Luôn cho phép hủy (5) từ bất kỳ trạng thái nào chưa hoàn thành
+    if (next === 5 && currentStatus !== 4 && currentStatus !== 5) return true
+
+    // Logic chuyển đổi tuần tự strict
+    switch (currentStatus) {
+        case 0: // Chờ xử lý -> Đã tiếp nhận
+            return next === 1
+        case 1: // Đã tiếp nhận -> Đang sửa chữa
+            return next === 2
+        case 2: // Đang sửa chữa -> Chờ bàn giao
+            return next === 3
+        case 3: // Chờ bàn giao -> Hoàn thành
+            return next === 4
+
+        default: // 4 (Hoàn thành) và 5 (Đã hủy) là trạng thái cuối
+            return false
+    }
+}
+
 // Methods
 const openRepairModal = () => {
     showRepairModal.value = true
@@ -782,6 +797,13 @@ const handleUpdateStatus = async () => {
         return
     }
 
+    // VALIDATION LOGIC MOVED HERE instead of disabling options
+    if (!isValidNextStatus(currentStatus, selectedStatus.value)) {
+        alert(`Không thể chuyển từ "${warrantyStatusText(currentStatus)}" sang "${warrantyStatusText(selectedStatus.value)}". Vui lòng thực hiện theo quy trình tuần tự.`)
+        // Reset selection if needed, or leave it for user to correct
+        return
+    }
+
     if (!confirm(`Bạn có chắc muốn chuyển trạng thái từ "${warrantyStatusText(currentStatus)}" sang "${warrantyStatusText(selectedStatus.value)}"?`)) {
         return
     }
@@ -921,6 +943,7 @@ onUnmounted(() => {
 
 .modal {
     background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
 }
 
 .appointment-card {

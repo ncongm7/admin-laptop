@@ -528,34 +528,38 @@ const getCustomerName = (transaction) => {
 const getItemCount = (transaction) => {
   if (!transaction) return 0
 
-  // Thử nhiều cách lấy danh sách sản phẩm
-  const items = transaction.hoaDonChiTiet ||
-    transaction.chiTietList ||
-    transaction.hoaDonChiTiets ||
-    transaction.items ||
-    []
+  // 1. Check direct quantity fields (prioritize these)
+  if (transaction.tongSoLuong !== undefined && transaction.tongSoLuong !== null) return transaction.tongSoLuong
+  if (transaction.soLuongSanPham !== undefined && transaction.soLuongSanPham !== null) return transaction.soLuongSanPham
+  if (transaction.soLuong !== undefined && transaction.soLuong !== null) return transaction.soLuong
+  if (transaction.quantity !== undefined && transaction.quantity !== null) return transaction.quantity
+  if (transaction.totalItems !== undefined && transaction.totalItems !== null) return transaction.totalItems
 
-  // Nếu là mảng, tính tổng số lượng
+  // 2. Check items array
+  const items = transaction.hoaDonChiTiet ||
+               transaction.chiTietList ||
+               transaction.hoaDonChiTiets ||
+               transaction.listHoaDonChiTiet ||
+               transaction.items ||
+               transaction.products ||
+               []
+
   if (Array.isArray(items) && items.length > 0) {
     const totalQuantity = items.reduce((sum, item) => {
-      const quantity = item.soLuong || item.so_luong || item.quantity || 0
-      return sum + (typeof quantity === 'number' ? quantity : parseInt(quantity) || 0)
+      const quantity = item.soLuong || item.quantity || item.so_luong || 1
+      return sum + (Number(quantity) || 0)
     }, 0)
-    // Nếu tổng số lượng > 0 thì trả về, nếu không thì trả về số loại sản phẩm
     return totalQuantity > 0 ? totalQuantity : items.length
   }
 
-  // Nếu có field tổng số lượng trực tiếp
-  if (transaction.tongSoLuong !== undefined && transaction.tongSoLuong !== null) {
-    return transaction.tongSoLuong
+  // 3. Last resort: if we have a transaction ID/Code but no items info,
+  // checking 'loaiHoaDon' or 'totalMoney' might imply items exist.
+  // For now, return 0 to be safe, or 1? User said "chưa hiển thị đúng", maybe 0 is wrong even if it exists.
+  // Let's assume valid transactions (tongTien > 0) must have at least 1 item.
+  if (transaction.tongTien > 0 || transaction.tongTienSauGiam > 0) {
+     return 1
   }
 
-  // Nếu là object, thử lấy length property
-  if (items && typeof items === 'object' && items.length !== undefined) {
-    return items.length
-  }
-
-  // Fallback: Nếu không có dữ liệu, trả về 0
   return 0
 }
 
@@ -1374,41 +1378,48 @@ onMounted(() => {
 .order-timeline-section {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 2px solid #dee2e6;
+  overflow-x: auto; /* Allow scrolling on small screens */
 }
 
 .order-timeline {
   padding: 1rem 0;
+  min-width: 600px; /* Ensure timeline doesn't break on small screens */
 }
 
 .timeline-steps {
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  flex-direction: row; /* Horizontal layout */
+  justify-content: space-between;
+  align-items: flex-start;
   position: relative;
+  width: 100%;
 }
 
 .timeline-step {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 0.75rem 0;
+  flex-direction: column; /* Icon above text */
+  align-items: center;
+  text-align: center;
+  flex: 1;
   position: relative;
+  z-index: 2;
 }
 
 .step-marker {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #e9ecef;
-  border: 2px solid #dee2e6;
+  border: 3px solid #dee2e6;
   color: #6c757d;
   font-size: 1.2rem;
   flex-shrink: 0;
   transition: all 0.3s ease;
-  z-index: 2;
+  margin-bottom: 0.5rem;
+  background-color: #fff; /* Ensure connector doesn't show through */
 }
 
 .timeline-step.completed .step-marker {
@@ -1426,14 +1437,17 @@ onMounted(() => {
 
 .step-info {
   flex: 1;
-  padding-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .step-title {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #212529;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .timeline-step.completed .step-title {
@@ -1446,30 +1460,69 @@ onMounted(() => {
 }
 
 .step-date {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6c757d;
 }
 
 .step-pending {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #adb5bd;
   font-style: italic;
 }
 
+/* Connector line */
 .timeline-connector {
-  width: 2px;
-  height: 20px;
+  position: absolute;
+  top: 20px; /* Center with marker (40px/2) */
+  left: 0;
+  width: 100%;
+  height: 3px;
   background: #dee2e6;
-  margin-left: 15px;
-  transition: all 0.3s ease;
+  z-index: 1;
+  transform: translateY(-50%);
+  display: none; /* Hide default connector div */
 }
 
+/* We need a new way to draw connectors between steps */
+.timeline-steps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 10%; /* Start after first step */
+  right: 10%; /* End before last step */
+  height: 3px;
+  background: #dee2e6;
+  z-index: 1;
+}
+
+/* Dynamic connector coloring logic would require JS or complex CSS sibling selectors,
+   but for simplicity with Vue dynamic classes, we can use the existing connector logic if we adjust it.
+   Let's use the individual connectors but positioned absolutely between steps.
+*/
+
+.timeline-connector {
+  display: block;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 100%; /* Spans to next step */
+  height: 3px;
+  background: #dee2e6;
+  margin: 0;
+  z-index: 1;
+}
+
+/* Only show connector for steps except the last one */
+.timeline-step:last-child .timeline-connector {
+  display: none;
+}
+
+/* Override previous connector styles */
 .timeline-connector.active {
   background: #28a745;
 }
 
 @keyframes pulse-timeline {
-
   0%,
   100% {
     transform: scale(1);

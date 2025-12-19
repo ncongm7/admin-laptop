@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 
 const props = defineProps({
@@ -60,7 +60,8 @@ const changePeriod = (period) => {
   emit('period-change', period)
 }
 
-const initChart = () => {
+const initChart = async () => {
+  await nextTick()
   // Check nếu không có canvas hoặc không có data thì không render
   if (!chartCanvas.value) {
     console.log('🔄 [SalesChart] Canvas chưa sẵn sàng')
@@ -189,7 +190,7 @@ onMounted(() => {
 })
 
 watch(
-  () => props.data,
+  () => [props.data, props.loading],
   () => {
     if (!props.loading) {
       initChart()
