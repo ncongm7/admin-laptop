@@ -82,8 +82,8 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold">{{ item.tenSanPham || item.productName || 'N/A' }}</div>
-                                    <div class="text-muted small">{{ item.maSanPham || item.productCode || '' }}</div>
+                                    <div class="fw-semibold">{{ item.tenSP || item.tenSanPham || 'N/A' }}</div>
+                                    <div class="text-muted small">{{ item.maSP || item.maSanPham || '' }}</div>
                                 </td>
                                 <td>{{ item.soSerial || item.imei || '—' }}</td>
                                 <td>{{ formatDate(item.ngayBatDau || item.startDate) }}</td>

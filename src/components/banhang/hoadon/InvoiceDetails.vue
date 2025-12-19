@@ -674,7 +674,7 @@ watch(() => props.hoaDon, async (newHoaDon) => {
 
     // Kiểm tra và tự động xóa voucher nếu không đủ điều kiện
     if (newHoaDon) {
-        await checkAndRemoveInvalidVoucher(newHoaDon)
+        // await checkAndRemoveInvalidVoucher(newHoaDon)
     }
 }, { immediate: false })
 

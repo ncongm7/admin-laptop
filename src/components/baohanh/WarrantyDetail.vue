@@ -121,15 +121,15 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Địa chỉ</label>
-                                                        <p>{{ warranty.customerAddress || 'N/A' }}</p>
+                                                        <p>{{ warranty.customerAddress || 'Chưa có thông tin địa chỉ' }}</p>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div class="mt-3">
-                                                <h6 class="section-title">Mô tả bảo hành</h6>
+                                                <h6 class="section-title">Lý do / Mô tả lỗi</h6>
                                                 <div class="p-3 bg-light rounded">
-                                                    {{ warranty.moTa || 'Không có mô tả' }}
+                                                    {{ warranty.moTa || 'Chưa có mô tả chi tiết' }}
                                                 </div>
                                             </div>
 
@@ -141,6 +141,10 @@
                                                         style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;"
                                                         @click="openImageModal(img)">
                                                 </div>
+                                            </div>
+                                            <div v-else class="mt-3">
+                                                <h6 class="section-title">Ảnh minh chứng</h6>
+                                                <p class="text-muted fst-italic">Không có hình ảnh minh chứng</p>
                                             </div>
                                         </div>
                                     </div>

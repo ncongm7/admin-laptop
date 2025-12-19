@@ -19,7 +19,7 @@
               <i class="bi bi-plus-circle text-success"></i>
               <span class="fw-semibold text-muted">{{ isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới' }}</span>
             </div>
-            
+
             <!-- Product Info for add-variants-only mode -->
             <div v-if="isAddVariantsMode" class="alert alert-info mb-3">
               <div class="d-flex align-items-center">
@@ -30,7 +30,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="row g-4">
               <!-- Full Width Column -->
               <div class="col-md-12">
@@ -118,9 +118,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="color in colors" :key="color.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="color.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="color.id"
                                       v-model="variantConfig.selectedMauSacIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -147,9 +147,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="cpu in cpus" :key="cpu.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="cpu.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="cpu.id"
                                       v-model="variantConfig.selectedCpuIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -176,9 +176,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="ram in rams" :key="ram.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="ram.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="ram.id"
                                       v-model="variantConfig.selectedRamIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -205,9 +205,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="gpu in gpus" :key="gpu.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="gpu.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="gpu.id"
                                       v-model="variantConfig.selectedGpuIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -238,9 +238,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="storage in storages" :key="storage.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="storage.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="storage.id"
                                       v-model="variantConfig.selectedOCungIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -267,9 +267,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="display in displays" :key="display.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="display.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="display.id"
                                       v-model="variantConfig.selectedLoaiManHinhIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -296,9 +296,9 @@
                               <ul class="dropdown-menu w-100 multi-select-dropdown">
                                 <li v-for="battery in batteries" :key="battery.id" class="dropdown-item-checkbox">
                                   <label class="dropdown-item mb-0">
-                                    <input 
-                                      type="checkbox" 
-                                      :value="battery.id" 
+                                    <input
+                                      type="checkbox"
+                                      :value="battery.id"
                                       v-model="variantConfig.selectedPinIds"
                                       class="form-check-input me-2"
                                       @change="updateStockFromSerials"
@@ -406,15 +406,15 @@
                                   <div v-else class="variant-image-preview">
                                     <img :src="variant.anhDaiDien" alt="Variant image" />
                                     <div class="image-overlay">
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         class="btn btn-sm btn-outline-light"
                                         @click="selectVariantImage(index)"
                                       >
                                         <i class="bi bi-pencil"></i>
                                       </button>
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         class="btn btn-sm btn-outline-light"
                                         @click="removeVariantImage(index)"
                                       >
@@ -480,10 +480,10 @@
             <i class="bi bi-x-lg me-1"></i>
             Hủy bỏ
           </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            @click="isAddVariantsMode ? saveAndCreateVariants() : saveProduct()" 
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="isAddVariantsMode ? saveAndCreateVariants() : saveProduct()"
             :disabled="loading"
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -505,7 +505,7 @@
               <div class="serial-modal-header">
                 <h5 class="serial-modal-title">
                   Quản lý Serial Numbers
-                  
+
                 </h5>
                 <button type="button" class="btn-close" @click="closeSerialModal"></button>
               </div>
@@ -617,22 +617,22 @@
                           <td>{{ idx + 1 }}</td>
                           <td class="fw-medium">
                             {{ serial.soSerial }}
-                            <i 
-                              v-if="!serial.id" 
-                              class="bi bi-circle-fill text-warning ms-1" 
+                            <i
+                              v-if="!serial.id"
+                              class="bi bi-circle-fill text-warning ms-1"
                               title="Chưa lưu vào database"
                               style="font-size: 6px;"
                             ></i>
-                            <i 
-                              v-else 
-                              class="bi bi-check-circle-fill text-success ms-1" 
+                            <i
+                              v-else
+                              class="bi bi-check-circle-fill text-success ms-1"
                               title="Đã lưu vào database"
                               style="font-size: 10px;"
                             ></i>
                           </td>
                           <td>
-                            <span 
-                              class="badge" 
+                            <span
+                              class="badge"
                               :class="serial.trangThai === 1 ? 'bg-success' : 'bg-secondary'"
                             >
                               {{ serial.trangThai === 1 ? 'Có sẵn' : 'Ẩn' }}
@@ -682,14 +682,14 @@
                   <button type="button" class="btn btn-secondary" @click="closeSerialModal">
                     <i class="bi bi-x-lg"></i> Hủy
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-success" 
+                  <button
+                    type="button"
+                    class="btn btn-success"
                     @click="saveSerials"
                     :disabled="loading"
                   >
                     <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                    <i v-else class="bi bi-check-lg"></i> 
+                    <i v-else class="bi bi-check-lg"></i>
                     {{ loading ? 'Lưu...' : 'Lưu' }}
                   </button>
                 </div>
@@ -700,7 +700,7 @@
       </div>
     </teleport>
   </div>
-  
+
   <!-- Toast Notifications -->
   <NotificationToast ref="toast" />
 </template>
@@ -817,7 +817,7 @@ watch(() => props.product, (newProduct) => {
     form.value.trangThai = newProduct.trangThai?.toString() || '1'
     form.value.anhDaiDien = newProduct.anhDaiDien || null
     form.value.variants = []
-    
+
     // Reset variant config
     variantConfig.value = {
       selectedCpuIds: [],
@@ -835,7 +835,7 @@ watch(() => props.product, (newProduct) => {
 const calculateTotalCombinations = computed(() => {
     const config = variantConfig.value
     let total = 1
-    
+
     if (config.selectedCpuIds.length > 0) total *= config.selectedCpuIds.length
     if (config.selectedGpuIds.length > 0) total *= config.selectedGpuIds.length
     if (config.selectedRamIds.length > 0) total *= config.selectedRamIds.length
@@ -843,9 +843,9 @@ const calculateTotalCombinations = computed(() => {
     if (config.selectedMauSacIds.length > 0) total *= config.selectedMauSacIds.length
     if (config.selectedLoaiManHinhIds.length > 0) total *= config.selectedLoaiManHinhIds.length
     if (config.selectedPinIds.length > 0) total *= config.selectedPinIds.length
-    
+
     // If no attributes selected, return 0
-    const hasSelectedAttributes = 
+    const hasSelectedAttributes =
       config.selectedCpuIds.length > 0 ||
       config.selectedGpuIds.length > 0 ||
       config.selectedRamIds.length > 0 ||
@@ -853,7 +853,7 @@ const calculateTotalCombinations = computed(() => {
       config.selectedMauSacIds.length > 0 ||
       config.selectedLoaiManHinhIds.length > 0 ||
       config.selectedPinIds.length > 0
-    
+
     return hasSelectedAttributes ? total : 0
 })
 
@@ -885,10 +885,10 @@ watch(
 
 const generatePreviewVariants = () => {
   const config = variantConfig.value
-  
+
   // Generate preview if we have at least one selection (no price requirement)
-  
-  const hasSelectedAttributes = 
+
+  const hasSelectedAttributes =
     config.selectedCpuIds.length > 0 ||
     config.selectedGpuIds.length > 0 ||
     config.selectedRamIds.length > 0 ||
@@ -986,14 +986,14 @@ const saveProduct = async () => {
       await productStore.fetchAllProducts()
       const existingProducts = productStore.products || []
       console.log('📦 Found', existingProducts.length, 'existing products')
-      
-      const duplicateProduct = existingProducts.find(p => 
-        p.maSanPham === form.value.maSanPham && 
+
+      const duplicateProduct = existingProducts.find(p =>
+        p.maSanPham === form.value.maSanPham &&
         p.id !== form.value.id // Exclude current product when editing
       )
-      
+
       console.log('🔍 Duplicate check result:', duplicateProduct ? 'FOUND DUPLICATE' : 'NO DUPLICATE')
-      
+
       if (duplicateProduct) {
         console.log('❌ Duplicate product found:', duplicateProduct)
         await showConfirm({
@@ -1022,12 +1022,12 @@ const saveProduct = async () => {
     // Calculate price range from variants
     let giaThapNhat = 0
     let giaCaoNhat = 0
-    
+
     if (form.value.variants && form.value.variants.length > 0) {
       const variantPrices = form.value.variants
         .map(v => parseFloat(v.giaBan) || 0)
         .filter(price => price > 0)
-      
+
       if (variantPrices.length > 0) {
         giaThapNhat = Math.min(...variantPrices)
         giaCaoNhat = Math.max(...variantPrices)
@@ -1045,7 +1045,7 @@ const saveProduct = async () => {
         anhDaiDien = firstVariant.images[0].url || firstVariant.images[0]
       }
     }
-    
+
     const productPayload = {
       tenSanPham: form.value.tenSanPham || '',
       maSanPham: form.value.maSanPham || '',
@@ -1065,7 +1065,7 @@ const saveProduct = async () => {
     }
 
     // For new products, check if we have variants to create
-    const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 && 
+    const hasVariantsToCreate = form.value.variants && form.value.variants.length > 0 &&
       (variantConfig.value.selectedCpuIds.length > 0 ||
        variantConfig.value.selectedGpuIds.length > 0 ||
        variantConfig.value.selectedRamIds.length > 0 ||
@@ -1079,13 +1079,13 @@ const saveProduct = async () => {
       const variantPrices = form.value.variants
         .map(v => parseFloat(v.giaBan) || 0)
         .filter(price => price > 0)
-      
+
       // Update product payload with correct price range
       if (variantPrices.length > 0) {
         productPayload.giaThapNhat = Math.min(...variantPrices)
         productPayload.giaCaoNhat = Math.max(...variantPrices)
       }
-      
+
       const defaultPrice = variantPrices.length > 0 ? variantPrices[0] : 1000000 // Use first variant price or default 1M VND
 
       // Use comprehensive creation function
@@ -1113,7 +1113,7 @@ const saveProduct = async () => {
         }
       })
       variantConfigs[0].serials = allSerials
-      
+
       // Track the number of serials user tried to add (for better error messaging)
       const inputSerialCount = allSerials.length
 
@@ -1128,11 +1128,11 @@ const saveProduct = async () => {
       }
 
       const result = await createProductWithVariantsAndSerials(productPayload, variantConfigs, form.value.variants)
-      
+
       // Update form with created data
       form.value.id = result.product.id
       form.value.anhDaiDien = anhDaiDien // Keep the image URL
-      
+
       // Save product image to all created variants
       if (anhDaiDien && result.variants && result.variants.length > 0) {
         try {
@@ -1147,12 +1147,12 @@ const saveProduct = async () => {
           console.error('❌ Error saving images to variants:', error)
         }
       }
-      
+
       // Map created variants with attribute names for display and load images
       form.value.variants = await Promise.all(result.variants.map(async (variant) => {
         let images = []
         let variantAnhDaiDien = null
-        
+
         // Load images from database
         try {
           const imagesResponse = await getHinhAnhByCtspId(variant.id)
@@ -1163,7 +1163,7 @@ const saveProduct = async () => {
         } catch (err) {
           console.warn(`Failed to load images for variant ${variant.id}`)
         }
-        
+
         return {
           ...variant,
           tenCpu: variant.idCpu ? cpus.value.find(c => c.id === variant.idCpu)?.tenCpu : null,
@@ -1187,15 +1187,15 @@ const saveProduct = async () => {
       // Show success message with clear information
       const serialCount = result.serials.length
       const variantCount = result.variants.length
-      
+
       let successMessage = `✅ Tạo thành công!\n\n🟢 Sản phẩm: ${form.value.tenSanPham}\n🔧 Biến thể: ${variantCount}`
-      
+
       // Check if user tried to add serials
       if (inputSerialCount > 0) {
         if (serialCount > 0) {
           // Some or all serials were added successfully
           successMessage += `\n📋 Serial mới: ${serialCount}`
-          
+
           // Check if some serials were duplicates
           const duplicateCount = inputSerialCount - serialCount
           if (duplicateCount > 0) {
@@ -1210,14 +1210,14 @@ const saveProduct = async () => {
         // No serials were provided by user
         successMessage += `\n\n💡 Bạn có thể thêm serial cho các biến thể sau bằng cách:\n- Nhấn vào nút quản lý serial của từng biến thể\n- Hoặc import từ file Excel`
       }
-      
+
       // Show success message directly with alert for reliability
       alert(successMessage)
     } else {
       // Create product only
       const response = await createSanPham(productPayload)
       form.value.id = response.data.id
-      
+
       alert('Tạo sản phẩm thành công!')
     }
 
@@ -1225,7 +1225,7 @@ const saveProduct = async () => {
   } catch (err) {
     console.error('Error saving product:', err)
     error.value = err.response?.data?.message || err.message || 'Lỗi khi lưu sản phẩm'
-    
+
     alert('Lỗi lưu sản phẩm: ' + error.value)
   } finally {
     loading.value = false
@@ -1238,7 +1238,7 @@ const saveProduct = async () => {
 const generateVariants = async () => {
   console.log('generateVariants function called')
   console.log('form.value.id:', form.value.id)
-  
+
   if (!form.value.id) {
     await showConfirm({
       title: 'Chưa lưu sản phẩm',
@@ -1251,8 +1251,8 @@ const generateVariants = async () => {
 
   const config = variantConfig.value
   console.log('variantConfig:', config)
-  
-  const hasSelectedAttributes = 
+
+  const hasSelectedAttributes =
     config.selectedCpuIds.length > 0 ||
     config.selectedGpuIds.length > 0 ||
     config.selectedRamIds.length > 0 ||
@@ -1314,7 +1314,7 @@ const generateVariants = async () => {
         soLuongTon: variant.soLuongTon || 0,
         serials: variant.serials || []
       }))
-      
+
       // Auto-save product's main image to all new variants
       if (form.value.anhDaiDien && response.data.length > 0) {
         try {
@@ -1325,7 +1325,7 @@ const generateVariants = async () => {
           }))
           await createHinhAnhBatch(imageRequests)
           console.log('Product main image saved to all variants')
-          
+
           // Reload variants with images
           const variantsWithImages = await Promise.all(
             form.value.variants.map(async (variant) => {
@@ -1355,7 +1355,7 @@ const generateVariants = async () => {
       message: `Tạo thành công ${calculateTotalCombinations.value} biến thể!`,
       duration: 4000
     })
-    
+
     // Clear selections after successful creation
     variantConfig.value = {
       selectedCpuIds: [],
@@ -1367,11 +1367,11 @@ const generateVariants = async () => {
       selectedPinIds: [],
       trangThai: 1
     }
-    
+
   } catch (err) {
     console.error('Error creating variants:', err)
     error.value = err.response?.data?.message || err.message || 'Lỗi khi tạo biến thể'
-    
+
     toast.value?.addToast({
       type: 'error',
       title: 'Lỗi tạo biến thể!',
@@ -1408,7 +1408,7 @@ const checkVariantAttributesMatch = (variant1, variant2) => {
     idLoaiManHinh: variant1.idLoaiManHinh || null,
     idPin: variant1.idPin || null
   }
-  
+
   const attr2 = {
     idCpu: variant2.idCpu || null,
     idGpu: variant2.idGpu || null,
@@ -1418,7 +1418,7 @@ const checkVariantAttributesMatch = (variant1, variant2) => {
     idLoaiManHinh: variant2.idLoaiManHinh || null,
     idPin: variant2.idPin || null
   }
-  
+
   return JSON.stringify(attr1) === JSON.stringify(attr2)
 }
 
@@ -1475,10 +1475,10 @@ const saveAndCreateVariants = async () => {
         serials: v.serials?.length || 0,
         serialDetails: v.serials
       })))
-    
+
     if (variantsToCreate.length > 0) {
       const config = variantConfig.value
-      
+
       const variantPayload = {
         idSanPham: form.value.id,
         giaBan: config.giaBan || (variantsToCreate[0]?.giaBan || 0),
@@ -1504,18 +1504,18 @@ const saveAndCreateVariants = async () => {
       } catch (err) {
         console.warn('Could not load existing variants:', err)
       }
-      
+
       // Step 2.2: Separate variants to create vs existing variants to update
       const variantsToAggregate = [] // Variants that match existing ones and have serials to add
       const newVariantsToCreate = [] // New variants that don't match existing ones
       const previewVariantsList = form.value.variants || [] // Get preview variants from form
-      
+
       for (const previewVariant of previewVariantsList) {
         // Find matching existing variant
-        const matchingExisting = existingVariants.find(existing => 
+        const matchingExisting = existingVariants.find(existing =>
           checkVariantAttributesMatch(previewVariant, existing)
         )
-        
+
         if (matchingExisting && previewVariant.serials && previewVariant.serials.length > 0) {
           // Duplicate found with new serials - aggregate instead of creating
           console.log('🔄 Found duplicate variant, will aggregate serials:', matchingExisting.maCtsp)
@@ -1532,10 +1532,10 @@ const saveAndCreateVariants = async () => {
           console.log('⚠️ Variant already exists, no new serials to add:', matchingExisting.maCtsp)
         }
       }
-      
+
       console.log('Variants to aggregate:', variantsToAggregate.length)
       console.log('New variants to create:', newVariantsToCreate.length)
-      
+
       // Step 2.3: Create only new variants that don't exist
       let createdVariants = []
       if (newVariantsToCreate.length > 0) {
@@ -1548,7 +1548,7 @@ const saveAndCreateVariants = async () => {
         const newMauSacIds = [...new Set(newVariantsToCreate.map(v => v.idMauSac).filter(Boolean))]
         const newLoaiManHinhIds = [...new Set(newVariantsToCreate.map(v => v.idLoaiManHinh).filter(Boolean))]
         const newPinIds = [...new Set(newVariantsToCreate.map(v => v.idPin).filter(Boolean))]
-        
+
         const newVariantPayload = {
           idSanPham: form.value.id,
           giaBan: config.giaBan || (newVariantsToCreate[0]?.giaBan || 0),
@@ -1564,20 +1564,20 @@ const saveAndCreateVariants = async () => {
           selectedLoaiManHinhIds: newLoaiManHinhIds,
           selectedPinIds: newPinIds
         }
-        
+
         console.log('Creating new variants with payload:', newVariantPayload)
         const variantResponse = await taoBienTheSanPham(newVariantPayload)
         createdVariants = variantResponse.data || []
         console.log('Created new variants:', createdVariants.length)
       }
-      
+
       // Step 2.4: Handle variants that need serial aggregation
       for (const aggregateInfo of variantsToAggregate) {
         const { existingVariant, previewVariant, newSerials } = aggregateInfo
-        
+
         try {
           console.log(`📦 Aggregating ${newSerials.length} serials to existing variant ${existingVariant.id}`)
-          
+
           // Add serials to existing variant
           if (newSerials.length > 0) {
             const serialRequests = newSerials.map(serial => ({
@@ -1585,14 +1585,14 @@ const saveAndCreateVariants = async () => {
               serialNo: serial.soSerial || serial,
               trangThai: serial.trangThai || 1
             }))
-            
+
             await createSerialsBatch(serialRequests)
             console.log(`✅ Added ${serialRequests.length} serials to variant ${existingVariant.maCtsp}`)
-            
+
             // Update stock count
             const activeSerialCount = serialRequests.filter(s => s.trangThai === 1).length
             const newStockCount = (existingVariant.soLuongTon || 0) + activeSerialCount
-            
+
             // Update variant with new stock count
             const updatePayload = {
               idSanPham: form.value.id,
@@ -1610,10 +1610,10 @@ const saveAndCreateVariants = async () => {
               idLoaiManHinh: existingVariant.idLoaiManHinh,
               idPin: existingVariant.idPin
             }
-            
+
             await updateChiTietSanPham(existingVariant.id, updatePayload)
             console.log(`✅ Updated stock count to ${newStockCount} for variant ${existingVariant.maCtsp}`)
-            
+
             // Add to createdVariants array for display (treat as "created" for UI purposes)
             createdVariants.push({
               ...existingVariant,
@@ -1626,26 +1626,26 @@ const saveAndCreateVariants = async () => {
           alert(`Lỗi khi thêm serial vào biến thể ${existingVariant.maCtsp}: ${aggregateErr.message}`)
         }
       }
-      
+
       console.log('Final variants (created + aggregated):', createdVariants.length)
-      
+
       // Update prices, save images and serials for each variant based on preview data
       if (newVariantsToCreate.length > 0 && createdVariants.length > 0) {
         console.log('Updating prices and saving images/serials for newly created variants...')
-        
+
         for (const createdVariant of createdVariants) {
           // Find matching preview variant by attribute IDs instead of array index
           const previewVariant = newVariantsToCreate.find(pv => matchVariantsByAttributes(pv, createdVariant))
-          
+
           if (!previewVariant) {
             console.warn(`No matching preview variant found for created variant ${createdVariant.id}`)
             continue
           }
-          
+
           // Update price if different
           const targetPrice = parseFloat(previewVariant.giaBan) || 0
           const currentPrice = parseFloat(createdVariant.giaBan) || 0
-          
+
           if (targetPrice !== currentPrice && targetPrice > 0) {
             try {
               const updatePayload = {
@@ -1674,7 +1674,7 @@ const saveAndCreateVariants = async () => {
               createdVariant.giaBan = targetPrice // Update locally even if API fails
             }
           }
-          
+
           // Save image if exists
           if (previewVariant.anhDaiDien) {
             try {
@@ -1689,7 +1689,7 @@ const saveAndCreateVariants = async () => {
               console.warn(`❌ Failed to save image for variant ${createdVariant.id}:`, imgErr)
             }
           }
-          
+
           // Save serials if exists
           if (previewVariant.serials && previewVariant.serials.length > 0) {
             try {
@@ -1700,7 +1700,7 @@ const saveAndCreateVariants = async () => {
               }))
               await createSerialsBatch(serialRequests)
               console.log(`✅ Saved ${serialRequests.length} serials for variant ${createdVariant.id}`)
-              
+
               // Update soLuongTon based on number of serials
               try {
                 const updateStockPayload = {
@@ -1733,7 +1733,7 @@ const saveAndCreateVariants = async () => {
           }
         }
       }
-      
+
       // Map the response to include necessary fields and attribute names
       form.value.variants = createdVariants.map(variant => ({
         ...variant,
@@ -1749,34 +1749,34 @@ const saveAndCreateVariants = async () => {
         kichThuocManHinh: variant.idLoaiManHinh ? displays.value.find(d => d.id === variant.idLoaiManHinh)?.kichThuoc : null,
         dungLuongPin: variant.idPin ? batteries.value.find(b => b.id === variant.idPin)?.dungLuongPin : null
       }))
-      
+
       // Add a summary message for aggregated variants
       if (variantsToAggregate.length > 0) {
-        const aggregatedDetails = variantsToAggregate.map(agg => 
+        const aggregatedDetails = variantsToAggregate.map(agg =>
           `${agg.existingVariant.maCtsp}: +${agg.newSerials.length} serial`
         ).join(', ')
         console.log('✅ Serial aggregation summary:', aggregatedDetails)
       }
-      
+
       // Clear preview variants since we now have real variants
       previewVariants.value = []
-      
+
       // For add-variants-only mode, emit save and close modal
       if (isAddVariantsMode.value) {
         const totalMessage = []
         const detailMessages = []
-        
+
         if (newVariantsToCreate.length > 0) {
           totalMessage.push(`${newVariantsToCreate.length} biến thể mới`)
           detailMessages.push(`✅ Đã tạo: ${newVariantsToCreate.length} biến thể mới`)
         }
-        
+
         if (variantsToAggregate.length > 0) {
           const totalSerials = variantsToAggregate.reduce((sum, agg) => sum + agg.newSerials.length, 0)
-          
+
           if (totalSerials > 0) {
             totalMessage.push(`${totalSerials} serial được thêm vào ${variantsToAggregate.length} biến thể đã tồn tại`)
-            
+
             // Build detailed message
             const aggregateDetails = variantsToAggregate.map(agg => {
               const configParts = []
@@ -1786,7 +1786,7 @@ const saveAndCreateVariants = async () => {
               const config = configParts.join(' | ') || agg.existingVariant.maCtsp
               return `  • ${config}: +${agg.newSerials.length} serial`
             }).join('\n')
-            
+
             detailMessages.push(`📦 Đã thêm serial vào biến thể đã tồn tại:\n${aggregateDetails}`)
           } else {
             // All serials were duplicates - show detailed error
@@ -1798,15 +1798,15 @@ const saveAndCreateVariants = async () => {
               const config = configParts.join(' | ') || agg.existingVariant.maCtsp
               return `  • ${config}`
             }).join('\n')
-            
+
             alert(`❌ Không thể tạo biến thể!\n\n🔴 Lý do: Tất cả ${variantsToAggregate.length} biến thể đã tồn tại và không có serial mới để thêm.\n\nBiến thể trùng:\n${duplicateDetails}\n\n💡 Giải pháp:\n- Kiểm tra lại cấu hình biến thể\n- Hoặc thêm serial mới cho các biến thể này\n- Hoặc chọn cấu hình khác để tạo biến thể mới`)
             emit('save')
             return
           }
         }
-        
+
         if (totalMessage.length > 0) {
-          const fullMessage = detailMessages.length > 0 
+          const fullMessage = detailMessages.length > 0
             ? `✅ Hoàn thành!\n\n${detailMessages.join('\n\n')}\n\n💡 Tổng cộng: ${totalMessage.join(' và ')}`
             : `✅ Đã hoàn thành: ${totalMessage.join(' và ')}!`
           alert(fullMessage)
@@ -1816,7 +1816,7 @@ const saveAndCreateVariants = async () => {
         emit('save')
         return
       }
-      
+
       const totalCreated = newVariantsToCreate.length + variantsToAggregate.length
       alert(`Đã tạo thành công sản phẩm và ${totalCreated} biến thể! Bây giờ bạn có thể quản lý Serial Numbers cho từng biến thể.`)
       // Don't emit save event - keep modal open for serial management
@@ -1824,13 +1824,13 @@ const saveAndCreateVariants = async () => {
     } else {
       alert(`${isEditMode.value ? 'Cập nhật' : 'Thêm'} sản phẩm thành công!`)
     }
-    
+
     // Emit save event to parent component (only if no variants were created)
     emit('save', {
       id: form.value.id,
       ...payload
     })
-    
+
   } catch (err) {
     console.error('Error saving product:', err)
     error.value = err.response?.data?.message || 'Có lỗi xảy ra khi lưu sản phẩm'
@@ -1880,13 +1880,13 @@ const save = async () => {
     }
 
     alert(`${isEditMode.value ? 'Cập nhật' : 'Thêm'} sản phẩm thành công!`)
-    
+
     // Emit save event to parent component
     emit('save', {
       id: form.value.id,
       ...payload
     })
-    
+
   } catch (err) {
     console.error('Error saving product:', err)
     error.value = err.response?.data?.message || 'Có lỗi xảy ra khi lưu sản phẩm'
@@ -1911,27 +1911,27 @@ const openSerialModal = async (index) => {
   console.log('=== OPENING SERIAL MODAL ===')
   console.log('Variant index:', index)
   console.log('Current showSerialModal value:', showSerialModal.value)
-  
+
   currentVariantIndex.value = index
-  
+
   // Get the variant from displayVariants (could be preview or real)
   const variant = displayVariants.value[index]
-  
+
   if (!variant) {
     console.error('Variant not found at index:', index)
     alert('Không tìm thấy biến thể')
     return
   }
-  
+
   console.log('Variant data:', variant)
   console.log('Variant has ID:', !!variant.id)
-  
+
   // Initialize serials array if it doesn't exist
   if (!variant.serials) {
     variant.serials = []
     console.log('Initialized empty serials array')
   }
-  
+
   // Load existing serials and images from backend if variant has ID (real variant)
   if (variant.id) {
     try {
@@ -1940,26 +1940,26 @@ const openSerialModal = async (index) => {
       const serialResponse = await getSerialsByCtspId(variant.id)
       const backendSerials = serialResponse.data || []
       console.log('Loaded serials from backend:', backendSerials)
-      
+
       variant.serials = backendSerials.map(serial => ({
         id: serial.id,
         soSerial: serial.serialNo,
         trangThai: serial.trangThai || 1
       }))
-      
+
       // Update stock count
       variant.soLuongTon = variant.serials.length
-      
+
       // Load images
       const imageResponse = await getHinhAnhByCtspId(variant.id)
       const backendImages = imageResponse.data || []
-      
+
       // Set main image
       const mainImage = backendImages.find(img => img.anhChinhDaiDien)
       if (mainImage) {
         variant.anhDaiDien = mainImage.url
       }
-      
+
     } catch (error) {
       console.error('Error loading variant data:', error)
       // Continue to show modal even if loading fails
@@ -1968,10 +1968,10 @@ const openSerialModal = async (index) => {
     // For preview variants, show info that they need to save first
     console.log('Opening serial modal for preview variant')
   }
-  
+
   console.log('Setting showSerialModal to true...')
   showSerialModal.value = true
-  
+
   // Force Vue to update the DOM
   await nextTick()
   console.log('After nextTick - showSerialModal:', showSerialModal.value)
@@ -2011,12 +2011,12 @@ const handleGalleryUpload = async (event) => {
       loading.value = true
       const uploadPromises = files.map(file => uploadImageToCloudinary(file))
       const imageUrls = await Promise.all(uploadPromises)
-      
+
       form.value.images = [...(form.value.images || []), ...imageUrls]
        alert(`Tải thành công ${imageUrls.length} ảnh!`)
     } catch (error) {
       console.error('Error uploading gallery images:', error)
-      
+
       alert('Có lỗi xảy ra khi tải ảnh')
     } finally {
       loading.value = false
@@ -2034,20 +2034,20 @@ const selectVariantImage = async (index) => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
-  
+
   input.onchange = async (event) => {
     const file = event.target.files[0]
     if (file) {
       try {
         loading.value = true
-        
+
         // Upload to Cloudinary
         const imageUrl = await uploadImageToCloudinary(file)
-        
+
         // Update local variant
         if (form.value.variants[index]) {
           form.value.variants[index].anhDaiDien = imageUrl
-          
+
           // Save to backend if variant has ID
           if (form.value.variants[index].id) {
             const imageRequest = {
@@ -2058,18 +2058,18 @@ const selectVariantImage = async (index) => {
             await createHinhAnhBatch([imageRequest])
           }
         }
-        
+
         alert('Tải ảnh thành công!')
       } catch (error) {
         console.error('Error uploading variant image:', error)
-        
+
         alert('Có lỗi xảy ra khi tải ảnh')
       } finally {
         loading.value = false
       }
     }
   }
-  
+
   input.click()
 }
 
@@ -2082,7 +2082,7 @@ const removeVariantImage = (index) => {
 // Serial modal functions
 const closeSerialModal = () => {
   console.log('Closing serial modal')
-  
+
   // Ask for confirmation if there are unsaved changes
   const variant = currentVariant.value
   if (variant?.serials?.length > 0) {
@@ -2093,7 +2093,7 @@ const closeSerialModal = () => {
       }
     }
   }
-  
+
   showSerialModal.value = false
   currentVariantIndex.value = -1
   serialInput.value = ''
@@ -2104,25 +2104,25 @@ const closeSerialModal = () => {
 // Real-time validation for serial input
 const validateSerialInput = () => {
   const input = serialInput.value.trim()
-  
+
   if (!input) {
     serialValidationError.value = ''
     serialValidationSuccess.value = ''
     return
   }
-  
+
   // Split by comma or semicolon
   const serials = input
     .split(/[,;]/)
     .map((s) => s.trim().toUpperCase())
     .filter((s) => s.length > 0)
-  
+
   if (serials.length === 0) {
     serialValidationError.value = ''
     serialValidationSuccess.value = ''
     return
   }
-  
+
   // Validate each serial
   const invalidSerials = []
   for (const serial of serials) {
@@ -2131,13 +2131,13 @@ const validateSerialInput = () => {
       invalidSerials.push(validation.message)
     }
   }
-  
+
   if (invalidSerials.length > 0) {
     serialValidationError.value = invalidSerials[0] // Show first error
     serialValidationSuccess.value = ''
     return
   }
-  
+
   // Check for duplicates in current input
   const duplicates = serials.filter((serial, index) => serials.indexOf(serial) !== index)
   if (duplicates.length > 0) {
@@ -2145,7 +2145,7 @@ const validateSerialInput = () => {
     serialValidationSuccess.value = ''
     return
   }
-  
+
   // Check for duplicates with existing serials
   if (currentVariant.value?.serials) {
     const existingSerials = currentVariant.value.serials.map(s => s.soSerial)
@@ -2156,7 +2156,7 @@ const validateSerialInput = () => {
       return
     }
   }
-  
+
   // All validations passed
   serialValidationError.value = ''
   if (serials.length === 1) {
@@ -2172,21 +2172,21 @@ const validateSerial = (serial) => {
   if (serial.length !== 7) {
     return { valid: false, message: `Serial "${serial}" phải có đúng 7 ký tự` }
   }
-  
+
   // Check if contains both letters and numbers
   const hasLetter = /[a-zA-Z]/.test(serial)
   const hasNumber = /[0-9]/.test(serial)
-  
+
   if (!hasLetter || !hasNumber) {
     return { valid: false, message: `Serial "${serial}" phải chứa cả chữ và số` }
   }
-  
+
   // Check if contains only alphanumeric characters
   const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(serial)
   if (!isAlphanumeric) {
     return { valid: false, message: `Serial "${serial}" chỉ được chứa chữ và số` }
   }
-  
+
   return { valid: true }
 }
 
@@ -2216,7 +2216,7 @@ const addSerialNumbers = async () => {
     })
     return
   }
-  
+
   // Initialize serials array if it doesn't exist
   if (!currentVariant.value) {
     await showConfirm({
@@ -2227,11 +2227,11 @@ const addSerialNumbers = async () => {
     })
     return
   }
-  
+
   if (!currentVariant.value.serials) {
     currentVariant.value.serials = []
   }
-  
+
   // ✅ Validate format first (7 characters, alphanumeric)
   const invalidSerials = serials.filter(s => s.length !== 7 || !/^[A-Za-z0-9]+$/.test(s))
   if (invalidSerials.length > 0) {
@@ -2243,14 +2243,14 @@ const addSerialNumbers = async () => {
     })
     return
   }
-  
+
   try {
     loading.value = true
-    
+
     // ✅ Check for duplicates against entire database
     console.log('🔍 Checking for duplicate serials in database...')
     let allExistingSerials = []
-    
+
     try {
       const allSerialsResponse = await getAllSerial()
       allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
@@ -2260,18 +2260,18 @@ const addSerialNumbers = async () => {
       console.warn('⚠️ Falling back to local-only duplicate check')
       allExistingSerials = [] // Fallback to empty array
     }
-    
+
     // Also check local serials (not yet saved)
     const localExistingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
-    
+
     // Combine all existing serials
     const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
-    
+
     console.log('📦 Found', allExisting.length, 'existing serials (database + local)')
-    
+
     const duplicateSerials = []
     const newSerials = []
-    
+
     serials.forEach(serial => {
       if (allExisting.includes(serial)) {
         duplicateSerials.push(serial)
@@ -2279,18 +2279,18 @@ const addSerialNumbers = async () => {
         newSerials.push(serial)
       }
     })
-    
+
     // Clear input and validation state
     serialInput.value = ''
     serialValidationError.value = ''
     serialValidationSuccess.value = ''
-    
+
     // ✅ Show detailed results matching the design from the image
     if (newSerials.length === 0 && duplicateSerials.length > 0) {
       // All duplicates - show error message like in the image
       const duplicateList = duplicateSerials.join('\n')
       const message = `❌ Thêm thất bại!\n\n🔴 Tất cả ${duplicateSerials.length} serial đã tồn tại trong danh sách:\n${duplicateList}\n\n💡 Mỗi serial chỉ có thể thêm 1 lần duy nhất.\n\n🔍 Vui lòng kiểm tra lại file import hoặc xóa các serial trùng lặp.`
-      
+
       await showConfirm({
         title: 'Thêm thất bại',
         message: message,
@@ -2298,19 +2298,19 @@ const addSerialNumbers = async () => {
         type: 'warning'
       })
       return
-      
+
     } else if (newSerials.length > 0 && duplicateSerials.length > 0) {
       // Mixed: some new, some duplicates
       const duplicateList = duplicateSerials.slice(0, 5).join('\n')
       const moreCount = duplicateSerials.length > 5 ? `\n... và ${duplicateSerials.length - 5} serial khác` : ''
-      
+
       toast.value?.addToast({
         type: 'warning',
         title: 'Import một phần thành công!',
         message: `✅ Đã thêm: ${newSerials.length} serial mới\n🔴 Bị trùng: ${duplicateSerials.length} serial\n\nSerial trùng đã bỏ qua, chỉ thêm serial mới.`,
         duration: 6000
       })
-      
+
     } else if (newSerials.length > 0) {
       // All new - success
       toast.value?.addToast({
@@ -2320,7 +2320,7 @@ const addSerialNumbers = async () => {
         duration: 5000
       })
     }
-    
+
     // Add only new serials to local list
     newSerials.forEach(serial => {
       currentVariant.value.serials.push({
@@ -2329,16 +2329,16 @@ const addSerialNumbers = async () => {
         trangThai: 1 // Mặc định là 'Có sẵn'
       })
     })
-    
+
     // Update stock count (only count available serials - trangThai = 1)
     const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
     currentVariant.value.soLuongTon = availableSerials.length
-    
+
     console.log(`✅ Added ${newSerials.length} serial(s). Total: ${currentVariant.value.serials.length}, Stock: ${currentVariant.value.soLuongTon}`)
-    
+
   } catch (error) {
     console.error('Error checking serial duplicates:', error)
-    
+
     toast.value?.addToast({
       type: 'error',
       title: 'Lỗi hệ thống!',
@@ -2433,7 +2433,7 @@ const updateProductPriceRange = () => {
   const variantPrices = form.value.variants
     .map(v => parseFloat(v.giaBan) || 0)
     .filter(price => price > 0)
-  
+
   if (variantPrices.length > 0) {
     form.value.giaThapNhat = Math.min(...variantPrices)
     form.value.giaCaoNhat = Math.max(...variantPrices)
@@ -2441,7 +2441,7 @@ const updateProductPriceRange = () => {
     form.value.giaThapNhat = 0
     form.value.giaCaoNhat = 0
   }
-  
+
   console.log(`Updated product price range: ${form.value.giaThapNhat} - ${form.value.giaCaoNhat}`)
 }
 
@@ -2455,22 +2455,22 @@ const updateVariantPrice = async (index, newPrice) => {
   try {
     // Update local data
     variant.giaBan = newPrice
-    
+
     // Update product price range
     updateProductPriceRange()
-    
+
     // Only call API if variant has ID (saved variant)
     if (variant.id) {
       const updatePayload = {
         giaBan: newPrice
       }
-      
+
       await updateSanPham(variant.id, updatePayload)
       console.log(`Updated variant ${variant.id} price to ${newPrice}`)
     } else {
       console.log(`Updated preview variant price to ${newPrice}`)
     }
-    
+
   } catch (error) {
     console.error('Error updating variant price:', error)
     alert('Lỗi khi cập nhật giá: ' + (error.message || 'Unknown error'))
@@ -2480,16 +2480,16 @@ const updateVariantPrice = async (index, newPrice) => {
 // Remove variant from preview
 const removeVariantFromPreview = (index) => {
   const variant = displayVariants.value[index]
-  
+
   if (!variant) {
     alert('Không tìm thấy biến thể')
     return
   }
-  
+
   // Remove from local state
   form.value.variants.splice(index, 1)
   console.log(`Removed variant at index ${index}`)
-  
+
   // Update product price range
   updateProductPriceRange()
 }
@@ -2499,28 +2499,28 @@ const removeVariantFromPreview = (index) => {
 // Remove variant function
 const removeVariant = async (index) => {
   const variant = displayVariants.value[index]
-  
+
   if (!variant || !variant.id) {
     alert('Không thể xóa biến thể này')
     return
   }
 
   const confirmMessage = `Bạn có chắc chắn muốn xóa biến thể này?\n\nHành động này không thể hoàn tác!`
-  
+
   if (confirm(confirmMessage)) {
     try {
       loading.value = true
-      
+
       // Call API to delete variant
       await deleteCTSP(variant.id)
-      
+
       // Remove from local state
       if (form.value.variants && form.value.variants.length > 0) {
         form.value.variants = form.value.variants.filter(v => v.id !== variant.id)
       }
-      
+
       alert('Xóa biến thể thành công!')
-      
+
     } catch (err) {
       console.error('Error deleting variant:', err)
       const errorMessage = err.response?.data?.message || err.message || 'Lỗi khi xóa biến thể'
@@ -2537,18 +2537,18 @@ const removeVariant = async (index) => {
 const toggleSerialStatus = (serialIndex) => {
   const variant = currentVariant.value
   if (!variant || !variant.serials || !variant.serials[serialIndex]) return
-  
+
   const serial = variant.serials[serialIndex]
   const newStatus = serial.trangThai === 1 ? 0 : 1
   const statusText = newStatus === 1 ? 'Có sẵn' : 'Ẩn'
-  
+
   if (confirm(`Bạn có chắc chắn muốn chuyển trạng thái serial "${serial.soSerial}" thành "${statusText}"?`)) {
     serial.trangThai = newStatus
-    
+
     // Update stock count (only count available serials - trangThai = 1)
     const availableSerials = variant.serials.filter(s => s.trangThai === 1)
     variant.soLuongTon = availableSerials.length
-    
+
     console.log(`Đã chuyển trạng thái serial ${serial.soSerial} thành ${statusText}. Stock count: ${variant.soLuongTon}`)
   }
 }
@@ -2557,15 +2557,15 @@ const toggleSerialStatus = (serialIndex) => {
 const removeSerial = (serialIndex) => {
   const variant = currentVariant.value
   if (!variant || !variant.serials) return
-  
+
   const serial = variant.serials[serialIndex]
   if (confirm(`Bạn có chắc chắn muốn xóa serial "${serial.soSerial}"?`)) {
     variant.serials.splice(serialIndex, 1)
-    
+
     // Update stock count (only count available serials - trangThai = 1)
     const availableSerials = variant.serials.filter(s => s.trangThai === 1)
     variant.soLuongTon = availableSerials.length
-    
+
     console.log(`Đã xóa serial ${serial.soSerial}. Stock count: ${variant.soLuongTon}`)
   }
 }
@@ -2586,17 +2586,17 @@ const saveSerials = async () => {
 
   try {
     loading.value = true
-    
+
     // Update stock based on serial count
     variant.soLuongTon = (variant.serials || []).length
-    
+
     if (variant.id) {
       // Real variant - save to database
       console.log('Saving serials to database for variant:', variant.id)
-      
+
       // Filter serials that need to be saved (no ID = new serials)
       const newSerials = (variant.serials || []).filter(serial => !serial.id)
-      
+
       if (newSerials.length > 0) {
         // Create serial requests for backend
         const serialRequests = newSerials.map(serial => ({
@@ -2604,12 +2604,12 @@ const saveSerials = async () => {
           serialNo: serial.soSerial,
           trangThai: serial.trangThai || 1
         }))
-        
+
         try {
           // Call backend API to create serials
           const response = await createSerialsBatch(serialRequests)
           const createdSerials = response.data || []
-          
+
           // Update local serials with IDs from backend
           createdSerials.forEach((createdSerial, index) => {
             const localSerial = newSerials[index]
@@ -2617,26 +2617,26 @@ const saveSerials = async () => {
               localSerial.id = createdSerial.id
             }
           })
-          
+
           console.log(`Đã lưu ${createdSerials.length} serial mới vào database`)
         } catch (apiError) {
           console.error('Error saving serials to database:', apiError)
           // Continue with local save even if API fails
         }
       }
-      
+
       alert('Lưu serial thành công!')
     } else {
       // Preview variant - just save locally
       console.log('Saving serials locally for preview variant')
       alert('Serial đã được lưu tạm thời. Vui lòng lưu biến thể để lưu vào database.')
     }
-    
+
     // Update stock for all variants
     updateStockFromSerials()
-    
+
     closeSerialModal()
-    
+
   } catch (err) {
     console.error('Error saving serials:', err)
     alert('Lỗi khi lưu serial: ' + (err.message || 'Unknown error'))
@@ -2649,7 +2649,7 @@ const saveSerials = async () => {
 const getVariantConfig = (index) => {
   const variant = displayVariants.value[index]
   if (!variant) return ''
-  
+
   const specs = []
   if (variant.tenMauSac) specs.push(variant.tenMauSac)
   if (variant.tenCpu) specs.push(variant.tenCpu)
@@ -2658,7 +2658,7 @@ const getVariantConfig = (index) => {
   if (variant.dungLuongOCung) specs.push(variant.dungLuongOCung)
   if (variant.kichThuocManHinh) specs.push(variant.kichThuocManHinh)
   if (variant.dungLuongPin) specs.push(variant.dungLuongPin)
-  
+
   return specs.join(' - ')
 }
 
@@ -2675,27 +2675,27 @@ const formatPrice = (price) => {
 const importFromExcel = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-  
+
   try {
     loading.value = true
-    
+
     // Parse file locally first to check for duplicates
     console.log('Parsing Excel/CSV file locally...')
     const serials = await parseExcelFileLocally(file)
-    
+
     if (serials.length === 0) {
       alert('Không có serial number nào được tìm thấy trong file.\n\nVui lòng đảm bảo:\n• File CSV hoặc Excel\n• Có cột "Serial Number" hoặc serial ở cột đầu tiên\n• Mỗi serial có đúng 7 ký tự gồm chữ và số\n• Ví dụ: ABC1234, DEF5678')
       event.target.value = ''
       return
     }
-    
+
     // Initialize serials array if needed
     currentVariant.value.serials = currentVariant.value.serials || []
-    
+
     // ✅ CHECK DUPLICATE - Compare with entire database
     console.log('🔍 Checking for duplicate serials in database...')
     let allExistingSerials = []
-    
+
     try {
       const allSerialsResponse = await getAllSerial()
       allExistingSerials = (allSerialsResponse.data || []).map(s => s.serialNo.toUpperCase())
@@ -2705,18 +2705,18 @@ const importFromExcel = async (event) => {
       console.warn('⚠️ Falling back to local-only duplicate check')
       allExistingSerials = [] // Fallback to empty array
     }
-    
+
     // Also check local serials (not yet saved)
     const localExistingSerials = currentVariant.value.serials.map(s => s.soSerial.toUpperCase())
-    
+
     // Combine all existing serials
     const allExisting = [...new Set([...allExistingSerials, ...localExistingSerials])]
-    
+
     console.log('📦 Found', allExisting.length, 'existing serials (database + local)')
-    
+
     const duplicateSerials = []
     const newSerials = []
-    
+
     serials.forEach(serial => {
       const serialUpper = serial.toUpperCase()
       if (allExisting.includes(serialUpper)) {
@@ -2728,9 +2728,9 @@ const importFromExcel = async (event) => {
         }
       }
     })
-    
+
     console.log(`📊 Import check: ${newSerials.length} new, ${duplicateSerials.length} duplicates`)
-    
+
     // If ALL are duplicates, stop here
     if (newSerials.length === 0 && duplicateSerials.length > 0) {
       const duplicateList = duplicateSerials.slice(0, 15).join('\n')
@@ -2740,12 +2740,12 @@ const importFromExcel = async (event) => {
       loading.value = false
       return
     }
-    
+
     // Check if variant has ID (saved to DB) or is preview
     if (!currentVariant.value?.id) {
       // ✅ Preview mode - Add only new serials to local list
       console.log('Preview mode: Adding new serials to local list...')
-      
+
       newSerials.forEach(serial => {
         currentVariant.value.serials.push({
           id: null,
@@ -2753,12 +2753,12 @@ const importFromExcel = async (event) => {
           trangThai: 1
         })
       })
-      
+
       // Update stock count (only count available serials - trangThai = 1)
       const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
       currentVariant.value.soLuongTon = availableSerials.length
       console.log(`Updated soLuongTon to ${currentVariant.value.soLuongTon}`)
-      
+
       // Show detailed message
       if (duplicateSerials.length === 0) {
         alert(`✅ Thành công!\n\n🟢 Đã thêm ${newSerials.length} serial vào preview.\n\n💡 Lưu sản phẩm để lưu serial vào database.`)
@@ -2767,13 +2767,13 @@ const importFromExcel = async (event) => {
         const moreText = duplicateSerials.length > 10 ? `\n... và ${duplicateSerials.length - 10} serial khác` : ''
         alert(`⚠️ Import một phần thành công!\n\n🟢 Thêm mới: ${newSerials.length} serial\n🔴 Bỏ qua: ${duplicateSerials.length} serial trùng\n\nSerial trùng:\n${duplicateList}${moreText}\n\n💡 Lưu sản phẩm để lưu ${newSerials.length} serial mới.`)
       }
-      
+
       event.target.value = ''
-      
+
     } else {
       // ✅ Saved variant - Create only NEW serials via API
       console.log('Saved variant: Creating only new serials via API...')
-      
+
       // If there are new serials, create them via batch API
       if (newSerials.length > 0) {
         try {
@@ -2783,27 +2783,27 @@ const importFromExcel = async (event) => {
             serialNo: serial.toUpperCase(),
             trangThai: 1
           }))
-          
+
           console.log(`Creating ${newSerials.length} new serials...`)
           const response = await createSerialsBatch(serialRequests)
           console.log('✅ Serials created successfully:', response)
-          
+
           // Reload serials from backend to get fresh data with IDs
           const serialsResponse = await getSerialsByCtspId(currentVariant.value.id)
           const backendSerials = serialsResponse.data || []
-          
+
           currentVariant.value.serials = backendSerials.map(serial => ({
             id: serial.id,
             soSerial: serial.serialNo || serial.soSerial,
             trangThai: serial.trangThai
           }))
-          
+
           // Update stock count
           const availableSerials = currentVariant.value.serials.filter(s => s.trangThai === 1)
           currentVariant.value.soLuongTon = availableSerials.length
-          
+
           console.log(`✅ Reloaded ${currentVariant.value.serials.length} serials from backend`)
-          
+
           // Show appropriate message
           if (duplicateSerials.length === 0) {
             // All imported successfully
@@ -2822,10 +2822,10 @@ const importFromExcel = async (event) => {
         // No new serials to add
         alert('⚠️ Không có serial mới nào được thêm.\n\n💡 Tất cả serial trong file đã tồn tại.')
       }
-      
+
       event.target.value = ''
     }
-    
+
   } catch (error) {
     console.error('Error importing serials:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi import serial'
@@ -2839,45 +2839,45 @@ const importFromExcel = async (event) => {
 const parseExcelFileLocally = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       try {
         const text = e.target.result
         const serials = []
-        
+
         // Split by lines
         const lines = text.split(/\r?\n/).filter(line => line.trim())
-        
+
         // Skip header row if exists
         const startIndex = lines[0].toLowerCase().includes('serial') ? 1 : 0
-        
+
         for (let i = startIndex; i < lines.length; i++) {
           const line = lines[i].trim()
           if (!line) continue
-          
+
           // Split by comma, tab, or semicolon
           const parts = line.split(/[,;\t]/).map(p => p.trim()).filter(p => p)
-          
+
           if (parts.length > 0) {
             const serial = parts[0]
-            
+
             // Validate serial: 7 characters, alphanumeric
             if (serial.length === 7 && /^[A-Za-z0-9]+$/.test(serial)) {
               serials.push(serial)
             }
           }
         }
-        
+
         resolve(serials)
       } catch (error) {
         reject(error)
       }
     }
-    
+
     reader.onerror = () => {
       reject(new Error('Không thể đọc file'))
     }
-    
+
     // Read as text for CSV/Excel saved as CSV
     reader.readAsText(file)
   })
@@ -2889,7 +2889,7 @@ const downloadExcelTemplate = () => {
   const csvContent = 'Serial Number\n123456\n789012\n'
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
