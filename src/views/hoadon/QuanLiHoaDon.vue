@@ -1144,12 +1144,7 @@ const xacNhanDonHang = async (hoaDon) => {
 
   const confirmed = await showConfirm({
     title: 'Xác nhận đơn hàng',
-    message:
-      `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\n` +
-      `📦 Sản phẩm: ${hoaDon.chiTietList?.length || 0} sản phẩm\n` +
-      `💰 Tổng tiền: ${formatCurrency(hoaDon.tongTienSauGiam)}\n` +
-      `${paymentInfo}\n` +
-      `⚠️ Lưu ý: Hệ thống sẽ trừ kho khi xác nhận. Hành động này không thể hoàn tác.`,
+    message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.ma}?\n\n`,
     confirmText: 'Xác nhận',
     cancelText: 'Hủy',
     type: 'warning',

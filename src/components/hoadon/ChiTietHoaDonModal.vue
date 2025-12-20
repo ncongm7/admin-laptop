@@ -16,11 +16,8 @@
 
         <!-- Body -->
         <div class="modal-body" v-if="loading">
-          <SkeletonLoader
-            type="card"
-            :lines="8"
-            :line-widths="['100%', '80%', '100%', '60%', '100%', '90%', '100%', '70%']"
-          />
+          <SkeletonLoader type="card" :lines="8"
+            :line-widths="['100%', '80%', '100%', '60%', '100%', '90%', '100%', '70%']" />
         </div>
 
         <div class="modal-body" v-else-if="error">
@@ -141,15 +138,12 @@
                               {{ getTrangThaiLabel(hoaDon.trangThai) }}
                             </span>
                             <!-- Badge cho đơn online đã thanh toán nhưng chờ xác nhận -->
-                            <span
-                              v-if="
-                                isOnlineOrder &&
-                                (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
-                                hoaDon.trangThaiThanhToan === 1
-                              "
-                              class="badge bg-info text-white"
-                              title="Đơn hàng đã thanh toán, đang chờ admin xác nhận"
-                            >
+                            <span v-if="
+                              isOnlineOrder &&
+                              (hoaDon.trangThai === 'CHO_THANH_TOAN' || hoaDon.trangThai === 0) &&
+                              hoaDon.trangThaiThanhToan === 1
+                            " class="badge bg-info text-white"
+                              title="Đơn hàng đã thanh toán, đang chờ admin xác nhận">
                               <i class="bi bi-clock-history me-1"></i>CHỜ XÁC NHẬN
                             </span>
                           </div>
@@ -158,12 +152,10 @@
                       <tr>
                         <td class="text-muted">Thanh toán:</td>
                         <td>
-                          <span
-                            :class="[
-                              'badge',
-                              hoaDon.trangThaiThanhToan === 1 ? 'bg-success' : 'bg-warning',
-                            ]"
-                          >
+                          <span :class="[
+                            'badge',
+                            hoaDon.trangThaiThanhToan === 1 ? 'bg-success' : 'bg-warning',
+                          ]">
                             {{
                               hoaDon.trangThaiThanhToan === 1 ? 'Đã thanh toán' : 'Chưa thanh toán'
                             }}
@@ -197,10 +189,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="(item, index) in hoaDon.chiTietList || hoaDon.hoaDonChiTiet || []"
-                    :key="item.id"
-                  >
+                  <tr v-for="(item, index) in hoaDon.chiTietList || hoaDon.hoaDonChiTiet || []" :key="item.id">
                     <td class="text-center">{{ index + 1 }}</td>
                     <td>
                       <!-- Mã CTSP - NỔI BẬT -->
@@ -251,17 +240,10 @@
                       {{ formatCurrency(item.thanhTien || item.donGia * item.soLuong) }}
                     </td>
                     <td>
-                      <div
-                        v-if="getSerialsForItem(item) && getSerialsForItem(item).length > 0"
-                        class="serial-list"
-                      >
+                      <div v-if="getSerialsForItem(item) && getSerialsForItem(item).length > 0" class="serial-list">
                         <small class="text-info">
                           <i class="bi bi-upc-scan"></i>
-                          <span
-                            v-for="(serial, idx) in getSerialsForItem(item)"
-                            :key="idx"
-                            class="serial-badge"
-                          >
+                          <span v-for="(serial, idx) in getSerialsForItem(item)" :key="idx" class="serial-badge">
                             {{ serial }}
                             <span v-if="idx < getSerialsForItem(item).length - 1">, </span>
                           </span>
@@ -336,22 +318,12 @@
         <div class="modal-footer">
           <!-- Action buttons for online orders -->
           <div v-if="isOnlineOrder && canConfirmOrder" class="me-auto">
-            <button
-              type="button"
-              class="btn btn-success me-2"
-              @click="handleConfirmOrder"
-              :disabled="confirmingOrder"
-            >
+            <button type="button" class="btn btn-success me-2" @click="handleConfirmOrder" :disabled="confirmingOrder">
               <span v-if="confirmingOrder" class="spinner-border spinner-border-sm me-1"></span>
               <i v-else class="bi bi-check-circle me-1"></i>
               {{ confirmingOrder ? 'Đang xác nhận...' : 'Xác nhận đơn hàng' }}
             </button>
-            <button
-              type="button"
-              class="btn btn-danger me-2"
-              @click="handleCancelOrder"
-              :disabled="cancelingOrder"
-            >
+            <button type="button" class="btn btn-danger me-2" @click="handleCancelOrder" :disabled="cancelingOrder">
               <span v-if="cancelingOrder" class="spinner-border spinner-border-sm me-1"></span>
               <i v-else class="bi bi-x-circle me-1"></i>
               {{ cancelingOrder ? 'Đang hủy...' : 'Hủy đơn hàng' }}
@@ -360,23 +332,13 @@
 
           <!-- Action buttons for offline orders (xác nhận thủ công) -->
           <div v-if="!isOnlineOrder && canConfirmOrder" class="me-auto">
-            <button
-              type="button"
-              class="btn btn-success me-2"
-              @click="handleConfirmOrderManual"
-              :disabled="confirmingOrder"
-              title="Xác nhận đơn hàng tại quầy (chuyển sang trạng thái Đã thanh toán)"
-            >
+            <button type="button" class="btn btn-success me-2" @click="handleConfirmOrderManual"
+              :disabled="confirmingOrder" title="Xác nhận đơn hàng tại quầy (chuyển sang trạng thái Đã thanh toán)">
               <span v-if="confirmingOrder" class="spinner-border spinner-border-sm me-1"></span>
               <i v-else class="bi bi-check-circle me-1"></i>
               {{ confirmingOrder ? 'Đang xác nhận...' : 'Xác nhận thanh toán' }}
             </button>
-            <button
-              type="button"
-              class="btn btn-danger me-2"
-              @click="handleCancelOrder"
-              :disabled="cancelingOrder"
-            >
+            <button type="button" class="btn btn-danger me-2" @click="handleCancelOrder" :disabled="cancelingOrder">
               <span v-if="cancelingOrder" class="spinner-border spinner-border-sm me-1"></span>
               <i v-else class="bi bi-x-circle me-1"></i>
               {{ cancelingOrder ? 'Đang hủy...' : 'Hủy đơn hàng' }}
@@ -549,11 +511,7 @@ const handleConfirmOrder = async () => {
 
   const confirmed = await confirm({
     title: 'Xác nhận đơn hàng online',
-    message:
-      `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.value.ma}?\n\n` +
-      `📦 Sản phẩm: ${hoaDon.value.chiTietList?.length || 0} sản phẩm\n` +
-      `💰 Tổng tiền: ${formatCurrency(hoaDon.value.tongTienSauGiam)}\n\n` +
-      `⚠️ Lưu ý: Hệ thống sẽ trừ kho và chuyển sang trạng thái "Đang giao hàng" khi xác nhận.`,
+    message: `Bạn có chắc chắn muốn xác nhận đơn hàng ${hoaDon.value.ma}?\n\n`,
     confirmText: 'Xác nhận',
     cancelText: 'Hủy',
     type: 'warning',
@@ -565,7 +523,9 @@ const handleConfirmOrder = async () => {
 
   confirmingOrder.value = true
   try {
-    const response = await xacNhanDonHang(hoaDon.value.id)
+    // Lấy nhanVienId từ localStorage
+    const nhanVienId = localStorage.getItem('nhanVienId')
+    const response = await xacNhanDonHang(hoaDon.value.id, nhanVienId)
     showSuccess(
       '✅ Xác nhận đơn hàng thành công!\nHệ thống đã trừ kho, cập nhật serial và chuyển sang trạng thái "Đang giao hàng".',
     )
@@ -906,6 +866,7 @@ const getSerialsForItem = (item) => {
 }
 
 <<<<<<< HEAD
+
 /* CTSP Code - NỔI BẬT */
 .ctsp-code-cell {
   padding: 0.25rem 0;

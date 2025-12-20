@@ -4,12 +4,8 @@
     <div class="sales-header">
       <h2 class="page-title"><i class="bi bi-shop"></i> Bán hàng tại quầy</h2>
       <div class="header-actions">
-        <!-- Nút in hóa đơn (chỉ hiện khi có hóa đơn) -->
-        <InvoicePrint v-if="hoaDonHienTai" ref="invoicePrintRef" :hoaDon="hoaDonHienTai" :allowDraft="true"
-          @printed="handleInvoicePrinted" class="me-2" />
-        <!-- InvoicePrint riêng cho hóa đơn đã thanh toán (ẩn button, chỉ dùng để preview) -->
-        <InvoicePrint v-if="paidInvoice" ref="paidInvoicePrintRef" :hoaDon="paidInvoice" :allowDraft="false"
-          :autoPrint="false" @printed="handlePaidInvoicePrinted" style="display: none;" />
+
+
         <button class="btn btn-success btn-lg" @click="taoHoaDonMoi" :disabled="isLoading || daDatGioiHan"
           :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
           <i class="bi bi-plus-circle"></i> Tạo Đơn Mới

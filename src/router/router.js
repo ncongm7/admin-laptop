@@ -14,7 +14,8 @@ const routes = [
   {
     path: '/',
     name: 'DashBoardView',
-    component: () => import('@/views/thongke/DashboardView.vue'),
+    component: () => import('@/components/dashboard/redesign/DashboardView.vue'),
+    // component: () => import('@/views/thongke/DashboardView.vue'), // Old dashboard
     meta: { requiresAuth: true },
   },
   {

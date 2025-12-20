@@ -85,14 +85,11 @@
                 <span class="label">Khách hàng:</span>
                 <span class="value">{{ getCustomerName(transaction) }}</span>
               </div>
-              <div class="info-item">
-                <span class="label">Số sản phẩm:</span>
-                <span class="value">{{ getItemCount(transaction) }}</span>
-              </div>
+
               <div class="info-item">
                 <span class="label">Tổng tiền:</span>
                 <span class="value amount">{{ formatCurrency(transaction.tongTienSauGiam || transaction.tongTien || 0)
-                  }}</span>
+                }}</span>
               </div>
             </div>
 
