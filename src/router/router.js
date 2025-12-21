@@ -31,11 +31,7 @@ const routes = [
     component: () => import('@/views/hoadon/QuanLiHoaDon.vue'),
     meta: { requiresAuth: true },
   },
-  {
-    path: '/quan-li-hoa-don/chi-tiet/:code',
-    name: 'ChiTietHoaDon',
-    component: () => import('@/components/hoadon/ChiTietHoaDon.vue'),
-  },
+  
   {
     path: '/quan-li-tai-khoan',
     name: 'QuanLiTaiKhoan',
@@ -57,11 +53,6 @@ const routes = [
     component: () => import('@/views/dotgiamgia/AddDiscountCampaign.vue'),
   },
   { path: '/thong-ke', name: 'ThongKe', component: () => import('@/views/thongke/ThongKe.vue') },
-  {
-    path: '/quan-li-tra-hang',
-    name: 'QuanLiTraHang',
-    component: () => import('@/views/trahang/QuanLiTraHang.vue'),
-  },
   {
     path: '/quan-li-bao-hanh',
     name: 'QuanLiBaoHanh',

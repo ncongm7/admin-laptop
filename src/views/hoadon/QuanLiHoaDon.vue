@@ -106,11 +106,11 @@
         ĐÃ XÁC NHẬN
         <span class="badge-count">{{ statusCounts.confirmed }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'delivering' }"
+      <!-- <span class="status-tab" :class="{ active: activeStatusTab === 'delivering' }"
         @click="activeStatusTab = 'delivering'" v-if="statusCounts.delivering">
         CHỜ GIAO HÀNG
         <span class="badge-count">{{ statusCounts.delivering }}</span>
-      </span>
+      </span> -->
       <span class="status-tab" :class="{ active: activeStatusTab === 'shipping' }" @click="activeStatusTab = 'shipping'"
         v-if="statusCounts.shipping">
         ĐANG VẬN CHUYỂN
@@ -121,11 +121,7 @@
         HOÀN THÀNH
         <span class="badge-count">{{ statusCounts.delivered }}</span>
       </span>
-      <span class="status-tab" :class="{ active: activeStatusTab === 'done' }" @click="activeStatusTab = 'done'"
-        v-if="statusCounts.done">
-        HOÀN TẤT
-        <span class="badge-count">{{ statusCounts.done }}</span>
-      </span>
+
     </div>
 
     <!-- Table -->

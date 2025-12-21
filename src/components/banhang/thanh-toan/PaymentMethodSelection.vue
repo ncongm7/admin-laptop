@@ -35,13 +35,13 @@
             <strong>Khách thanh toán tại quầy</strong>
           </label>
         </div>
-        <div class="form-check">
+        <!-- <div class="form-check">
           <input class="form-check-input" type="radio" name="paymentMethodCash" id="paymentCOD" value="cod"
             v-model="paymentMethodCashComputed" :disabled="isProcessing" />
           <label class="form-check-label" for="paymentCOD">
             <strong>Người nhận thanh toán khi nhận hàng (COD)</strong>
           </label>
-        </div>
+        </div> -->
       </div>
 
       <!-- Input tiền khách đưa (chỉ hiện khi thanh toán tại quầy) -->

@@ -149,7 +149,7 @@
                           </div>
                         </td>
                       </tr>
-                      <tr>
+                      <!-- <tr>
                         <td class="text-muted">Thanh toán:</td>
                         <td>
                           <span :class="[
@@ -161,7 +161,7 @@
                             }}
                           </span>
                         </td>
-                      </tr>
+                      </tr> -->
                     </table>
                   </div>
                 </div>
