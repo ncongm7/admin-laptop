@@ -353,9 +353,9 @@
           <button type="button" class="btn btn-primary" @click="printInvoice">
             <i class="bi bi-printer"></i> In hóa đơn
           </button>
-          <button type="button" class="btn btn-info text-white" @click="openSendEmail">
+          <!-- <button type="button" class="btn btn-info text-white" @click="openSendEmail">
             <i class="bi bi-envelope"></i> Gửi email
-          </button>
+          </button> -->
         </div>
       </div>
     </div>
