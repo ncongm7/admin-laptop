@@ -20,12 +20,12 @@
       <!-- <label class="form-check-label" for="checkIndeterminateDisabled">
         Nhân viên chăm sóc/Bán hàng
       </label> -->
-      <select class="form-select form-select-sm" v-model="status">
+      <!-- <select class="form-select form-select-sm" v-model="status">
         <option value="">Nhân viên chăm sóc/Bán hàng</option>
         <option value="new">Nhân Viên 1</option>
         <option value="contacted">Nhân Viên 2</option>
         <option value="not_contacted">Nhân Viên 3</option>
-      </select>
+      </select> -->
     </div>
   </div>
 
@@ -106,7 +106,7 @@ export default {
   created() {
     // Khởi tạo toast composable
     const { error: showError } = useToast()
-    
+
     // Lưu vào this để sử dụng trong methods
     this.showError = showError
   },
@@ -127,7 +127,7 @@ export default {
         this.showError(errorMessage)
       }
     },
-    
+
     handleFilterChange() {
       // Emit event khi filter thay đổi
       this.$emit('search', {

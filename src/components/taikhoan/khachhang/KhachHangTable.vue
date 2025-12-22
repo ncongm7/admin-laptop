@@ -75,8 +75,8 @@ input[type='checkbox'] {
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <!-- Bên trái: Email + SMS -->
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-success">Email</button>
-        <button type="button" class="btn btn-success">SMS</button>
+        <!-- <button type="button" class="btn btn-success">Email</button>
+        <button type="button" class="btn btn-success">SMS</button> -->
       </div>
 
       <!-- Bên phải: Pagination + Select + Icon -->
@@ -107,7 +107,7 @@ input[type='checkbox'] {
           &gt;
         </button>
 
-        <select
+        <!-- <select
           class="form-select form-select-sm"
           style="width: 140px"
           v-model="pageSize"
@@ -117,8 +117,8 @@ input[type='checkbox'] {
           <option value="10">Hiển thị 10 kết quả</option>
           <option value="20">Hiển thị 20 kết quả</option>
           <option value="50">Hiển thị 50 kết quả</option>
-        </select>
-
+        </select> -->
+<!--
         <button class="btn btn-sm btn-outline-warning" title="Sinh nhật khách hàng">
           <img
             src="https://cdn-icons-png.flaticon.com/128/1244/1244336.png"
@@ -126,11 +126,11 @@ input[type='checkbox'] {
             width="16"
             height="16"
           />
-        </button>
+        </button> -->
       </div>
     </div>
 
-    <!-- 🟡 Modal chi tiết khách hàng -->
+    <!--  Modal chi tiết khách hàng -->
     <div v-if="showModal" class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.3)">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -251,8 +251,8 @@ export default {
 
         // Emit event để thông báo cho parent component về số lượng khách hàng
         // Nếu đang filter, dùng số lượng filtered, nếu không dùng total từ backend
-        const countToEmit = (this.taiKhoanFilter && this.taiKhoanFilter !== 'all') 
-          ? this.filteredCustomers.length 
+        const countToEmit = (this.taiKhoanFilter && this.taiKhoanFilter !== 'all')
+          ? this.filteredCustomers.length
           : (this.totalCustomers || this.customers.length)
         this.$emit('customers-updated', countToEmit)
       } catch (err) {
@@ -379,13 +379,13 @@ export default {
     },
     hasTaiKhoan(customer) {
       if (!customer) return false
-      
+
       // Kiểm tra xem khách hàng có tài khoản hay không
       // Ưu tiên kiểm tra hasTaiKhoan từ backend (Boolean)
       if (customer.hasTaiKhoan !== undefined && customer.hasTaiKhoan !== null) {
         return customer.hasTaiKhoan === true
       }
-      
+
       // Fallback: kiểm tra maTaiKhoan (object hoặc ID)
       if (customer.maTaiKhoan !== undefined && customer.maTaiKhoan !== null) {
         // Nếu là object, kiểm tra có id không
@@ -397,7 +397,7 @@ export default {
           return true
         }
       }
-      
+
       // Nếu không có cả hai, coi như chưa có tài khoản
       return false
     },

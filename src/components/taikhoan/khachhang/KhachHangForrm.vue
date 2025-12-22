@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <!-- 🔸 Form thông tin khách hàng -->
+    <!-- Form thông tin khách hàng -->
     <div class="row gy-2 gx-3 align-items-start">
       <!-- Cột trái -->
       <div class="col-md-6">
@@ -55,11 +55,11 @@
           <label class="form-label">Trạng thái</label>
           <div class="form-check">
             <input class="form-check-input" type="radio" :value="0" v-model="form.trangThai" />
-            <label class="form-check-label">Không hoạt động</label>
+            <label class="form-check-label">Chưa có tài khoản</label>
           </div>
           <div class="form-check">
             <input class="form-check-input" type="radio" :value="1" v-model="form.trangThai" />
-            <label class="form-check-label">Hoạt động</label>
+            <label class="form-check-label">Đã có tài khoản</label>
           </div>
         </div>
 

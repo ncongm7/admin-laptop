@@ -505,10 +505,20 @@ const sendMessage = async () => {
 
       // Gửi qua WebSocket (sẽ được xử lý bởi ChatWebSocketController)
       // Message sẽ được thêm từ WebSocket subscription, không cần thêm ở đây
+      console.log('📤 [ChatManagement] Sending staff message via WebSocket:', {
+        conversationId: messageData.conversationId,
+        khachHangId: messageData.khachHangId,
+        nhanVienId: messageData.nhanVienId,
+        content: messageData.noiDung.substring(0, 50),
+        isFromCustomer: messageData.isFromCustomer
+      })
+      
       stompClient.publish({
         destination: '/app/chat.send',
         body: JSON.stringify(messageData),
       })
+      
+      console.log('✅ [ChatManagement] Staff message published to /app/chat.send')
 
       // Clear input ngay
       newMessage.value = ''
