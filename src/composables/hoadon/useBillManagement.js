@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/taikhoan/authStore'
 import { useToast } from '@/composables/common/useToast'
@@ -336,17 +336,77 @@ export function useBillManagement() {
 
   /**
    * Load danh sách hóa đơn chờ
-   * KHÔNG CẦN GỌI API NỮA - chỉ khôi phục từ localStorage
-   * Hóa đơn chỉ tồn tại local cho đến khi thanh toán
+   * GỌI API để đồng bộ hóa đơn từ backend (Fix lỗi Ghost Invoice)
+   * Merge với hóa đơn TEMP local
    */
-  const loadDanhSachHoaDonCho = () => {
-    console.log('🔄 [LOCAL] Khôi phục danh sách hóa đơn từ localStorage...')
-
+  const loadDanhSachHoaDonCho = async () => {
+    isLoading.value = true
     try {
+      // 1. Khôi phục từ LocalStorage trước để hiển thị ngay (dù có thể cũ)
       restoreDraftsFromLocalStorage()
-      console.log('✅ [LOCAL] Đã load', danhSachHoaDonCho.value.length, 'hóa đơn local')
+
+      console.log('🔄 [SYNC] Đang đồng bộ hóa đơn từ Server...')
+
+      // 2. Gọi API lấy danh sách mới nhất từ Backend
+      const response = await layDanhSachHoaDonCho()
+
+      // Chuẩn hóa dữ liệu từ backend
+      const rawBackendBills = response.data || response || []
+      const backendBills = Array.isArray(rawBackendBills)
+          ? rawBackendBills.map(normalizeHoaDon)
+          : []
+
+      // 3. Merge Logic
+      // - Giữ lại tất cả hóa đơn TEMP (là đơn nháp chưa lưu server)
+      // - Thay thế toàn bộ đơn Server cũ bằng đơn Server mới (để cập nhật trạng thái/xoá đơn đã thanh toán nơi khác)
+      const currentBills = danhSachHoaDonCho.value
+      const tempBills = currentBills.filter(b => b.isLocal && b.id && b.id.toString().startsWith('TEMP_'))
+
+      // Danh sách mới = Temp Locals + Backend Bills
+      // Backend Bills được ưu tiên (Server is Truth)
+      const mergedBills = [...tempBills, ...backendBills]
+
+      // Cập nhật State
+      danhSachHoaDonCho.value = mergedBills
+
+      // Cập nhật lại hóa đơn hiện tại nếu cần
+      if (hoaDonHienTai.value) {
+        const currentId = hoaDonHienTai.value.id
+        const stillExists = mergedBills.find(b => b.id === currentId)
+
+        if (stillExists) {
+            // Nếu đơn hiện tại vẫn còn, update data mới nhất cho nó
+            // Chỉ update nếu không phải TEMP (TEMP thì local là nhất rồi)
+            if (!currentId.toString().startsWith('TEMP_')) {
+                 hoaDonHienTai.value = stillExists
+            }
+        } else {
+            // Nếu đơn hiện tại đã bị xóa trên server (hoặc thanh toán rồi), bỏ chọn
+            hoaDonHienTai.value = mergedBills[0] || null
+            if (currentId.toString().startsWith('TEMP_')) {
+                // Should not happen logic-wise if we kept tempBills, but safe guard
+            } else {
+                 showWarning('Hóa đơn đang xem đã được xử lý ở thiết bị khác.')
+            }
+        }
+      } else {
+          // Nếu chưa chọn gì, chọn đơn đầu tiên
+          if (mergedBills.length > 0) {
+              hoaDonHienTai.value = mergedBills[0]
+          }
+      }
+
+      // 4. Lưu lại merged list vào LocalStorage (cho lần sau hoặc offline)
+      saveDraftToLocalStorage()
+
+      console.log(`✅ [SYNC] Đồng bộ xong: ${backendBills.length} đơn từ Server + ${tempBills.length} đơn nháp Local`)
+
     } catch (error) {
-      console.error('❌ [LOCAL] Lỗi khi load hóa đơn local:', error)
+      console.error('❌ [SYNC] Lỗi khi đồng bộ hóa đơn:', error)
+      // Không show error quá gắt, vì vẫn còn local data để làm việc
+      // showError('Không thể đồng bộ với máy chủ. Kiểm tra kết nối mạng.')
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -680,7 +740,6 @@ export function useBillManagement() {
     ensureHoaDonTonTai,
     xoaHoaDonSauThanhToan,
     copyBill,
-    handleSaveDraft,
     startAutoSave,
     stopAutoSave,
   }

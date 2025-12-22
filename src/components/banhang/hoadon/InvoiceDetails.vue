@@ -84,7 +84,7 @@
                             </div>
 
                             <div class="item-total-action">
-                                <!-- 
+                                <!--
                                     TODO: Backend nên trả về thanhTien trong hoaDonChiTiet
                                     Hiện tại FE tính = donGia * soLuong (DB không có cột thanh_tien)
                                 -->
@@ -254,10 +254,10 @@
                                     <i class="bi bi-dash"></i>
                                 </button>
                                 <input type="number" class="form-control text-center" v-model.number="editQuantity"
-                                    :max="editingItem.soLuongTon" min="1" @input="validateEditQuantity"
+                                    :max="(editingItem.soLuong || 0) + (editingItem.soLuongTon || 0)" min="1" @input="validateEditQuantity"
                                     :disabled="isUpdating" />
                                 <button class="btn btn-outline-secondary" @click="increaseEditQuantity"
-                                    :disabled="editQuantity >= editingItem.soLuongTon || isUpdating">
+                                    :disabled="editQuantity >= ((editingItem.soLuong || 0) + (editingItem.soLuongTon || 0)) || isUpdating">
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
@@ -456,7 +456,9 @@ const closeEditQuantityModal = () => {
 }
 
 const increaseEditQuantity = () => {
-    if (editQuantity.value < editingItem.value.soLuongTon) {
+    // Max quantity = Current + Remaining (soLuongTon)
+    const maxQty = (editingItem.value.soLuong || 0) + (editingItem.value.soLuongTon || 0)
+    if (editQuantity.value < maxQty) {
         editQuantity.value++
         validateEditQuantity()
     }
@@ -478,16 +480,22 @@ const validateEditQuantity = () => {
         return
     }
 
-    if (editQuantity.value > editingItem.value.soLuongTon) {
+    // Max quantity = Current + Remaining
+    const maxQty = (editingItem.value.soLuong || 0) + (editingItem.value.soLuongTon || 0)
+
+    if (editQuantity.value > maxQty) {
         editQuantityError.value = `Số lượng không được vượt quá tồn kho (${editingItem.value.soLuongTon})`
-        editQuantity.value = editingItem.value.soLuongTon
+        editQuantity.value = maxQty
     }
 }
 
 const canUpdateQuantity = computed(() => {
-    return editingItem.value &&
-        editQuantity.value > 0 &&
-        editQuantity.value <= editingItem.value.soLuongTon &&
+    if (!editingItem.value) return false
+
+    const maxQty = (editingItem.value.soLuong || 0) + (editingItem.value.soLuongTon || 0)
+
+    return editQuantity.value > 0 &&
+        editQuantity.value <= maxQty &&
         editQuantity.value !== editingItem.value.soLuong &&
         !editQuantityError.value
 })
@@ -559,10 +567,10 @@ const handleImageError = (event) => {
 
 /**
  * Lấy serial numbers cho item (nếu có)
- * 
+ *
  * TODO: Backend cần trả về serialNumbers trong hoaDonChiTiet khi load hóa đơn đã thanh toán
  * Serial được lưu trong bảng serial_da_ban với id_hoa_don_chi_tiet
- * 
+ *
  * @param {Object} item - hoa_don_chi_tiet item
  * @returns {Array|null} - Danh sách serial numbers hoặc null
  */

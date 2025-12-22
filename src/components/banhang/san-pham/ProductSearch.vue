@@ -820,6 +820,28 @@ const openVariantModal = async (product) => {
     }
 }
 
+/**
+ * Refresh danh sách sản phẩm (giữ nguyên trang hiện tại)
+ * Được gọi từ parent component
+ */
+const refresh = async () => {
+    console.log('🔄 [ProductSearch] Refreshing list...')
+    if (keyword.value && keyword.value.trim().length >= 2) {
+        // Nếu đang tìm kiếm, gọi tìm kiếm lại (bypass debounce nếu muốn, hoặc gọi trực tiếp)
+        clearTimeout(searchTimeout)
+        await handleSearch(currentPage.value)
+    } else {
+        // Nếu đang xem danh sách tất cả
+        await loadSanPhamConHang(currentPage.value)
+    }
+}
+
+// Expose methods cho parent component
+defineExpose({
+    refresh,
+    handleSearch
+})
+
 const closeVariantModal = () => {
     showVariantModal.value = false
     selectedProduct.value = null

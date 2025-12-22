@@ -6,7 +6,7 @@
       <div class="header-actions">
 
 
-        <button class="btn btn-success btn-lg" @click="taoHoaDonMoi" :disabled="isLoading || daDatGioiHan"
+        <button class="btn btn-success btn-lg" @click="taoHoaDonMoiWrapper" :disabled="isLoading || daDatGioiHan"
           :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
           <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
           <span v-if="daDatGioiHan" class="badge bg-danger ms-2">Đã đầy</span>
@@ -21,8 +21,8 @@
         <div class="col-lg-3">
           <!-- Danh sách Hóa đơn chờ -->
           <TransactionTabs :bills="danhSachHoaDonCho" :selectedBillId="hoaDonHienTai?.id" :isCopying="isCopyingBill"
-            :copyingBillId="copyingBillId" @select-bill="chonHoaDon" @remove-bill="xoaHoaDonCho"
-            @create-new="taoHoaDonMoi" @copy-bill="handleCopyBill" />
+            :copyingBillId="copyingBillId" @select-bill="chonHoaDonWrapper" @remove-bill="xoaHoaDonCho"
+            @create-new="taoHoaDonMoiWrapper" @copy-bill="handleCopyBill" />
 
           <!-- Thông tin Khách hàng -->
           <CustomerInfo :customer="hoaDonHienTai.khachHang" @update:customer="handleUpdateCustomer"
@@ -31,12 +31,12 @@
 
         <!-- CỘT 2: Danh mục & Tìm kiếm Sản phẩm -->
         <div class="col-lg-5">
-          <ProductSearch @product-selected="handleProductSelected" @scan-imei="handleScanImei" />
+          <ProductSearch ref="productSearchRef" @product-selected="handleProductSelected" @scan-imei="handleScanImei" />
         </div>
 
         <!-- CỘT 3: Chi tiết Hóa đơn hiện tại -->
         <div class="col-lg-4">
-          <InvoiceDetails :hoaDon="hoaDonHienTai" @delete-item="handleDeleteItem" @apply-voucher="handleApplyVoucher"
+          <InvoiceDetails :hoaDon="hoaDonHienTai" @delete-item="handleDeleteItemWrapper" @apply-voucher="handleApplyVoucher"
             @use-points="handleUsePoints" @open-voucher-modal="openVoucherModal" @remove-voucher="handleRemoveVoucher"
             @complete-payment="openPaymentModal" @save-draft="handleSaveDraft" @cancel-bill="handleCancelBill"
             @update-item="handleUpdateItem" />
@@ -60,7 +60,7 @@
         <i class="bi bi-receipt"></i>
         <h4>Chưa có hóa đơn nào</h4>
         <p>Nhấn "Tạo Đơn Mới" để bắt đầu bán hàng</p>
-        <button class="btn btn-primary btn-lg" @click="taoHoaDonMoi" :disabled="daDatGioiHan"
+        <button class="btn btn-primary btn-lg" @click="taoHoaDonMoiWrapper" :disabled="daDatGioiHan"
           :title="daDatGioiHan ? 'Đã đạt giới hạn tối đa 10 hóa đơn chờ' : 'Tạo hóa đơn mới'">
           <i class="bi bi-plus-circle"></i> Tạo Đơn Mới
           <span v-if="daDatGioiHan" class="badge bg-danger ms-2">Đã đầy</span>
@@ -100,7 +100,7 @@
               <label class="form-label">Số lượng <span class="text-danger">*</span></label>
               <input type="number" class="form-control" v-model.number="soLuongNhap"
                 :max="selectedProduct?.soLuongTon || 99" min="1" placeholder="Nhập số lượng"
-                @keyup.enter="confirmAddProduct" ref="quantityInput" />
+                @keyup.enter="confirmAddProductWrapper" ref="quantityInput" />
               <small class="text-danger" v-if="soLuongNhap > (selectedProduct?.soLuongTon || 0)">
                 Số lượng vượt quá tồn kho!
               </small>
@@ -109,7 +109,7 @@
               <button type="button" class="btn btn-secondary" @click="closeQuantityModal">
                 Hủy
               </button>
-              <button type="button" class="btn btn-primary" @click="confirmAddProduct"
+              <button type="button" class="btn btn-primary" @click="confirmAddProductWrapper"
                 :disabled="soLuongNhap < 1 || soLuongNhap > (selectedProduct?.soLuongTon || 0)">
                 Xác nhận
               </button>
@@ -124,9 +124,6 @@
       @payment-confirmed="handlePaymentConfirmedWrapper" @hoa-don-updated="handleHoaDonUpdated" />
 
     <!-- Modal gợi ý voucher -->
-    <<<<<<< HEAD <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
-      @close="closeVoucherModal" @voucher-selected="handleVoucherSelected" />
-    =======
     <VoucherSuggestionModal :visible="showVoucherModal" :idHoaDon="hoaDonHienTai?.id"
       :customerId="hoaDonHienTai?.khachHang?.id || hoaDonHienTai?.khachHang?.userId" @close="closeVoucherModal"
       @voucher-selected="handleVoucherSelected" />
@@ -308,6 +305,40 @@ const invoicePrintRef = ref(null)
 const paidInvoicePrintRef = ref(null)
 const paidInvoice = ref(null) // Lưu hóa đơn vừa thanh toán để hiển thị preview
 const recentTransactionsRef = ref(null) // Ref cho RecentTransactions component
+const productSearchRef = ref(null) // Ref cho ProductSearch component
+
+// Wrapper để refresh ProductSearch sau khi thêm sản phẩm
+const confirmAddProductWrapper = async () => {
+  await confirmAddProduct()
+  // Refresh lại danh sách sản phẩm để cập nhật tồn kho
+  if (productSearchRef.value) {
+    productSearchRef.value.refresh()
+  }
+}
+
+// Wrapper để refresh sau khi xóa sản phẩm
+const handleDeleteItemWrapper = async (id, ten) => {
+  await handleDeleteItem(id, ten)
+  if (productSearchRef.value) {
+    productSearchRef.value.refresh()
+  }
+}
+
+// Wrapper để refresh sau khi chọn hóa đơn khác
+const chonHoaDonWrapper = async (bill) => {
+  await chonHoaDon(bill)
+  if (productSearchRef.value) {
+    productSearchRef.value.refresh()
+  }
+}
+
+// Wrapper tạo hóa đơn mới
+const taoHoaDonMoiWrapper = async () => {
+  await taoHoaDonMoi()
+  if (productSearchRef.value) {
+    productSearchRef.value.refresh()
+  }
+}
 
 // ==================== QUẢN LÝ VOUCHER & ĐIỂM TÍCH LŨY ====================
 const {
