@@ -151,17 +151,17 @@ export const deleteCTSP = (id) => {
 // Cascade delete CTSP with all related data (serials, images, etc.)
 export const deleteCTSPWithCascade = async (id) => {
   console.log('SanPhamService: Starting cascade delete for CTSP ID:', id)
-  
+
   try {
     // Step 1: Delete all serials for this variant
     try {
       console.log('SanPhamService: Deleting serials for CTSP ID:', id)
       const serialsResponse = await client.get(`/api/serial/ctsp/${id}`)
       const serials = serialsResponse.data || []
-      
+
       if (serials.length > 0) {
         console.log(`SanPhamService: Found ${serials.length} serials to delete`)
-        const deleteSerialPromises = serials.map(serial => 
+        const deleteSerialPromises = serials.map(serial =>
           client.delete(`/api/serial/${serial.id}`).catch(err => {
             console.warn('Failed to delete serial:', serial.id, err.message)
             return null
@@ -174,16 +174,16 @@ export const deleteCTSPWithCascade = async (id) => {
       console.warn('SanPhamService: Error deleting serials:', serialError.message)
       // Continue even if serial deletion fails
     }
-    
+
     // Step 2: Delete all images for this variant
     try {
       console.log('SanPhamService: Deleting images for CTSP ID:', id)
       const imagesResponse = await getHinhAnhByCtspId(id)
       const images = imagesResponse.data || []
-      
+
       if (images.length > 0) {
         console.log(`SanPhamService: Found ${images.length} images to delete`)
-        const deleteImagePromises = images.map(image => 
+        const deleteImagePromises = images.map(image =>
           client.delete(`/api/hinh-anh/${image.id}`).catch(err => {
             console.warn('Failed to delete image:', image.id, err.message)
             return null
@@ -196,12 +196,12 @@ export const deleteCTSPWithCascade = async (id) => {
       console.warn('SanPhamService: Error deleting images:', imageError.message)
       // Continue even if image deletion fails
     }
-    
+
     // Step 3: Now delete the variant
     console.log('SanPhamService: Deleting CTSP ID:', id)
     const result = await client.delete(`${CTSP_ROUTE}/${id}`)
     console.log('SanPhamService: Successfully deleted CTSP')
-    
+
     return result
   } catch (error) {
     console.error('SanPhamService: Error in cascade delete:', error)
@@ -347,7 +347,7 @@ export const createSerialsBatch = (payloadList) => {
 export const importSerialsFromExcel = (ctspId, file) => {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return client.post(`${SERIAL_ROUTE}/import-excel/${ctspId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -429,16 +429,16 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
       const productResponse = await createSanPham(productData)
       product = productResponse.data
     }
-    
+
     if (!variantConfigs || variantConfigs.length === 0) {
       return { product, variants: [], serials: [] }
     }
-    
+
     // Step 2: Create variants using the existing API
     // Use first preview variant price or default
-    const firstPreviewPrice = previewVariants && previewVariants.length > 0 ? 
+    const firstPreviewPrice = previewVariants && previewVariants.length > 0 ?
       (parseFloat(previewVariants[0].giaBan) || 1000000) : 1000000
-    
+
     const variantPayload = {
       idSanPham: product.id,
       giaBan: firstPreviewPrice, // Use first variant's price
@@ -454,33 +454,33 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
       selectedLoaiManHinhIds: variantConfigs[0].selectedLoaiManHinhIds || [],
       selectedPinIds: variantConfigs[0].selectedPinIds || []
     }
-    
+
     console.log('Creating variants with payload:', variantPayload)
     const variantsResponse = await taoBienTheSanPham(variantPayload)
     let variants = variantsResponse.data || []
     console.log('Created variants:', variants)
-    
+
     // Step 3: Update individual variant prices and properties based on preview data
     if (previewVariants && previewVariants.length > 0) {
       console.log('Matching variants with preview data...')
       console.log('Created variants:', variants.map(v => ({ id: v.id, maCtsp: v.maCtsp, giaBan: v.giaBan })))
       console.log('Preview variants:', previewVariants.map(p => ({ giaBan: p.giaBan, serials: p.serials?.length || 0 })))
-      
+
       // Match variants with preview variants based on attribute combination
       for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
         const variant = variants[i]
         const previewVariant = previewVariants[i]
-        
+
         console.log(`\n=== Updating variant ${i} ===`)
         console.log('Variant ID:', variant.id)
         console.log('Current price:', variant.giaBan)
         console.log('Target price:', previewVariant.giaBan)
         console.log('Serials count:', previewVariant.serials?.length || 0)
-        
+
         // Always update price from preview if it's different
         const targetPrice = parseFloat(previewVariant.giaBan) || 0
         const currentPrice = parseFloat(variant.giaBan) || 0
-        
+
         if (targetPrice !== currentPrice) {
           try {
             const updatePayload = {
@@ -499,7 +499,7 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
               idLoaiManHinh: variant.idLoaiManHinh,
               idPin: variant.idPin
             }
-            
+
             console.log(`Updating variant ${variant.id} price from ${variant.giaBan} to ${updatePayload.giaBan}`)
             const updatedVariant = await updateChiTietSanPham(variant.id, updatePayload)
             variants[i] = updatedVariant.data
@@ -515,50 +515,63 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
         }
       }
     }
-    
+
     // Step 3.5: Save images for each variant from preview data
     if (previewVariants && previewVariants.length > 0) {
       console.log('Saving variant images...')
       for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
         const variant = variants[i]
         const previewVariant = previewVariants[i]
-        
-        // Save variant image if provided
-        if (previewVariant.anhDaiDien) {
+
+        let imageRequests = []
+
+        // Handle multiple images if available
+        if (previewVariant.images && previewVariant.images.length > 0) {
+          imageRequests = previewVariant.images.map((url, index) => ({
+            idSpct: variant.id,
+            url: url,
+            anhChinhDaiDien: index === 0 // First image is main by default
+          }))
+        }
+        // Fallback to single anhDaiDien if images array is empty but anhDaiDien exists
+        else if (previewVariant.anhDaiDien) {
+          imageRequests.push({
+            idSpct: variant.id,
+            url: previewVariant.anhDaiDien,
+            anhChinhDaiDien: true
+          })
+        }
+
+        if (imageRequests.length > 0) {
           try {
-            const imageRequest = {
-              idSpct: variant.id,
-              url: previewVariant.anhDaiDien,
-              anhChinhDaiDien: true
-            }
-            await createHinhAnhBatch([imageRequest])
-            console.log(`✅ Saved image for variant ${variant.id}:`, previewVariant.anhDaiDien)
+            await createHinhAnhBatch(imageRequests)
+            console.log(`✅ Saved ${imageRequests.length} images for variant ${variant.id}`)
           } catch (imageError) {
-            console.warn(`❌ Failed to save image for variant ${variant.id}:`, imageError)
+            console.warn(`❌ Failed to save images for variant ${variant.id}:`, imageError)
           }
         }
       }
     }
-    
+
     // Step 4: Create serials for each variant based on preview data
     const allSerials = []
     if (previewVariants && previewVariants.length > 0) {
       for (let i = 0; i < variants.length && i < previewVariants.length; i++) {
         const variant = variants[i]
         const previewVariant = previewVariants[i]
-        
+
         if (previewVariant.serials && previewVariant.serials.length > 0) {
           const serialRequests = previewVariant.serials.map(serial => ({
             ctspId: variant.id,
             serialNo: serial.soSerial || serial,
             trangThai: serial.trangThai || 1
           }))
-          
+
           try {
             const serialsResponse = await createSerialsBatch(serialRequests)
             const createdSerials = serialsResponse.data || []
             allSerials.push(...createdSerials)
-            
+
             // Update variant stock count
             if (createdSerials.length > 0) {
               const stockUpdatePayload = {
@@ -577,7 +590,7 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
                 idLoaiManHinh: variant.idLoaiManHinh,
                 idPin: variant.idPin
               }
-              
+
               try {
                 const updatedVariant = await updateChiTietSanPham(variant.id, stockUpdatePayload)
                 variants[i] = updatedVariant.data
@@ -591,7 +604,7 @@ export const createProductWithVariantsAndSerials = async (productData, variantCo
         }
       }
     }
-    
+
     return {
       product,
       variants,

@@ -20,11 +20,14 @@
                                 </div>
 
                                 <!-- Image Gallery -->
-                                <div class="image-gallery mb-4">
-                                    <h6 class="section-title">Hình ảnh sản phẩm</h6>
+                                <div class="image-gallery mb-4" v-if="variantImages.length > 0">
+                                    <h6 class="section-title">Hình ảnh biến thể ({{ variantImages.length }})</h6>
                                     <div class="gallery-grid">
-                                        <div v-for="(image, index) in product.images" :key="index" class="gallery-item">
-                                            <img :src="image" class="img-thumbnail">
+                                        <div v-for="(image, index) in variantImages" :key="index" class="gallery-item-wrapper" :title="image.variantName">
+                                            <div class="gallery-item">
+                                                <img :src="image.url" class="img-thumbnail">
+                                            </div>
+                                            <div class="gallery-caption text-truncate">{{ image.variantName }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -162,6 +165,7 @@
 
 <script setup>
 import { formatCurrency } from '@/utils/helpers'
+import { computed } from 'vue'
 
 const props = defineProps({
     product: {
@@ -176,9 +180,33 @@ const getVariantName = (variant) => {
     const parts = []
     if (variant.ram) parts.push(variant.ram.dungLuong)
     if (variant.oCung) parts.push(variant.oCung.tenOCung)
-    if (variant.mauSac) parts.push(variant.mauSac.tenMau)
+    if (variant.mauSac) parts.push(typeof variant.mauSac === 'object' ? variant.mauSac.tenMau : variant.mauSac)
     return parts.join(' / ') || 'Biến thể không tên'
 }
+
+// Compute all images from variants
+const variantImages = computed(() => {
+    if (!props.product || !props.product.variants) return []
+
+    const images = []
+
+    // Safety check for variants array
+    if (Array.isArray(props.product.variants)) {
+        props.product.variants.forEach(variant => {
+            if (variant.hinhAnhs && Array.isArray(variant.hinhAnhs)) {
+                variant.hinhAnhs.forEach(img => {
+                    images.push({
+                        url: img.url,
+                        variantName: getVariantName(variant),
+                        isMain: img.anhChinhDaiDien
+                    })
+                })
+            }
+        })
+    }
+
+    return images
+})
 
 const stockClass = (stock) => {
     if (stock > 10) return 'bg-success'
@@ -250,6 +278,20 @@ const close = () => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.gallery-item-wrapper {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gallery-caption {
+    font-size: 10px;
+    color: #64748b;
+    text-align: center;
+    width: 100%;
 }
 
 .variants-list {
