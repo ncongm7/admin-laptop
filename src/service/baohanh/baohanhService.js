@@ -7,6 +7,44 @@ const API_BASE = '/api/v1/bao-hanh'
  */
 export const baohanhService = {
   /**
+   * Tạo yêu cầu bảo hành
+   * @param {Object} requestData - Dữ liệu yêu cầu
+   * @returns {Promise} Response
+   */
+  taoYeuCau(requestData) {
+    const formData = new FormData()
+
+    // Append required fields
+    if (requestData.idHoaDon) formData.append('idHoaDon', requestData.idHoaDon)
+    if (requestData.idKhachHang) formData.append('idKhachHang', requestData.idKhachHang)
+    if (requestData.idHoaDonChiTiet) formData.append('idHoaDonChiTiet', requestData.idHoaDonChiTiet)
+    if (requestData.idSerialDaBan) formData.append('idSerialDaBan', requestData.idSerialDaBan)
+    if (requestData.lyDoTraHang) formData.append('lyDoTraHang', requestData.lyDoTraHang)
+    if (requestData.tinhTrangLucTra) formData.append('tinhTrangLucTra', requestData.tinhTrangLucTra)
+    if (requestData.moTaTinhTrang) formData.append('moTaTinhTrang', requestData.moTaTinhTrang)
+    if (requestData.soLuong) formData.append('soLuong', requestData.soLuong)
+
+    // Append images
+    if (requestData.hinhAnh && requestData.hinhAnh.length > 0) {
+      requestData.hinhAnh.forEach((file) => {
+        formData.append('hinhAnh', file)
+      })
+    }
+
+    return axiosInstance.post(`${API_BASE}/tao-yeu-cau`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+      .then(response => {
+        if (response.data && response.data.data !== undefined) {
+          return response.data.data
+        }
+        return response.data
+      })
+  },
+
+  /**
    * Tiếp nhận sản phẩm bảo hành
    * @param {string} idBaoHanh - UUID của phiếu bảo hành
    * @param {Object} requestData - Dữ liệu tiếp nhận

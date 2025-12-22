@@ -13,9 +13,19 @@
             <span v-if="loading" class="spinner-border spinner-border-sm me-2" />
             Làm mới
           </button>
+          <button class="btn btn-primary" @click="showOfflineModal = true">
+            Tạo phiếu bảo hành
+          </button>
         </div>
       </div>
     </div>
+
+    <OfflineWarrantyModal
+      :visible="showOfflineModal"
+      @close="showOfflineModal = false"
+      @created="handleOfflineCreated"
+    />
+
 
     <div class="card mb-3">
       <div class="card-body">
@@ -125,6 +135,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import OfflineWarrantyModal from './OfflineWarrantyModal.vue'
 import WarrantyDetail from './WarrantyDetail.vue'
 import { getPhieuBaoHanh } from '@/service/baohanh/PhieuBaoHanhService'
 
@@ -134,6 +145,7 @@ const error = ref(null)
 const searchText = ref('')
 const statusFilter = ref('')
 const showDetail = ref(false)
+const showOfflineModal = ref(false)
 const selectedWarranty = ref(null)
 
 const shortId = (id) => {
@@ -279,6 +291,10 @@ const handleWarrantyUpdated = (updated) => {
       selectedWarranty.value = warranties.value[idx]
     }
   }
+}
+
+const handleOfflineCreated = () => {
+  fetchData()
 }
 
 onMounted(fetchData)
