@@ -74,7 +74,7 @@
                       <strong>Tên sản phẩm:</strong>
                       <span class="info-value">{{ selectedProduct?.tenSanPham }}</span>
                     </div>
-                   
+
                     <div class="info-row">
                       <strong>Ngày ra mắt:</strong>
                       <span class="info-value">{{ formatDate(selectedProduct?.ngayTao) }}</span>
@@ -100,8 +100,8 @@
                     <div class="info-row">
                       <strong>Hình ảnh sản phẩm ({{ allProductImages.length }}):</strong>
                       <div class="images-gallery">
-                        <div 
-                          v-if="allProductImages.length === 0" 
+                        <div
+                          v-if="allProductImages.length === 0"
                           class="image-container"
                         >
                           <img
@@ -111,8 +111,8 @@
                           />
                           <p class="text-muted text-center mt-2">Chưa có hình ảnh</p>
                         </div>
-                        <div 
-                          v-for="(image, index) in allProductImages" 
+                        <div
+                          v-for="(image, index) in allProductImages"
                           :key="index"
                           class="image-item"
                         >
@@ -211,28 +211,28 @@
                     <td>{{ formatDate(variant.updatedAt) || 'N/A' }}</td>
                     <td class="text-center actions-column">
                       <div class="btn-group btn-group-sm" role="group">
-                        <button 
-                          type="button" 
-                          class="btn btn-outline-info btn-sm" 
-                          @click="openSerialModal(variant)" 
+                        <button
+                          type="button"
+                          class="btn btn-outline-info btn-sm"
+                          @click="openSerialModal(variant)"
                           title="Quản lý serial"
                         >
                           <i class="bi bi-list-ol"></i>
                         </button>
-                        <button 
-                          type="button" 
-                          class="btn btn-outline-secondary btn-sm" 
-                          @click="editVariant(variant)" 
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          @click="editVariant(variant)"
                           title="Chỉnh sửa"
                         >
                           <i class="bi bi-pencil"></i>
                         </button>
-                        <button 
-                          type="button" 
-                          class="btn btn-outline-danger btn-sm" 
-                          @click="confirmDelete(variant.id)" 
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          @click="confirmDelete(variant.id)"
                           title="Xóa biến thể"
-                        >
+                        hidden>
                           <i class="bi bi-trash"></i>
                         </button>
                       </div>
@@ -248,13 +248,13 @@
   </div>
 
   <!-- Edit Variant Modal (Component) -->
-  <VariantEditModal 
+  <VariantEditModal
     ref="editModal"
     @updated="handleVariantUpdated"
   />
 
   <!-- Serial Management Modal -->
-  <SerialManagementModal 
+  <SerialManagementModal
     v-model="showSerialModal"
     :variant="currentVariantForSerial"
     @save="handleSerialSaved"
@@ -294,26 +294,26 @@ onMounted(async () => {
       console.error('Product ID is not available')
       return
     }
-    
+
     // Đảm bảo mảng variants đã được khởi tạo
     if (!productDetailStore.variants) {
       productDetailStore.variants = []
     }
-    
+
     // Luôn load lại attributes (CPU, RAM, v.v.) từ backend
     await productStore.loadAttributes()
-    
+
     // Gọi API lấy chi tiết sản phẩm trực tiếp từ backend theo productId
     const response = await getSanPhamById(productId.value)
     const detail = response.data || response
-    
+
     if (detail) {
       // Lưu chi tiết sản phẩm vào productDetailStore để dùng cho computed selectedProduct
       productDetailStore.productDetail = detail
     } else {
       console.warn('No product detail found for id:', productId.value)
     }
-    
+
     // Luôn tải danh sách biến thể từ backend dựa trên productId (không phụ thuộc vào store tạm)
     await fetchProductVariants(productId.value)
   } catch (error) {
@@ -329,12 +329,12 @@ const fetchProductVariants = async (productId) => {
   try {
     const response = await getCTSPBySanPham(productId)
     const data = response.data || response
-    
+
     if (Array.isArray(data)) {
       // Normalize the data structure and load images for each variant
       const variantsWithImages = await Promise.all(data.map(async (variant) => {
         let images = []
-        
+
         // Load images for this variant
         try {
           const imagesResponse = await getHinhAnhByCtspId(variant.id)
@@ -342,7 +342,7 @@ const fetchProductVariants = async (productId) => {
         } catch (err) {
           console.warn(`Failed to load images for variant ${variant.id}`)
         }
-        
+
         return {
           ...variant,
           images: images,
@@ -354,7 +354,7 @@ const fetchProductVariants = async (productId) => {
           } : null,
         }
       }))
-      
+
       productDetailStore.variants = variantsWithImages
     } else {
       productDetailStore.variants = []
@@ -379,7 +379,7 @@ const productVariants = computed(() => productDetailStore.variants || [])
 // Get all images from all variants
 const allProductImages = computed(() => {
   const images = []
-  
+
   // Add product main image if exists
   if (selectedProduct.value?.anhDaiDien) {
     images.push({
@@ -387,7 +387,7 @@ const allProductImages = computed(() => {
       source: 'product'
     })
   }
-  
+
   // Add all images from all variants
   if (productVariants.value && Array.isArray(productVariants.value)) {
     productVariants.value.forEach(variant => {
@@ -411,7 +411,7 @@ const allProductImages = computed(() => {
       }
     })
   }
-  
+
   return images
 })
 
@@ -421,7 +421,7 @@ const openSerialModal = async (variant) => {
   console.log('🔵 Setting currentVariantForSerial to:', variant)
   currentVariantForSerial.value = variant
   showSerialModal.value = true
-  
+
   // Debug: Check if variant is properly set
   setTimeout(() => {
     console.log('🔵 After setting - currentVariantForSerial.value:', currentVariantForSerial.value)
@@ -435,11 +435,11 @@ const handleSerialSaved = async ({ variantId, serials }) => {
   console.log('🔵 Serials length:', serials?.length || 0)
   console.log('🔵 First few serials:', serials?.slice(0, 3))
   console.log('🔵 This will close modal and reset currentVariantForSerial')
-  
+
   // Count only active serials (trangThai = 1)
   const activeSerialCount = (serials || []).filter(s => s.trangThai === 1).length
   console.log('Serials saved for variant:', variantId, 'Total:', serials?.length || 0, 'Active:', activeSerialCount)
-  
+
   // Update the specific variant's stock count immediately for better UX
   if (variantId && productDetailStore.variants) {
     const variantIndex = productDetailStore.variants.findIndex(v => v.id === variantId)
@@ -448,10 +448,10 @@ const handleSerialSaved = async ({ variantId, serials }) => {
       console.log('✅ Updated variant stock count locally:', variantId, 'New stock:', activeSerialCount)
     }
   }
-  
+
   showSerialModal.value = false
   currentVariantForSerial.value = null
-  
+
   // Reload variants to reflect updated stock count from backend
   await fetchProductVariants(productId.value)
 }
@@ -471,40 +471,40 @@ const handleVariantUpdated = async () => {
 // Delete variant function
 const confirmDelete = async (variantId) => {
   console.log('confirmDelete called with variantId:', variantId)
-  
+
   // Find the variant to get its details for confirmation
   const variant = productVariants.value.find(v => v.id === variantId)
   if (!variant) {
     alert('Không tìm thấy biến thể để xóa')
     return
   }
-  
+
   // Enhanced confirmation message with variant details
   const confirmMessage = `Bạn có chắc muốn xóa biến thể này?\n\nMã biến thể: ${variant.maCtsp}\nCấu hình: ${getVariantSpecs(variant)}\n\nLưu ý: Tất cả serial và dữ liệu liên quan sẽ bị xóa vĩnh viễn!`
-  
+
   if (confirm(confirmMessage)) {
     try {
       loading.value = true
       console.log('Deleting variant:', variantId)
-      
+
       // Call API to delete variant with cascade (this will delete serials and images first)
       await deleteCTSPWithCascade(variantId)
-      
+
       // Remove from local state immediately for better UX
       const variantIndex = productVariants.value.findIndex(v => v.id === variantId)
       if (variantIndex !== -1) {
         productDetailStore.variants.splice(variantIndex, 1)
       }
-      
+
       // Refresh data from server to ensure consistency
       await fetchProductVariants(productId.value)
-      
+
       alert('Đã xóa biến thể thành công!')
       console.log('Variant deleted successfully:', variantId)
-      
+
     } catch (error) {
       console.error('Error deleting variant:', error)
-      
+
       // Provide detailed error messages
       let errorMessage = 'Lỗi khi xóa biến thể'
       if (error.response?.data?.message) {
@@ -518,9 +518,9 @@ const confirmDelete = async (variantId) => {
       } else if (error.message) {
         errorMessage = error.message
       }
-      
+
       alert(errorMessage)
-      
+
       // Refresh data in case of partial deletion
       await fetchProductVariants(productId.value)
     } finally {
@@ -532,13 +532,13 @@ const confirmDelete = async (variantId) => {
 // Get variant specifications string
 const getVariantSpecs = (variant) => {
   if (!variant) return 'N/A'
-  
+
   const specs = []
   if (variant.tenCpu) specs.push(`CPU: ${variant.tenCpu}`)
   if (variant.tenRam) specs.push(`RAM: ${variant.tenRam}`)
   if (variant.tenGpu) specs.push(`GPU: ${variant.tenGpu}`)
   if (variant.tenMauSac) specs.push(`Màu: ${variant.tenMauSac}`)
-  
+
   return specs.length > 0 ? specs.join(', ') : 'N/A'
 }
 

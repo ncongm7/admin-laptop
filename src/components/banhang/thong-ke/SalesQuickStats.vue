@@ -118,7 +118,7 @@
                 <div class="product-meta">
                   <span class="text-muted small">Đã bán: {{ (product.soLuongDaBan || product.sold || 0).toLocaleString()
                   }}</span>
-                  <span class="text-success small ms-2">
+                  <span class="text-success small ms-2" hidden>
                     Doanh thu: {{ formatCurrency(product.doanhThu || product.revenue || 0) }}
                   </span>
                 </div>

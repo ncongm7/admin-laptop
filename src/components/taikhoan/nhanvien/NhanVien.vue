@@ -25,7 +25,7 @@
           <button class="btn btn-outline" @click="resetFilter">Đặt lại bộ lọc</button>
           <button class="btn btn-success" @click="openAdd">Thêm Nhân Viên</button>
           <button class="btn btn-outline" @click="exportCsv">Xuất Excel</button>
-          <button class="btn btn-outline" @click="triggerImport">Nhập từ Excel</button>
+          <button class="btn btn-outline" @click="triggerImport" hidden>Nhập từ Excel</button>
           <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" @change="handleFile" style="display: none" />
         </div>
       </div>
