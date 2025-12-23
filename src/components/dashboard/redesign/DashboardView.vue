@@ -56,7 +56,7 @@
                 <CashFlowWidget :data="cashFlowStats || {}" />
 
                 <!-- Placeholder for Activity Log if we had one -->
-                <div class="log-placeholder">
+                <div class="log-placeholder" hidden="">
                     <h3>📜 Nhật Ký Hoạt Động</h3>
                     <!-- <p class="text-muted">Đang phát triển...</p> -->
                 </div>

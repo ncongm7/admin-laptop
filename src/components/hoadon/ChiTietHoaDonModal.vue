@@ -181,7 +181,7 @@
                     <th style="width: 50px">#</th>
                     <th style="min-width: 200px">Mã CTSP & Thông tin</th>
                     <th style="min-width: 250px">Tên sản phẩm</th>
-                    <th style="min-width: 150px">Thông số biến thể</th>
+                    <th style="min-width: 150px" hidden="">Thông số biến thể</th>
                     <th class="text-center" style="width: 100px">SL</th>
                     <th class="text-end" style="width: 120px">Đơn giá</th>
                     <th class="text-end" style="width: 120px">Thành tiền</th>
@@ -205,7 +205,7 @@
                         <strong>{{ item.tenSanPham || item.tenSP || 'N/A' }}</strong>
                       </div>
                     </td>
-                    <td>
+                    <td hidden="">
                       <!-- Thông số biến thể -->
                       <div v-if="getCTSPSpecs(item)" class="ctsp-specs-cell">
                         <div class="spec-item-small" v-if="getCTSPSpecs(item).cpu">

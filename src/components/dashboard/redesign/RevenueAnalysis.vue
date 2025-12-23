@@ -1,5 +1,5 @@
 <template>
-    <div class="analysis-grid">
+    <div class="analysis-grid" hidden="">
         <!-- Chart: Doanh Thu Theo Kênh -->
         <div class="chart-card">
             <h3>📈 Phân Tích Kênh Bán Hàng</h3>
