@@ -13,7 +13,7 @@
             </div>
             <div class="card-body">
                 <div class="main-value">{{ formatCurrency(stats?.doanhThuThuc) }}</div>
-                <div class="breakdown">
+                <div class="breakdown" hidden="">
                     <div class="breakdown-item">
                         <i class="bi bi-cash"></i> {{ formatCurrency(stats?.tienMatTaiQuay) }}
                     </div>

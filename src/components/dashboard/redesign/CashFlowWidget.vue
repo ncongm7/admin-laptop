@@ -7,7 +7,7 @@
 
         <div class="flow-container">
             <!-- Input: Sources -->
-            <div class="flow-column">
+            <div class="flow-column" hidden="">
                 <div class="node cash">
                     <span class="label">Tiền Mặt</span>
                     <span class="amount">{{ formatCurrency(data?.tienMatVe) }}</span>
@@ -23,12 +23,12 @@
             </div>
 
             <!-- Process: Funnel -->
-            <div class="flow-connect">
+            <div class="flow-connect" hidden="">
                 <div class="arrow">⬇</div>
             </div>
 
             <!-- Output: Total Received -->
-            <div class="flow-total received">
+            <div class="flow-total received" hidden="">
                 <div class="icon">✅</div>
                 <div class="details">
                     <div class="title">Thực Nhận</div>

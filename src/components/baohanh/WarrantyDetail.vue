@@ -343,13 +343,13 @@
                           <i class="bi bi-calendar-plus me-1"></i>
                           {{ phieuHenList.length > 0 ? 'Tạo phiếu hẹn mới' : 'Tạo phiếu hẹn' }}
                         </button>
-                        <button class="btn btn-info" @click="openReceiveModal">
+                        <button class="btn btn-info" @click="openReceiveModal" hidden="">
                           <i class="bi bi-box-seam me-1"></i>Tiếp nhận sản phẩm
                         </button>
-                        <button class="btn btn-warning" @click="openAddCostModal">
+                        <button class="btn btn-warning" @click="openAddCostModal" hidden="">
                           <i class="bi bi-cash-coin me-1"></i>Thêm chi phí phát sinh
                         </button>
-                        <button class="btn btn-success" @click="openHandoverModal">
+                        <button class="btn btn-success" @click="openHandoverModal" hidden="">
                           <i class="bi bi-box-arrow-right me-1"></i>Bàn giao sản phẩm
                         </button>
                       </div>

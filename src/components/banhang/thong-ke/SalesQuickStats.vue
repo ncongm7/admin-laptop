@@ -26,7 +26,7 @@
       <div v-else>
         <!-- Summary Cards -->
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-md-4" hidden="">
             <div class="stat-card revenue">
               <div class="stat-icon">
                 <i class="bi bi-currency-dollar"></i>
@@ -58,7 +58,7 @@
             </div>
           </div>
 
-          <div class="col-md-4">
+          <div class="col-md-4" hidden="">
             <div class="stat-card average">
               <div class="stat-icon">
                 <i class="bi bi-calculator"></i>
@@ -75,12 +75,12 @@
         </div>
 
         <!-- Chart Section -->
-        <div class="chart-section mb-4">
+        <div class="chart-section mb-4" hidden="">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="section-title mb-0">
               <i class="bi bi-bar-chart"></i> Doanh thu hôm nay
             </h6>
-            <div class="chart-info">
+            <div class="chart-info" hidden="">
               <small class="text-muted">
                 <i class="bi bi-info-circle"></i>
                 Tổng: <strong>{{ formatCurrency(stats.todayRevenue) }}</strong>

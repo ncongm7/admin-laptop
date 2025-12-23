@@ -71,8 +71,8 @@
               <tr>
                 <th style="width: 130px">Mã phiếu</th>
                 <th>Khách hàng</th>
-                <th>Sản phẩm</th>
-                <th>Serial/IMEI</th>
+                <th hidden="">Sản phẩm</th>
+                <th>Serial</th>
                 <th>Ngày bắt đầu</th>
                 <th>Ngày kết thúc</th>
                 <th class="text-center">Trạng thái</th>
@@ -99,7 +99,7 @@
                     {{ item.soDienThoai || item.customerPhone || '—' }}
                   </div>
                 </td>
-                <td>
+                <td hidden="">
                   <div class="fw-semibold">{{ item.tenSanPham || item.productName || 'N/A' }}</div>
                   <div class="text-muted small">{{ item.maSanPham || item.productCode || '' }}</div>
                 </td>

@@ -185,7 +185,7 @@
                     <th class="text-center" style="width: 100px">SL</th>
                     <th class="text-end" style="width: 120px">Đơn giá</th>
                     <th class="text-end" style="width: 120px">Thành tiền</th>
-                    <th>Serial/IMEI</th>
+                    <th>Serial</th>
                   </tr>
                 </thead>
                 <tbody>
