@@ -127,7 +127,7 @@
                               :src="warranty.productImage || defaultProductImage"
                               class="rounded me-3"
                               width="60"
-                              height="60"
+                              height="60" hidden
                             />
                             <div>
                               <h5 class="mb-0">
@@ -154,7 +154,7 @@
                               :src="warranty.customerAvatar || defaultAvatar"
                               class="rounded-circle me-3"
                               width="60"
-                              height="60"
+                              height="60" hidden
                             />
                             <div>
                               <h5 class="mb-0">

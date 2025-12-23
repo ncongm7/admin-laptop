@@ -79,7 +79,7 @@
             <textarea v-model="formData.moTaTinhTrang" rows="2"></textarea>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" hidden>
              <label>Hình ảnh (Tùy chọn)</label>
              <input type="file" multiple @change="handleFileUpload" accept="image/*" />
              <div class="preview-images" v-if="previewImages.length">

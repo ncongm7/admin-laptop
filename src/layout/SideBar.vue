@@ -29,7 +29,7 @@
       </ul>
     </nav>
 
-    
+
   </aside>
 </template>
 
@@ -45,25 +45,25 @@ const isMobile = ref(false)
 
 // Menu items data
 const menuItems = ref([
-  { 
+  {
     id: 'home',
     icon: 'bi-house-door',
     label: 'Trang chủ',
     to: '/'
   },
-  { 
+  {
     id: 'sales',
     icon: 'bi-cart-check',
     label: 'Bán hàng',
     to: '/ban-hang'
   },
-  { 
+  {
     id: 'invoices',
     icon: 'bi-receipt-cutoff',
     label: 'Quản lý hóa đơn',
     to: '/quan-li-hoa-don'
   },
-  { 
+  {
     id: 'products',
     icon: 'bi-box-seam',
     label: 'Quản lý sản phẩm',
@@ -73,13 +73,13 @@ const menuItems = ref([
       { id: 'product-attributes', icon: 'bi-gear', label: 'Thuộc tính sản phẩm', to: '/thuoc-tinh-san-pham' }
     ]
   },
-  { 
+  {
     id: 'accounts',
     icon: 'bi-people',
     label: 'Quản lý tài khoản',
     to: '/quan-li-tai-khoan'
   },
-  { 
+  {
     id: 'discounts',
     icon: 'bi-percent',
     label: 'Quản lý giảm giá',
@@ -88,19 +88,19 @@ const menuItems = ref([
       { id: 'vouchers', icon: 'bi-ticket-perforated', label: 'Quản lý phiếu giảm giá', to: '/quan-li-phieu-giam-gia' }
     ]
   },
-  { 
+  {
     id: 'warranty',
     icon: 'bi-shield-check',
     label: 'Quản lý bảo hành',
     to: '/quan-li-bao-hanh'
   },
-  // { 
+  // {
   //   id: 'returns',
   //   icon: 'bi-arrow-counterclockwise',
   //   label: 'Quản lý trả hàng',
   //   to: '/quan-li-tra-hang'
   // },
-  { 
+  {
     id: 'chat',
     icon: 'bi-chat-dots',
     label: 'Quản lý chat',
@@ -112,17 +112,17 @@ const menuItems = ref([
 const filteredMenuItems = computed(() => {
   const isAdmin = authStore.isAdmin
   const isNhanVien = authStore.isNhanVien
-  
+
   // Nếu chưa đăng nhập, không hiển thị menu
   if (!authStore.isAuthenticated) {
     return []
   }
-  
+
   // Admin: Hiển thị tất cả menu
   if (isAdmin) {
     return menuItems.value
   }
-  
+
   // Nhân viên: Hiển thị menu nhưng "Quản lý tài khoản" vẫn hiển thị (sẽ route khác trong component)
   // Có thể ẩn một số menu nhạy cảm nếu cần
   return menuItems.value.filter(item => {
@@ -168,7 +168,7 @@ if (window) {
   color: #111;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 0.95rem;
-  z-index: 1100;
+  z-index: 1000;
 }
 
 .sidebar-collapsed {

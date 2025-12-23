@@ -11,7 +11,7 @@
         </div>
         <div class="modal-body">
           <form @submit.prevent="handleSubmit">
-            <div class="mb-3">
+            <div class="mb-3" hidden>
               <label class="form-label">Upload ảnh tình trạng sản phẩm</label>
               <input
                 type="file"
